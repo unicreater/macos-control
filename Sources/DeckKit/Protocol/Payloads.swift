@@ -62,12 +62,21 @@ public struct PairResult: Codable, Hashable, Sendable {
     public var accepted: Bool
     /// Present only on success — a rejected attempt reveals nothing and stores nothing.
     public var identity: DeviceIdentity?
+    /// The long-term key this phone uses for every later connection. Handed over once,
+    /// on the PIN-authenticated channel, and never sent again. Success only.
+    public var sessionSecret: Data?
     /// Tries the agent will still accept, so the phone's counter matches the Mac's.
     public var attemptsRemaining: Int?
 
-    public init(accepted: Bool, identity: DeviceIdentity? = nil, attemptsRemaining: Int? = nil) {
+    public init(
+        accepted: Bool,
+        identity: DeviceIdentity? = nil,
+        sessionSecret: Data? = nil,
+        attemptsRemaining: Int? = nil
+    ) {
         self.accepted = accepted
         self.identity = identity
+        self.sessionSecret = sessionSecret
         self.attemptsRemaining = attemptsRemaining
     }
 
@@ -75,8 +84,8 @@ public struct PairResult: Codable, Hashable, Sendable {
         PairResult(accepted: false, attemptsRemaining: attemptsRemaining)
     }
 
-    public static func accepted(identity: DeviceIdentity) -> PairResult {
-        PairResult(accepted: true, identity: identity)
+    public static func accepted(identity: DeviceIdentity, sessionSecret: Data) -> PairResult {
+        PairResult(accepted: true, identity: identity, sessionSecret: sessionSecret)
     }
 }
 

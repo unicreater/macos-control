@@ -108,7 +108,65 @@ less so after M3 builds screens on them.
 
 ---
 
+## M2 — Mac agent MVP · implemented, pending verification
+
+Delivers FR-1, FR-2, FR-3, FR-19. **This is the highest-risk milestone in the repo**:
+it is the first code touching Network.framework and the Keychain, and none of it has
+been compiled. Expect the failures here to be API-shape mistakes, not logic.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M2.1 | Build `NosoDeckMac` | Compiles | ☐ |
+| M2.2 | Run it | Grid glyph in the menu bar, no Dock icon | ☐ |
+| M2.3 | Open the menu, unpaired | "Waiting for your iPhone", a 6-digit PIN shown as `482 913`, **New PIN**, **Quit** | ☐ |
+| M2.4 | Click **New PIN** | Digits change; the menu still says it is advertising | ☐ |
+| M2.5 | `dns-sd -B _nosodeck._tcp` in Terminal | The service appears under this Mac's name (FR-1) | ☐ |
+| M2.6 | `dns-sd -L "<name>" _nosodeck._tcp` | TXT record carries `did`, `name`, `v=1` | ☐ |
+| M2.7 | Quit and relaunch the agent | Same `did` in the TXT record — the Keychain identity persisted | ☐ |
+| M2.8 | Pair from the M3 phone build with the right PIN | Menu switches to "Connected — <phone>"; phone appears under **Forget** | ☐ |
+| M2.9 | Force-quit both apps, relaunch both | Reconnects with no PIN prompt (FR-2) | ☐ |
+| M2.10 | Pair with a wrong PIN | Handshake fails, no trust stored, menu unchanged | ☐ |
+| M2.11 | **Forget <phone>**, then reconnect | Phone needs the PIN again (FR-5, Mac side) | ☐ |
+| M2.12 | Console.app, filter "nosodeck" | No Keychain `OSStatus` errors on first launch | ☐ |
+
+M2.8–M2.11 need the M3 phone build; everything above them can be checked with the
+agent alone.
+
+### The one architectural decision here, which is worth a look
+
+Transport auth uses **TLS pre-shared keys, not certificate pinning**. The PRD says
+"pinned peer public keys", but generating a self-signed X.509 identity at runtime has
+no public API on either OS — it would mean hand-assembling DER and signing with
+`SecKey`. PSK reaches the same guarantee by a supported route:
+
+- The **pairing** connection is authenticated by `HMAC-SHA256(PIN, context:deviceID)`.
+  Getting the PIN wrong fails the TLS handshake outright.
+- Every **later** connection uses a 256-bit secret the agent mints at pairing and hands
+  over once, on that PIN-authenticated channel. A Mac that does not hold the secret
+  cannot complete the handshake — which is a stronger reading of FR-3 than "is shown as
+  unpaired".
+- `DeviceIdentity.publicKeyHash` carries an HMAC fingerprint of the agent's long-term
+  secret. Safe to display, changes on reinstall.
+
+Known limit, accepted for v1: a six-digit PIN as a PSK is offline-brute-forceable by
+someone who captures the pairing handshake on the local network at the moment of
+pairing. Mitigated by the PIN being single-use — it rotates after a successful pair and
+after three failures. Apple's own peer-to-peer sample takes the same approach. Say so
+if you want this hardened before submission.
+
+### Other M2 notes
+
+- The listener's acceptable keys are fixed when it starts, so pairing, unpairing and
+  PIN rotation all rebuild it. Live sessions survive; only the advertised socket is
+  replaced.
+- Phone display names live in `UserDefaults`; only keys go in the Keychain.
+- The Mac cannot count wrong-PIN attempts, because a wrong PIN never completes a
+  handshake and so never reaches the app layer. The attempt counter the design calls
+  for (S3, "2 tries left") is phone-side, which is where it is displayed anyway.
+
+---
+
 ## Milestones not yet implemented
 
-M2–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M3–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

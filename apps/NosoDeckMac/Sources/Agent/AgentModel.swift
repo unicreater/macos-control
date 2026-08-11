@@ -1,0 +1,286 @@
+import DeckKit
+import Foundation
+import Network
+import Observation
+
+/// A phone this Mac trusts.
+struct PairedPhone: Identifiable, Hashable, Sendable {
+    var deviceID: String
+    var name: String
+    var id: String { deviceID }
+}
+
+/// What the menu bar reports about the listener (FR-19).
+enum AgentStatus: Equatable, Sendable {
+    case starting
+    case advertising
+    case connected(phoneName: String)
+    case failed(String)
+
+    var menuDescription: String {
+        switch self {
+        case .starting: return "Starting…"
+        case .advertising: return "Waiting for your iPhone"
+        case .connected(let phoneName): return "Connected — \(phoneName)"
+        case .failed(let reason): return "Not running — \(reason)"
+        }
+    }
+}
+
+/// The agent itself: identity, PIN, listener, and the connected sessions.
+///
+/// Everything is main-actor isolated. The Network.framework callbacks are all delivered
+/// on the main queue, so there is no cross-thread state here to protect.
+@MainActor
+@Observable
+final class AgentModel {
+    private(set) var status: AgentStatus = .starting
+    /// The six digits shown in the menu while no phone is paired (FR-19).
+    private(set) var pin: PairingPIN
+    private(set) var pairedPhones: [PairedPhone] = []
+
+    private let identityStore: AgentIdentityStore
+    private let listener = DeckListener()
+    private var sessions: [AgentSession] = []
+    /// Failed PIN attempts since the last rotation.
+    private var failedAttempts = 0
+
+    private static let phoneNamesDefaultsKey = "com.noso.nosodeck.pairedPhoneNames"
+
+    init(identityStore: AgentIdentityStore = AgentIdentityStore()) {
+        self.identityStore = identityStore
+        self.pin = PairingPIN.random()
+        self.pairedPhones = Self.loadPairedPhones(identityStore: identityStore)
+    }
+
+    /// This Mac's name, as it appears in the phone's device list.
+    var serviceName: String {
+        Host.current().localizedName ?? ProcessInfo.processInfo.hostName
+    }
+
+    var isPaired: Bool { !pairedPhones.isEmpty }
+
+    var isConnected: Bool {
+        if case .connected = status { return true }
+        return false
+    }
+
+    // MARK: - Lifecycle
+
+    func start() {
+        listener.onStateChange = { [weak self] state in
+            self?.handleListenerState(state)
+        }
+        listener.onConnection = { [weak self] connection in
+            self?.adopt(connection: connection)
+        }
+        restartListener()
+    }
+
+    func stop() {
+        for session in sessions {
+            session.connection.cancel()
+        }
+        sessions.removeAll()
+        listener.stop()
+    }
+
+    /// Rebuilds the listener around the current key set.
+    ///
+    /// The acceptable keys are fixed when the listener starts, so pairing, unpairing,
+    /// and rotating the PIN all have to come through here. Live sessions survive it —
+    /// only the advertised socket is replaced.
+    private func restartListener() {
+        var keys = [PresharedKey(
+            identity: DeckService.pairingKeyIdentity,
+            key: DeckTransport.pairingKey(pin: pin, deviceID: identityStore.deviceID)
+        )]
+        for (phoneID, secret) in identityStore.pairedPhones() {
+            keys.append(PresharedKey(identity: phoneID, key: secret))
+        }
+
+        do {
+            try listener.restart(
+                serviceName: serviceName,
+                deviceID: identityStore.deviceID,
+                keys: keys
+            )
+        } catch {
+            status = .failed(error.localizedDescription)
+        }
+    }
+
+    private func handleListenerState(_ state: NWListener.State) {
+        switch state {
+        case .ready:
+            if !sessions.contains(where: { $0.isPaired }) {
+                status = .advertising
+            }
+        case .failed(let error):
+            status = .failed(error.localizedDescription)
+        case .cancelled:
+            break
+        default:
+            break
+        }
+    }
+
+    // MARK: - Sessions
+
+    private func adopt(connection: PeerConnection) {
+        let session = AgentSession(connection: connection)
+        sessions.append(session)
+
+        connection.onEnvelope = { [weak self, weak session] envelope in
+            guard let self, let session else { return }
+            self.handle(envelope, from: session)
+        }
+        connection.onStateChange = { [weak self, weak session] state in
+            guard let self, let session else { return }
+            switch state {
+            case .failed, .cancelled:
+                self.discard(session)
+            default:
+                break
+            }
+        }
+        connection.onError = { [weak self, weak session] _ in
+            // A link that failed before saying hello is not worth diagnosing in the
+            // menu bar. One that already introduced itself is left alone to retry —
+            // FR-4 covers what the user sees while it does.
+            guard let self, let session, session.hello == nil else { return }
+            self.discard(session)
+        }
+        connection.start()
+    }
+
+    private func discard(_ session: AgentSession) {
+        session.connection.cancel()
+        sessions.removeAll { $0 === session }
+        refreshStatus()
+    }
+
+    private func refreshStatus() {
+        if let name = sessions.compactMap({ $0.isPaired ? $0.phoneName : nil }).first {
+            status = .connected(phoneName: name)
+        } else if listener.isRunning {
+            status = .advertising
+        }
+    }
+
+    // MARK: - Protocol
+
+    private func handle(_ envelope: Envelope, from session: AgentSession) {
+        switch envelope.message {
+        case .hello(let hello):
+            let paired = identityStore.isPaired(phoneID: hello.deviceID)
+            session.adopt(hello: hello, isPaired: paired)
+            session.connection.send(envelope.reply(.helloAck(HelloAck(
+                identity: identityStore.identity(name: serviceName),
+                isPaired: paired
+            ))))
+
+            if hello.protocolVersion != DeckKitVersion.wireProtocol {
+                // The ack above tells the phone which version this agent speaks, which
+                // is the only useful thing left to say before hanging up.
+                discard(session)
+                return
+            }
+            if paired {
+                rememberName(hello.deviceName, forPhoneID: hello.deviceID)
+                refreshStatus()
+            }
+
+        case .pairRequest(let request):
+            handlePairRequest(request, envelope: envelope, session: session)
+
+        case .ping:
+            session.connection.send(envelope.reply(.pong))
+
+        default:
+            // Catalog, actions and state events arrive with M4 onward.
+            break
+        }
+    }
+
+    private func handlePairRequest(_ request: PairRequest, envelope: Envelope, session: AgentSession) {
+        guard let hello = session.hello else {
+            // A pair request before hello: nothing to pair with.
+            discard(session)
+            return
+        }
+
+        guard request.pin == pin.digits else {
+            failedAttempts += 1
+            let remaining = max(PairingMachine.maxAttempts - failedAttempts, 0)
+            session.connection.send(envelope.reply(.pairResult(.rejected(attemptsRemaining: remaining))))
+            if remaining == 0 {
+                // Out of tries: a fresh PIN, so a guesser has to start over and the
+                // menu shows the user something new to type.
+                rotatePIN()
+            }
+            return
+        }
+
+        let secret = identityStore.pair(phoneID: hello.deviceID)
+        rememberName(hello.deviceName, forPhoneID: hello.deviceID)
+        session.markPaired()
+
+        session.connection.send(envelope.reply(.pairResult(.accepted(
+            identity: identityStore.identity(name: serviceName),
+            sessionSecret: secret
+        ))))
+
+        // A used PIN is spent. Rotating also rebuilds the listener, which is what
+        // registers this phone's new key for its next connection.
+        rotatePIN()
+        refreshStatus()
+    }
+
+    // MARK: - Pairing administration
+
+    /// Mints a new PIN and rebuilds the listener around it.
+    func rotatePIN() {
+        failedAttempts = 0
+        pin = PairingPIN.random()
+        pairedPhones = Self.loadPairedPhones(identityStore: identityStore)
+        restartListener()
+    }
+
+    /// Drops a phone's key. It needs the PIN again to come back (FR-5, Mac side).
+    func unpair(phoneID: String) {
+        identityStore.unpair(phoneID: phoneID)
+        var names = Self.storedNames()
+        names.removeValue(forKey: phoneID)
+        UserDefaults.standard.set(names, forKey: Self.phoneNamesDefaultsKey)
+
+        for session in sessions where session.phoneID == phoneID {
+            discard(session)
+        }
+        rotatePIN()
+    }
+
+    // MARK: - Names
+    //
+    // Phone display names are convenience, not security, so they live in UserDefaults
+    // while the keys that matter stay in the Keychain.
+
+    private func rememberName(_ name: String, forPhoneID phoneID: String) {
+        var names = Self.storedNames()
+        guard names[phoneID] != name else { return }
+        names[phoneID] = name
+        UserDefaults.standard.set(names, forKey: Self.phoneNamesDefaultsKey)
+        pairedPhones = Self.loadPairedPhones(identityStore: identityStore)
+    }
+
+    private static func storedNames() -> [String: String] {
+        UserDefaults.standard.dictionary(forKey: phoneNamesDefaultsKey) as? [String: String] ?? [:]
+    }
+
+    private static func loadPairedPhones(identityStore: AgentIdentityStore) -> [PairedPhone] {
+        let names = storedNames()
+        return identityStore.pairedPhones().keys
+            .map { PairedPhone(deviceID: $0, name: names[$0] ?? "iPhone") }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+}

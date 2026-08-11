@@ -246,7 +246,14 @@ with a degraded path), `recents`.
 ### Persistence
 - Deck layout: versioned Codable JSON in the iOS app's Application Support (models in
   DeckKit so the Mac can render/edit later).
-- Trust: pinned peer public keys + device identity in each platform's Keychain.
+- Trust: pinned peer identity + shared key in each platform's Keychain. **Implementation
+  note (M2):** transport authentication uses TLS pre-shared keys rather than a pinned
+  self-signed certificate — neither OS exposes a public API for generating an X.509
+  identity at runtime. Pairing runs over a key derived from the PIN; every later
+  connection over a 256-bit secret the agent mints at pairing, so a Mac that lacks the
+  secret cannot complete the handshake at all. `DeviceIdentity.publicKeyHash` therefore
+  carries an HMAC fingerprint of the agent's long-term secret. See
+  `apps/Shared/DeckTransport.swift` and `docs/VERIFY.md` §M2.
 - Premium entitlement: StoreKit 2 current-entitlement, cached.
 
 ### Permission / entitlement plan (Mac agent, all MAS-legal)
@@ -286,6 +293,8 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
 - [ ] **M2 — Mac agent MVP.** Menu bar app, Bonjour advertise, TLS listener, PIN
   display, pairing handshake, Keychain trust store. Delivers: FR-1, FR-2, FR-3, FR-19.
   *Verify: owner pairs from the M3 phone build (or the included CLI test client).*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M2. Carries the
+  TLS-PSK decision noted in §5.
 - [ ] **M3 — iOS app MVP.** Landscape shell + design tokens/typography as SwiftUI
   theme layer, discovery list (design S2), PIN entry with shake/attempt-counter
   behavior (S3), session client, reconnect/disconnected treatments (S4 connection

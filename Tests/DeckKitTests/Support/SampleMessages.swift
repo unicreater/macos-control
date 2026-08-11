@@ -19,7 +19,10 @@ enum SampleMessages {
         case .pairRequest:
             return .pairRequest(PairRequest(pin: PairingPIN("482913")!))
         case .pairResult:
-            return .pairResult(.accepted(identity: identity))
+            return .pairResult(.accepted(
+                identity: identity,
+                sessionSecret: Data(repeating: 0xA7, count: DeckService.sessionSecretByteCount)
+            ))
         case .catalogRequest:
             return .catalogRequest(CatalogRequest(query: "saf"))
         case .catalog:
