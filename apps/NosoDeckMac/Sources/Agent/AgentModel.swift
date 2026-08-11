@@ -44,6 +44,7 @@ final class AgentModel {
     private let catalogProvider = AppCatalogProvider()
     private let executor = ActionExecutor()
     private let stateObserver = MacStateObserver()
+    private let shortcuts = ShortcutsBridge()
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
@@ -253,6 +254,16 @@ final class AgentModel {
                   let png = catalogProvider.iconPNG(forBundleID: bundleID) else { break }
             session.connection.send(envelope.reply(.icon(
                 IconResponse(hash: request.hash, png: png)
+            )))
+
+        case .shortcutsRequest:
+            guard session.isPaired else { break }
+            // Asking for the list is what triggers the Automation consent dialog, and
+            // the phone only asks after showing its pre-prompt card (FR-24). An empty
+            // list means consent was refused; the phone hides the tab and says why.
+            _ = shortcuts.permissionStatus(promptIfNeeded: true)
+            session.connection.send(envelope.reply(.shortcuts(
+                ShortcutList(names: shortcuts.names())
             )))
 
         case .action(let request):

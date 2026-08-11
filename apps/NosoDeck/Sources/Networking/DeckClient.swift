@@ -33,6 +33,7 @@ final class DeckClient {
     var onActionResult: ((ActionResult) -> Void)?
     var onCatalog: ((Catalog) -> Void)?
     var onIcon: ((IconResponse) -> Void)?
+    var onShortcuts: (([String]) -> Void)?
 
     init(identityStore: PhoneIdentityStore) {
         self.identityStore = identityStore
@@ -166,6 +167,9 @@ final class DeckClient {
 
         case .icon(let icon):
             onIcon?(icon)
+
+        case .shortcuts(let list):
+            onShortcuts?(list.names)
 
         default:
             break

@@ -4,10 +4,12 @@ import Foundation
 
 /// Carries out what a tile tap asks for.
 ///
-/// M4 implements app activation (FR-9). Quit arrives with M5, Shortcuts and URLs with
-/// M6, and text insertion with M8; each returns a clear failure until then rather than
+/// Text insertion arrives in M8 and returns a clear failure until then, rather than
 /// silently doing nothing.
+@MainActor
 struct ActionExecutor {
+    private let shortcuts = ShortcutsBridge()
+
     func perform(_ request: ActionRequest) async -> Result<Void, ActionFailure> {
         switch request.kind {
         case .activateApp:
@@ -15,12 +17,23 @@ struct ActionExecutor {
         case .quitApp:
             return quit(bundleID: request.target)
         case .runShortcut:
-            return .failure(.notImplemented("Shortcuts arrive in M6"))
+            return shortcuts.run(named: request.target)
         case .openURL:
-            return .failure(.notImplemented("Website tiles arrive in M6"))
+            return openURL(request.target)
         case .insertText:
             return .failure(.notImplemented("Text insertion arrives in M8"))
         }
+    }
+
+    /// Opens in the Mac's default browser and brings it forward (FR-14).
+    private func openURL(_ raw: String) -> Result<Void, ActionFailure> {
+        guard TileTarget.isValidWebsiteURL(raw), let url = URL(string: raw.trimmingCharacters(in: .whitespaces)) else {
+            return .failure(.notFound("“\(raw)” isn't a valid web address"))
+        }
+        guard NSWorkspace.shared.open(url) else {
+            return .failure(.systemError("Nothing on this Mac could open that address"))
+        }
+        return .success(())
     }
 
     /// Launch if closed, bring to front if running — `openApplication` does both, which
@@ -63,12 +76,16 @@ struct ActionExecutor {
 enum ActionFailure: Error {
     case notFound(String)
     case notImplemented(String)
+    case notPermitted(String)
     case systemError(String)
 
     /// What travels back in `actionResult.error` and, eventually, in front of the user.
     var message: String {
         switch self {
-        case .notFound(let message), .notImplemented(let message), .systemError(let message):
+        case .notFound(let message),
+             .notImplemented(let message),
+             .notPermitted(let message),
+             .systemError(let message):
             return message
         }
     }

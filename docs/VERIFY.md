@@ -293,7 +293,33 @@ travel and at least twice as much vertical as horizontal movement.
 
 ---
 
+## M6 — Shortcuts & URL tiles · implemented, pending verification
+
+Delivers FR-13 and FR-14.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M6.1 | Add-tile → **Shortcuts** tab, first time | The Automation pre-prompt card, *before* any system dialog (FR-24) | ☐ |
+| M6.2 | Tap **Show my Shortcuts** → allow on the Mac | Your Shortcuts list appears | ☐ |
+| M6.3 | Pick one, set an emoji, **Add** | A keycap with the emoji at 34pt where the icon would be | ☐ |
+| M6.4 | Tap it — use a Shortcut that shows a notification | The notification fires on the Mac (FR-13 acceptance) | ☐ |
+| M6.5 | **Deny** Automation instead (System Settings → Privacy → Automation) | The tab explains the degraded path; app and website tiles keep working (FR-24) | ☐ |
+| M6.6 | **Website** tab, type `example.com` | Red 2pt border, "Needs a valid http(s) address", **Add** dimmed but visible | ☐ |
+| M6.7 | Correct it to `https://example.com` | Border returns to normal, **Add** enables | ☐ |
+| M6.8 | Tap the website tile | That exact URL opens frontmost in the default browser (FR-14) | ☐ |
+| M6.9 | A Shortcut whose name contains a quote or backslash | Runs correctly — the name is escaped into the AppleScript literal, not interpolated raw | ☐ |
+| M6.10 | Rename a Shortcut on the Mac, then tap its tile | A readable failure in the top bar, not silence | ☐ |
+
+**The sandbox question this milestone turns on.** Shortcuts are driven through Shortcuts
+Events with Apple Events — the route PRD §5's entitlement plan chose, since the
+`shortcuts` CLI and the Shortcuts database are both out of reach from a sandboxed
+process. If M6.2 returns an empty list even after allowing Automation, the entitlement
+or the consent prompt is the place to look, not the script. The PRD's risk table already
+flags "Shortcuts enumeration inside sandbox" as a verify-in-M6 item.
+
+---
+
 ## Milestones not yet implemented
 
-M6–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M7–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

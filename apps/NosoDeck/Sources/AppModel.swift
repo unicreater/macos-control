@@ -34,6 +34,10 @@ final class AppModel {
     private(set) var isEditing = false
     /// Every app installed on the paired Mac, for the add-tile search (FR-8).
     private(set) var catalog: [AppCatalogEntry] = []
+    /// The Mac's Apple Shortcuts, once consent has been given (FR-13).
+    private(set) var shortcuts: [String] = []
+    private var hasRequestedShortcuts = false
+    private var shortcutsAnswered = false
     /// The most recent action failure, for the tile that reported it.
     private(set) var lastActionError: String?
     let icons = IconCache()
@@ -265,6 +269,23 @@ final class AppModel {
         catalog.searching(query)
     }
 
+    // MARK: - Shortcuts (FR-13)
+
+    /// Asking for the list is what raises the Automation dialog on the Mac, so this is
+    /// called only after the pre-prompt card has been accepted (FR-24).
+    func requestShortcuts() {
+        guard session.acceptsActions else { return }
+        hasRequestedShortcuts = true
+        client.send(.shortcutsRequest)
+    }
+
+    /// Consent was refused if the Mac answered with nothing. The Shortcuts tab then
+    /// shows its degraded path — app and website tiles keep working — rather than an
+    /// empty list with no explanation.
+    var automationWasRefused: Bool {
+        hasRequestedShortcuts && shortcutsAnswered && shortcuts.isEmpty
+    }
+
     private func apply(_ catalog: Catalog) {
         // A filtered response would otherwise shrink the local catalog to the query.
         if catalog.apps.count >= self.catalog.count {
@@ -364,6 +385,13 @@ final class AppModel {
 
         client.onIcon = { [weak self] icon in
             self?.icons.store(hash: icon.hash, png: icon.png)
+        }
+
+        client.onShortcuts = { [weak self] names in
+            guard let self else { return }
+            self.shortcuts = names
+            self.shortcutsAnswered = true
+            self.permissions[.automation] = names.isEmpty ? .denied : .granted
         }
 
         client.onActionResult = { [weak self] result in
