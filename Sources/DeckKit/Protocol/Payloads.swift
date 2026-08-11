@@ -100,9 +100,21 @@ public struct CatalogRequest: Codable, Hashable, Sendable {
 
 public struct Catalog: Codable, Hashable, Sendable {
     public var apps: [AppCatalogEntry]
+    /// Bundle IDs the agent recommends for a first-run deck, in order (FR-12). The
+    /// phone uses these only when it has no layout of its own.
+    public var suggested: [String]
 
-    public init(apps: [AppCatalogEntry]) {
+    public init(apps: [AppCatalogEntry], suggested: [String] = []) {
         self.apps = apps
+        self.suggested = suggested
+    }
+
+    /// The suggested entries, resolved and in order, capped at one page.
+    public func starterTiles(limit: Int = Page.maxTiles) -> [Tile] {
+        let byID = Dictionary(apps.map { ($0.bundleID, $0) }, uniquingKeysWith: { first, _ in first })
+        return suggested.prefix(limit).compactMap { bundleID in
+            byID[bundleID].map { Tile.app($0) }
+        }
     }
 }
 

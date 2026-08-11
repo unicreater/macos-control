@@ -19,7 +19,7 @@ struct RootView: View {
             case .pin:
                 PINEntryView(model: model)
             case .deck:
-                DeckShellView(model: model)
+                DeckView(model: model)
             }
         }
         .preferredColorScheme(.dark)

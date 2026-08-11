@@ -308,6 +308,8 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
   icons, add-tile flow (S6), edit mode (S5), starter deck from Dock, tap-to-activate.
   Delivers: FR-6, FR-7, FR-8, FR-9, FR-12. *Verify: owner manual script in VERIFY.md
   against slides S4–S6.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M4, which records
+  the sandbox-forced reinterpretation of FR-12's "Dock apps" starter deck.
 - [ ] **M5 — Live status.** NSWorkspace observers → stateEvent stream → LED/frontmost
   ring per keycap spec; quit-on-swipe. Delivers: FR-10, FR-11. *Verify: DeckKit
   diff-logic unit tests + owner's 1-second-update check.*

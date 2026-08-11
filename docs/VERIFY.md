@@ -215,7 +215,56 @@ with it, and stays connected.
 
 ---
 
+## M4 — App tiles & activation · implemented, pending verification
+
+Delivers FR-6, FR-7, FR-8, FR-9, FR-12. Compare against slides S4–S6.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M4.1 | Build both targets | Compile | ☐ |
+| M4.2 | Pair fresh (unpair first, delete the app) | Page 1 arrives pre-filled, not eight dashed slots (FR-12) | ☐ |
+| M4.3 | Tile icons | Real macOS icons, in colour, within ~2 s (FR-7) | ☐ |
+| M4.4 | Tap a closed app's tile | It launches on the Mac (FR-9) | ☐ |
+| M4.5 | Tap a running app's tile | It comes to the front in under 1 s (FR-9) | ☐ |
+| M4.6 | Relaunch the phone app | Icons appear immediately from the disk cache, before the Mac answers | ☐ |
+| M4.7 | Long-press a tile ≥500 ms | Edit mode: caps tilt, red − badges, **Done** in the top bar (S5) | ☐ |
+| M4.8 | The same long press | The app must **not** also launch — the tap is suppressed once editing starts | ☐ |
+| M4.9 | Drag a tile onto another slot | Reorders; **Done**, relaunch, order persists (FR-6) | ☐ |
+| M4.10 | Drag a tile onto a full page | Refused; the tile stays where it was | ☐ |
+| M4.11 | Tap a − badge | Tile removed; the slot becomes the dashed **Add tile** placeholder | ☐ |
+| M4.12 | Tap an empty slot → search "saf" | Safari is first in the list (FR-8) | ☐ |
+| M4.13 | Select an app in the picker | Live keycap preview, label field, "Page 1 · slot N of 8" | ☐ |
+| M4.14 | Fill a page to seven, then open the picker | "— page full after this" in ochre | ☐ |
+| M4.15 | Fill every page, then open the picker | **Add** dimmed but still visible, with the reason | ☐ |
+| M4.16 | Any page, any device size | Never more than 8 tiles; larger devices get larger tiles (D15) | ☐ |
+| M4.17 | Disconnect the Mac, tap a tile | Nothing sent; the deck is inert at reduced opacity | ☐ |
+| M4.18 | Agent launch time | Menu bar appears promptly — the catalog is built at launch, so watch for a hitch | ☐ |
+
+### Two things I am least sure of, having not run any of it
+
+- **Gesture arbitration.** The keycap owns a press gesture for the 4pt sink; edit mode
+  is a simultaneous long press; drag-to-reorder is attached *only* in edit mode so it
+  cannot compete. M4.8 and M4.9 are the checks that matter, and this is the likeliest
+  thing to need adjusting on a real device.
+- **Sandbox reach.** The agent enumerates `/Applications`, `/Applications/Utilities`,
+  `/System/Applications` and its Utilities folder. If the sandbox refuses any of these
+  the catalog comes back short or empty — M4.12 would show it immediately.
+
+### Deviation: the starter deck is not the Dock (FR-12)
+
+FR-12 says page 1 is pre-filled from the Mac's Dock. The Dock's preferences live outside
+the agent's container and a sandboxed process cannot read them; there is no MAS-legal
+way to ask what is in someone's Dock. The suggestion list is instead built from **apps
+running right now**, topped up from a short list of common apps that are installed.
+
+This still meets FR-12's stated acceptance criterion ("a fresh pair shows a non-empty
+deck"), and is arguably a better first guess than the Dock, which tends to accumulate
+things nobody opens. Flag it if you want the requirement reworded rather than
+reinterpreted — the alternative is dropping the sandbox, which contradicts D3.
+
+---
+
 ## Milestones not yet implemented
 
-M4–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M5–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

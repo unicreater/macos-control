@@ -31,6 +31,8 @@ final class DeckClient {
     var onPairResult: ((PairResult) -> Void)?
     var onStateEvent: ((MacState) -> Void)?
     var onActionResult: ((ActionResult) -> Void)?
+    var onCatalog: ((Catalog) -> Void)?
+    var onIcon: ((IconResponse) -> Void)?
 
     init(identityStore: PhoneIdentityStore) {
         self.identityStore = identityStore
@@ -158,6 +160,12 @@ final class DeckClient {
 
         case .actionResult(let result):
             onActionResult?(result)
+
+        case .catalog(let catalog):
+            onCatalog?(catalog)
+
+        case .icon(let icon):
+            onIcon?(icon)
 
         default:
             break

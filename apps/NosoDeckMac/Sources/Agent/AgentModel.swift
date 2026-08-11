@@ -41,9 +41,16 @@ final class AgentModel {
 
     private let identityStore: AgentIdentityStore
     private let listener = DeckListener()
+    private let catalogProvider = AppCatalogProvider()
+    private let executor = ActionExecutor()
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
+
+    /// Built once and reused. Enumerating every app and rendering its icon takes long
+    /// enough to be felt, so it happens at launch rather than while a phone waits.
+    private var cachedCatalog: Catalog?
+    private var bundleIDsByIconHash: [String: String] = [:]
 
     private static let phoneNamesDefaultsKey = "com.noso.nosodeck.pairedPhoneNames"
 
@@ -75,6 +82,19 @@ final class AgentModel {
             self?.adopt(connection: connection)
         }
         restartListener()
+        warmCatalog()
+    }
+
+    @discardableResult
+    private func warmCatalog() -> Catalog {
+        if let cachedCatalog { return cachedCatalog }
+        let catalog = catalogProvider.catalog()
+        cachedCatalog = catalog
+        bundleIDsByIconHash = Dictionary(
+            catalog.apps.compactMap { entry in entry.iconHash.map { ($0, entry.bundleID) } },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return catalog
     }
 
     func stop() {
@@ -198,9 +218,49 @@ final class AgentModel {
         case .ping:
             session.connection.send(envelope.reply(.pong))
 
+        case .catalogRequest(let request):
+            // Everything below this line is for trusted phones only. An unpaired one
+            // has satisfied the pairing PSK and nothing more, so it gets no inventory
+            // of this Mac and no ability to act on it.
+            guard session.isPaired else { break }
+            let catalog = warmCatalog()
+            let apps = request.query.map { catalog.apps.searching($0) } ?? catalog.apps
+            session.connection.send(envelope.reply(.catalog(
+                Catalog(apps: apps, suggested: catalog.suggested)
+            )))
+
+        case .iconRequest(let request):
+            guard session.isPaired else { break }
+            guard let bundleID = bundleIDsByIconHash[request.hash],
+                  let png = catalogProvider.iconPNG(forBundleID: bundleID) else { break }
+            session.connection.send(envelope.reply(.icon(
+                IconResponse(hash: request.hash, png: png)
+            )))
+
+        case .action(let request):
+            guard session.isPaired else { break }
+            perform(request, for: envelope, on: session)
+
         default:
-            // Catalog, actions and state events arrive with M4 onward.
+            // State events are pushed, not requested; nothing else is expected inbound.
             break
+        }
+    }
+
+    private func perform(_ request: ActionRequest, for envelope: Envelope, on session: AgentSession) {
+        Task { [weak self, weak session] in
+            let result = await self?.executor.perform(request)
+            guard let session else { return }
+            switch result {
+            case .success:
+                session.connection.send(envelope.reply(.actionResult(.success(requestID: envelope.id))))
+            case .failure(let failure):
+                session.connection.send(envelope.reply(.actionResult(
+                    .failure(requestID: envelope.id, error: failure.message)
+                )))
+            case nil:
+                break
+            }
         }
     }
 

@@ -28,6 +28,16 @@ final class AppModel {
     private(set) var permissions = PermissionState()
     private(set) var isScanning = false
 
+    /// The user's layout, and where they are in it.
+    private(set) var deck: Deck
+    private(set) var currentPage = 0
+    private(set) var isEditing = false
+    /// Every app installed on the paired Mac, for the add-tile search (FR-8).
+    private(set) var catalog: [AppCatalogEntry] = []
+    /// The most recent action failure, for the tile that reported it.
+    private(set) var lastActionError: String?
+    let icons = IconCache()
+
     /// Digits typed into the six PIN cells so far.
     private(set) var pinEntry = ""
     /// Bumped to fire the shake on a wrong PIN. The view animates off the change rather
@@ -39,13 +49,24 @@ final class AppModel {
     private let identityStore: PhoneIdentityStore
     private let browser = DeckBrowser()
     private let client: DeckClient
+    private let deckStore: DeckStore
     private var reconnectTask: Task<Void, Never>?
     private var pendingPIN: PairingPIN?
     private var targetMacID: String?
+    /// True when the layout came from disk, so the Mac's suggestions are only used on a
+    /// genuinely first run (FR-12).
+    private var hasSavedDeck: Bool
 
     init(identityStore: PhoneIdentityStore = PhoneIdentityStore()) {
+        // Read through a local: `self` is not usable until every stored property is set.
+        let deckStore = DeckStore()
+        let saved = deckStore.load()
+
         self.identityStore = identityStore
         self.client = DeckClient(identityStore: identityStore)
+        self.deckStore = deckStore
+        self.hasSavedDeck = saved != nil
+        self.deck = saved ?? Deck()
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
@@ -154,6 +175,116 @@ final class AppModel {
         route = .discovery
     }
 
+    // MARK: - The deck (FR-6, FR-9, FR-12)
+
+    var pageCount: Int { deck.pageCount }
+
+    var visiblePage: Page {
+        deck.pages[min(currentPage, deck.pageCount - 1)]
+    }
+
+    /// The keycap state for a tile, from the Mac's live state (FR-10 lights these up;
+    /// M4 only needs the derivation).
+    func activity(for tile: Tile) -> TileActivityState {
+        macState.tileState(for: tile.target)
+    }
+
+    func icon(for tile: Tile) -> Image? {
+        guard case .app(let bundleID) = tile.target else { return nil }
+        return icons.image(forHash: catalog.first { $0.bundleID == bundleID }?.iconHash)
+    }
+
+    /// A tap: launch if closed, front if running (FR-9). Refused while the link is
+    /// down, which is the same condition the deck's opacity is showing.
+    func activate(_ tile: Tile) {
+        guard session.acceptsActions else { return }
+        lastActionError = nil
+        client.send(.action(ActionRequest(activating: tile.target)))
+    }
+
+    func setPage(_ index: Int) {
+        currentPage = min(max(index, 0), deck.pageCount - 1)
+    }
+
+    func toggleEditing() {
+        isEditing.toggle()
+    }
+
+    func add(_ entry: AppCatalogEntry) {
+        add(Tile.app(entry))
+    }
+
+    func add(_ tile: Tile) {
+        if deck.add(tile, toPageAt: currentPage) == false {
+            // The current page is full; fall through to the first slot anywhere, which
+            // is the slot the add-tile flow told the user about.
+            guard deck.add(tile) != nil else { return }
+        }
+        persistDeck()
+        requestMissingIcons()
+    }
+
+    func removeTile(id: UUID) {
+        deck.removeTile(id: id)
+        persistDeck()
+    }
+
+    func moveTile(id: UUID, to slot: DeckSlot) {
+        guard deck.moveTile(id: id, to: slot) else { return }
+        persistDeck()
+    }
+
+    /// Where a newly added tile would land — "Page 1 · slot 8 of 8" (design S6).
+    var nextSlot: DeckSlot? {
+        deck.pages[min(currentPage, deck.pageCount - 1)].nextFreeSlot
+            .map { DeckSlot(pageIndex: currentPage, slotIndex: $0) }
+            ?? deck.nextFreeSlot
+    }
+
+    private func persistDeck() {
+        hasSavedDeck = true
+        deckStore.save(deck)
+    }
+
+    // MARK: - Catalog and icons (FR-7, FR-8)
+
+    func requestCatalog(query: String? = nil) {
+        guard session.acceptsActions else { return }
+        client.send(.catalogRequest(CatalogRequest(query: query)))
+    }
+
+    func searchResults(for query: String) -> [AppCatalogEntry] {
+        catalog.searching(query)
+    }
+
+    private func apply(_ catalog: Catalog) {
+        // A filtered response would otherwise shrink the local catalog to the query.
+        if catalog.apps.count >= self.catalog.count {
+            self.catalog = catalog.apps
+        }
+
+        // FR-12: a fresh pair lands on a filled page rather than eight dashed outlines.
+        if !hasSavedDeck && deck.isEmpty {
+            let starters = catalog.starterTiles()
+            if !starters.isEmpty {
+                deck = Deck(pages: [Page(tiles: starters)])
+                persistDeck()
+            }
+        }
+
+        requestMissingIcons()
+    }
+
+    /// One request per unseen hash, for the tiles actually on the deck. The catalog is
+    /// hundreds of apps; the deck is at most sixty-four tiles.
+    private func requestMissingIcons() {
+        let onDeck = deck.appBundleIDs
+        for entry in catalog where onDeck.contains(entry.bundleID) {
+            guard icons.shouldRequest(hash: entry.iconHash), let hash = entry.iconHash else { continue }
+            client.send(.iconRequest(IconRequest(hash: hash)))
+        }
+    }
+
     // MARK: - Session (FR-4)
 
     /// Journey 2: unlock the phone and the deck is already coming back. A Mac the phone
@@ -212,7 +343,24 @@ final class AppModel {
 
             if let pin = self.pendingPIN {
                 self.client.sendPairRequest(pin: pin)
+            } else if ack.isPaired {
+                // A trusted reconnect: ask for the catalog straight away so icons and
+                // the app list are ready before the user opens anything.
+                self.requestCatalog()
             }
+        }
+
+        client.onCatalog = { [weak self] catalog in
+            self?.apply(catalog)
+        }
+
+        client.onIcon = { [weak self] icon in
+            self?.icons.store(hash: icon.hash, png: icon.png)
+        }
+
+        client.onActionResult = { [weak self] result in
+            guard let self, !result.ok else { return }
+            self.lastActionError = result.error
         }
 
         client.onPairResult = { [weak self] result in
@@ -237,6 +385,8 @@ final class AppModel {
         identityStore.save(pairing.trust)
         pinEntry = ""
         route = .deck
+        // First thing after pairing: the catalog, which also carries the starter deck.
+        requestCatalog()
     }
 
     /// Wrong PIN: shake, clear the digits in place, decrement the counter. The flow
