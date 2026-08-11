@@ -66,7 +66,49 @@ before M9.
 
 ---
 
+## M1 — Protocol & pairing core (DeckKit) · implemented, pending verification
+
+Pure logic, no platform frameworks — so `swift test` covers all of it and **no device
+is needed for this milestone**. If any single check on this page is worth running, it
+is M1.2.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M1.1 | `swift build` at repo root | Builds with no errors | ☐ |
+| M1.2 | `swift test` at repo root | All tests pass | ☐ |
+| M1.3 | `swift build -Xswiftc -strict-concurrency=complete` | No concurrency warnings — the app targets build with this on | ☐ |
+
+Send back verbatim compiler output for anything that fails. These files have never been
+through a type-checker, so plain syntax and signature mistakes are the likeliest
+failures, not logic ones.
+
+### What the tests assert (the FR-2/3/4 logic this milestone delivers)
+
+| Area | Covers |
+|---|---|
+| `FrameDecoderTests` | Length-prefixed reassembly: partial headers, partial bodies, coalesced frames, byte-at-a-time delivery, 50 seeded random split patterns, zero-length and oversized length rejection, a garbage frame that must not swallow the next one |
+| `EnvelopeCodingTests` | Every one of the 15 message types round-trips; the `v`/`id`/`type`/`payload` wire shape; unknown types and missing payloads surface as `ProtocolError` |
+| `PairingTests` | FR-2 (PIN validation, correct PIN pins the key, wrong PIN stores nothing and counts down 2→1→list), FR-3 (same device ID + different key ⇒ `identityChanged`, never silent trust; rename doesn't break trust), FR-5 (unpair requires a new PIN) |
+| `SessionTests` | FR-4 (drop ⇒ reconnecting ⇒ resumes with no user action), PRD §5 keepalive (two missed pongs trip reconnect), reachability loss ⇒ disconnected, and that no backoff step can exceed five seconds |
+| `DeckTests` | FR-6 eight-tile cap including through decoding, FR-17 tier page limits, cross-page moves, layout survives a persistence round trip |
+| `ModelTests` | Keycap state precedence (frontmost > running > idle), FR-16 recents ordering/dedup, FR-8 "saf" finds Safari, website URL validation, FR-24 degraded paths |
+
+### Deviations from the design's state model, for the record
+
+- `ConnectionState` adds a `connecting` case alongside the handoff's three. It shares
+  the `reconnecting` visual treatment; it exists because "Reconnecting…" is the wrong
+  copy for a link that has never been up.
+- `PairingState.pairingError` carries the device alongside `attemptsLeft`, so the PIN
+  screen can keep naming the Mac — the flow never resets (design S3).
+- `Deck` stores pages only. `currentPage` and `editing` from the handoff's state model
+  are view state, owned by each app rather than persisted.
+
+Flag any of these if they are the wrong call — they are cheap to change now, and much
+less so after M3 builds screens on them.
+
+---
+
 ## Milestones not yet implemented
 
-M1–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M2–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

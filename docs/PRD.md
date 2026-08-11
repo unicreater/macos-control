@@ -280,6 +280,9 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
 - [ ] **M1 — Protocol & pairing core (DeckKit).** Models, framing codec, all message
   types, pairing/trust state machine, session state machine with keepalive rules.
   Delivers: FR-2/3/4 logic. *Verify: unit tests on Linux incl. fuzz-ish framing tests.*
+  — **implemented, pending verification**: tests written, never executed (no Swift
+  toolchain in the container). `swift test` on the owner's Mac clears this whole
+  milestone without a device; queue in `docs/VERIFY.md` §M1.
 - [ ] **M2 — Mac agent MVP.** Menu bar app, Bonjour advertise, TLS listener, PIN
   display, pairing handshake, Keychain trust store. Delivers: FR-1, FR-2, FR-3, FR-19.
   *Verify: owner pairs from the M3 phone build (or the included CLI test client).*
