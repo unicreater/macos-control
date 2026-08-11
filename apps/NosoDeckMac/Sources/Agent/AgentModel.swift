@@ -103,6 +103,7 @@ final class AgentModel {
             try listener.restart(
                 serviceName: serviceName,
                 deviceID: identityStore.deviceID,
+                fingerprint: identityStore.fingerprint,
                 keys: keys
             )
         } catch {

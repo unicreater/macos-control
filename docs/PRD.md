@@ -301,6 +301,8 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
   states), onboarding flow with permission pre-prompt cards (S1). Delivers: FR-1–FR-4
   end-to-end, FR-22–FR-24 skeleton. *Verify: owner pairs phone↔Mac; kills Wi-Fi and
   watches auto-reconnect; screens compared against design slides.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M3, which also
+  raises one design question (the reconnecting banner's amber vs. the ochre rule).
 - [ ] **M4 — App tiles & activation.** Keycap component with full state table (idle/
   running/frontmost/pressed/disconnected/edit/dragging/empty), 4×2 grid, catalog +
   icons, add-tile flow (S6), edit mode (S5), starter deck from Dock, tap-to-activate.

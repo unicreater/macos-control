@@ -15,7 +15,7 @@ struct AgentIdentityStore {
 
     private let keychain: KeychainStore
 
-    init(keychain: KeychainStore = KeychainStore()) {
+    init(keychain: KeychainStore = KeychainStore(service: "com.noso.nosodeck.mac")) {
         self.keychain = keychain
     }
 

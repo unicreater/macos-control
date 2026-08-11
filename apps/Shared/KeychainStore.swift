@@ -8,9 +8,11 @@ import Security
 /// entitlement beyond App Sandbox is needed for this.
 struct KeychainStore {
     /// Namespaces every item this app writes, so it never collides with anything else.
+    /// The two apps pass different values — they are separate keychains on separate
+    /// devices and share nothing but the shape of this code.
     let service: String
 
-    init(service: String = "com.noso.nosodeck.mac") {
+    init(service: String) {
         self.service = service
     }
 

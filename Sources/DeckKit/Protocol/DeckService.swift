@@ -20,6 +20,11 @@ public enum DeckService {
     /// Wire protocol version, so an incompatible peer can be shown as such rather than
     /// failing mysteriously at handshake time.
     public static let txtProtocolVersionKey = "v"
+    /// The agent's identity fingerprint. Published deliberately: it lets the phone
+    /// decide *before* dialling whether this is a Mac it trusts, a stranger, or a
+    /// familiar one whose identity has changed (FR-3). It is an HMAC of the agent's
+    /// secret, not the secret, so publishing it gives nothing away.
+    public static let txtFingerprintKey = "fp"
 
     // MARK: - Transport security
     //

@@ -17,7 +17,12 @@ final class DeckListener {
     private(set) var isRunning = false
 
     /// Starts, or restarts with a new key set.
-    func restart(serviceName: String, deviceID: String, keys: [PresharedKey]) throws {
+    func restart(
+        serviceName: String,
+        deviceID: String,
+        fingerprint: String,
+        keys: [PresharedKey]
+    ) throws {
         stop()
 
         let listener = try NWListener(using: DeckTransport.parameters(keys: keys))
@@ -26,6 +31,7 @@ final class DeckListener {
         txtRecord[DeckService.txtDeviceIDKey] = deviceID
         txtRecord[DeckService.txtNameKey] = serviceName
         txtRecord[DeckService.txtProtocolVersionKey] = String(DeckKitVersion.wireProtocol)
+        txtRecord[DeckService.txtFingerprintKey] = fingerprint
 
         listener.service = NWListener.Service(
             name: serviceName,

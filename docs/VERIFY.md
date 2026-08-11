@@ -166,7 +166,56 @@ if you want this hardened before submission.
 
 ---
 
+## M3 — iOS app MVP · implemented, pending verification
+
+Delivers FR-1–FR-4 end to end, plus the FR-22/23/24 skeleton. Together with M2 this is
+the first point where the product does its central thing: a phone finds a Mac, pairs
+with it, and stays connected.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M3.1 | Build `NosoDeck` for an iPhone 15 Pro Max simulator | Compiles | ☐ |
+| M3.2 | First launch, no Mac ever paired | Onboarding step 1, landscape, dark (FR-22) | ☐ |
+| M3.3 | **Continue** → step 2 | Local-network pre-prompt card: why / without it / degraded path "none" (FR-24) | ☐ |
+| M3.4 | **Allow** | iOS local-network dialog appears *after* the card, then the device list | ☐ |
+| M3.5 | With the agent running | The Mac appears within 3 s (FR-1) | ☐ |
+| M3.6 | Kill the agent | Row disappears; "Still scanning…" and the three checks remain — never a blank screen | ☐ |
+| M3.7 | Tap the Mac, type the right PIN | Pairs on the sixth digit and lands on the deck shell | ☐ |
+| M3.8 | Tap the Mac, type a wrong PIN | Cells shake ~200 ms, clear in place, "Wrong PIN — 2 tries left"; the screen does not reset | ☐ |
+| M3.9 | Two more wrong PINs | Counter goes 2 → 1, then back to the device list | ☐ |
+| M3.10 | Force-quit both apps, relaunch both | Deck returns with **no PIN prompt** and no tap (FR-2, journey 2) | ☐ |
+| M3.11 | Turn the Mac's Wi-Fi off for 10 s | Deck stays on screen, desaturates, "Reconnecting…" — never blanked | ☐ |
+| M3.12 | Turn it back on | Live within 5 s of reachability, no taps (FR-4) | ☐ |
+| M3.13 | Turn the **phone's** Wi-Fi off | Red banner, deck at 38 %, taps refused | ☐ |
+| M3.14 | Delete the Mac app's Keychain items (or reinstall the agent) and reconnect | "Identity changed" card, **Re-pair** / **Cancel** — never silent trust (FR-3) | ☐ |
+| M3.15 | Gear → **Unpair** → reconnect | PIN required again | ☐ |
+| M3.16 | Rotate the device to portrait | Stays landscape (FR-23) | ☐ |
+| M3.17 | Settings → Accessibility → Reduce Motion on, then a wrong PIN | No shake, error still shown | ☐ |
+| M3.18 | Settings → Display → Larger Text at maximum | Labels scale; the 4×2 grid keeps its shape | ☐ |
+
+### Things I would look at first if something misbehaves
+
+- **The invisible PIN field.** The six cells are drawn; a `TextField` behind them at 1 %
+  opacity takes the keyboard so paste and autofill work like typing. If the keypad
+  never appears or digits do not land, that field is the cause.
+- **Auto-reconnect racing.** Two things can trigger a reconnect — the backoff timer and
+  a Mac reappearing in the browse results. The second cancels the first. If you see
+  duplicate connections, that is where to look.
+- **Latency reads 0 ms** until the first keepalive pong, ten seconds in. Expected, not a
+  bug.
+
+### Design questions this milestone raised
+
+1. **The reconnecting banner.** S4 calls for an "amber-bordered banner", but the palette
+   has no amber and reserves ochre for premium. I used ochre. It is the only warm token
+   available, and it does tension with the "ochre = premium only" rule. Worth a ruling.
+2. **Settings.** S7 is M9 work. Until then the gear opens only a destructive-confirm
+   unpair, because pairing needs to be testable more than once.
+3. **Onboarding step 1's QR** is a placeholder square, per the handoff's Assets note.
+
+---
+
 ## Milestones not yet implemented
 
-M3–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M4–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.
