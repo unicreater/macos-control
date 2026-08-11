@@ -264,7 +264,36 @@ reinterpreted — the alternative is dropping the sandbox, which contradicts D3.
 
 ---
 
+## M5 — Live status · implemented, pending verification
+
+Delivers FR-10 and FR-11. FR-10 is the differentiator — the reason this is a deck and
+not a launcher — so M5.2 is the check that matters most.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M5.1 | Connect with apps already running | Their tiles show the mint LED immediately, before anything changes | ☐ |
+| M5.2 | Launch an app on the Mac by hand | Its tile lights up within 1 s, phone untouched (FR-10) | ☐ |
+| M5.3 | Cmd-Tab between two apps on the Mac | The frontmost ring moves between caps, ~200 ms | ☐ |
+| M5.4 | Quit an app on the Mac by hand | Its LED goes out within 1 s | ☐ |
+| M5.5 | Tile bounds during all of the above | Nothing reflows or resizes — only fill, border and shadow change | ☐ |
+| M5.6 | Swipe down on a running tile | That app quits gracefully (FR-11) | ☐ |
+| M5.7 | Swipe down on a tile for a closed app | Nothing happens — no error, no launch | ☐ |
+| M5.8 | Swipe down on an app with unsaved changes | The Mac shows its own save dialog; the tile still reads running | ☐ |
+| M5.9 | Swipe **horizontally** across tiles | Changes page; never quits anything | ☐ |
+| M5.10 | Tap a tile normally | Still activates — the quit gesture has not eaten the tap | ☐ |
+| M5.11 | VoiceOver on a running tile | Reads the app name, then "Running" / "Frontmost" | ☐ |
+
+**Sandbox risk, flagged in the PRD's own risk table:** `NSRunningApplication.terminate()`
+from inside the sandbox is the uncertain part of FR-11. If M5.6 does nothing, the
+fallback is an Apple Events `quit`, which needs the automation consent flow that M6
+introduces anyway. FR-11 is P1, so it can be cut without touching anything P0.
+
+Gesture thresholds, if M5.6/M5.9 need tuning: a quit needs more than 44pt of downward
+travel and at least twice as much vertical as horizontal movement.
+
+---
+
 ## Milestones not yet implemented
 
-M5–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M6–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

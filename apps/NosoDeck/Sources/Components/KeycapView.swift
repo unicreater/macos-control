@@ -17,6 +17,8 @@ struct KeycapView: View {
     var icon: Image?
     var onTap: () -> Void = {}
     var onRemove: () -> Void = {}
+    /// Swipe down on a running tile to quit that app (FR-11).
+    var onQuit: () -> Void = {}
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @GestureState private var isPressed = false
@@ -42,9 +44,19 @@ struct KeycapView: View {
                 DragGesture(minimumDistance: 0)
                     .updating($isPressed) { _, state, _ in state = true }
                     .onEnded { value in
-                        // A tap, not a swipe: the quit gesture (FR-11) claims downward
-                        // drags and lands in M5.
-                        if abs(value.translation.height) < 20 && abs(value.translation.width) < 20 {
+                        let vertical = value.translation.height
+                        let horizontal = value.translation.width
+
+                        // Downward, and clearly more vertical than horizontal, so a
+                        // page swipe is never mistaken for a quit.
+                        if vertical > 44, abs(vertical) > abs(horizontal) * 2 {
+                            // Only a running app can be quit; on anything else the
+                            // gesture is simply ignored rather than doing something else.
+                            if activity != .idle { onQuit() }
+                            return
+                        }
+
+                        if abs(vertical) < 20, abs(horizontal) < 20 {
                             onTap()
                         }
                     }

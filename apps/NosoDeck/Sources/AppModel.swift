@@ -202,6 +202,14 @@ final class AppModel {
         client.send(.action(ActionRequest(activating: tile.target)))
     }
 
+    /// Swipe down on a running tile: a graceful quit, never a force kill (FR-11).
+    func quit(_ tile: Tile) {
+        guard session.acceptsActions, case .app(let bundleID) = tile.target else { return }
+        guard macState.isRunning(bundleID) else { return }
+        lastActionError = nil
+        client.send(.action(ActionRequest(kind: .quitApp, target: bundleID)))
+    }
+
     func setPage(_ index: Int) {
         currentPage = min(max(index, 0), deck.pageCount - 1)
     }

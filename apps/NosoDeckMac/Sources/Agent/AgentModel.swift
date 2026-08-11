@@ -43,6 +43,7 @@ final class AgentModel {
     private let listener = DeckListener()
     private let catalogProvider = AppCatalogProvider()
     private let executor = ActionExecutor()
+    private let stateObserver = MacStateObserver()
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
@@ -81,8 +82,21 @@ final class AgentModel {
         listener.onConnection = { [weak self] connection in
             self?.adopt(connection: connection)
         }
+        stateObserver.onChange = { [weak self] macState in
+            self?.broadcast(macState)
+        }
+        stateObserver.start()
+
         restartListener()
         warmCatalog()
+    }
+
+    /// Pushed to every paired phone on every change (FR-10). Unpaired sessions learn
+    /// nothing about what is running on this Mac.
+    private func broadcast(_ macState: MacState) {
+        for session in sessions where session.isPaired {
+            session.connection.send(Envelope(message: .stateEvent(macState)))
+        }
     }
 
     @discardableResult
@@ -98,6 +112,7 @@ final class AgentModel {
     }
 
     func stop() {
+        stateObserver.stop()
         for session in sessions {
             session.connection.cancel()
         }
@@ -210,6 +225,9 @@ final class AgentModel {
             if paired {
                 rememberName(hello.deviceName, forPhoneID: hello.deviceID)
                 refreshStatus()
+                // The current state, immediately — a phone that just connected should
+                // not have to wait for the Mac to change before its tiles light up.
+                session.connection.send(Envelope(message: .stateEvent(stateObserver.current)))
             }
 
         case .pairRequest(let request):
@@ -291,6 +309,7 @@ final class AgentModel {
             identity: identityStore.identity(name: serviceName),
             sessionSecret: secret
         ))))
+        session.connection.send(Envelope(message: .stateEvent(stateObserver.current)))
 
         // A used PIN is spent. Rotating also rebuilds the listener, which is what
         // registers this phone's new key for its next connection.

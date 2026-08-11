@@ -152,7 +152,8 @@ struct DeckView: View {
                 // A long press flips edit mode while the finger is still down, so by
                 // the time it lifts this guard is what stops the tap from also firing.
                 onTap: { if !model.isEditing { model.activate(tile) } },
-                onRemove: { model.removeTile(id: tile.id) }
+                onRemove: { model.removeTile(id: tile.id) },
+                onQuit: { if !model.isEditing { model.quit(tile) } }
             )
 
             // Dragging is an edit-mode gesture only. Outside it, the keycap's own press

@@ -13,7 +13,7 @@ struct ActionExecutor {
         case .activateApp:
             return await activate(bundleID: request.target)
         case .quitApp:
-            return .failure(.notImplemented("Quitting apps arrives in M5"))
+            return quit(bundleID: request.target)
         case .runShortcut:
             return .failure(.notImplemented("Shortcuts arrive in M6"))
         case .openURL:
@@ -40,6 +40,23 @@ struct ActionExecutor {
         } catch {
             return .failure(.systemError(error.localizedDescription))
         }
+    }
+
+    /// A graceful terminate, never a force kill (FR-11).
+    ///
+    /// `terminate()` returning true means the request was delivered, not that the app
+    /// is gone — an app with unsaved changes will put up its own save dialog and keep
+    /// running. That is correct behaviour, and the tile will still show it running,
+    /// which is exactly what FR-11's acceptance criterion describes.
+    private func quit(bundleID: String) -> Result<Void, ActionFailure> {
+        let matches = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        guard !matches.isEmpty else {
+            return .failure(.notFound("\(bundleID) isn't running"))
+        }
+        for app in matches {
+            _ = app.terminate()
+        }
+        return .success(())
     }
 }
 
