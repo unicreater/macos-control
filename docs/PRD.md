@@ -274,6 +274,9 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
   Linux, XcodeGen specs for both apps, `docs/VERIFY.md` template, CI-less build docs.
   Delivers: foundations. *Verify: `swift build`/`swift test` on Linux; owner runs
   `xcodegen` and both apps build empty in Xcode.*
+  — **implemented, pending verification** (no Swift toolchain in the container and
+  `download.swift.org` is blocked by egress policy, so the Linux half of D12 could not
+  be run either; queue in `docs/VERIFY.md` §M0).
 - [ ] **M1 — Protocol & pairing core (DeckKit).** Models, framing codec, all message
   types, pairing/trust state machine, session state machine with keepalive rules.
   Delivers: FR-2/3/4 logic. *Verify: unit tests on Linux incl. fuzz-ish framing tests.*

@@ -1,0 +1,65 @@
+# XcodeGen spec for the NosoDeck menu-bar agent for Mac (PRD §5).
+# Generate with:  cd apps/NosoDeckMac && xcodegen
+# The .xcodeproj is generated output and is not committed.
+name: NosoDeckMac
+options:
+  bundleIdPrefix: com.noso.nosodeck
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "14.0"
+
+packages:
+  DeckKit:
+    # The shared package lives at the repo root.
+    path: ../..
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    # Set DEVELOPMENT_TEAM in Xcode (or a local .xcconfig); intentionally unset here so
+    # the spec stays owner-agnostic. Bundle-ID root is a placeholder until confirmed.
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  NosoDeckMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+    dependencies:
+      - package: DeckKit
+        product: DeckKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.noso.nosodeck.mac
+        PRODUCT_NAME: NosoDeck
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: NosoDeck
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Menu-bar-only agent: no Dock icon, no main window (FR-19).
+        LSUIElement: true
+        # Advertises the deck service and accepts the phone's TLS session (FR-1, FR-3).
+        NSLocalNetworkUsageDescription:
+          NosoDeck for Mac accepts connections from your paired iPhone over this Wi-Fi.
+          Nothing leaves your local network.
+        NSBonjourServices:
+          - _nosodeck._tcp
+        # Running Apple Shortcuts via Shortcuts Events (FR-13, PRD §5 entitlement plan).
+        NSAppleEventsUsageDescription:
+          NosoDeck runs the Shortcuts you add as tiles on your deck.
+    entitlements:
+      path: NosoDeckMac.entitlements
+      properties:
+        # Sandboxed for the Mac App Store (D3); every v1 feature is sandbox-legal.
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.server: true
+        com.apple.security.network.client: true
+        com.apple.security.automation.apple-events: true
