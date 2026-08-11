@@ -1,5 +1,6 @@
 import AppKit
 import DeckKit
+import Foundation
 import SwiftUI
 
 /// The agent's entire UI (FR-19): connection state, the paired device, the PIN while
@@ -35,10 +36,28 @@ struct AgentMenu: View {
 
         Divider()
 
+        // FR-15's opt-in: Accessibility is asked for here and nowhere else, and only
+        // when the user chooses to turn typing on.
+        Toggle("Type emoji from the deck", isOn: emojiInsertionBinding)
+        Text(agent.isEmojiInsertionTrusted
+             ? "Emoji are typed into whatever you're writing."
+             : "Off: emoji are copied to the clipboard instead.")
+
+        Divider()
+
         Button("Quit NosoDeck") {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+    }
+
+    /// Turning it on raises the Accessibility prompt; turning it off is a note that the
+    /// grant is revoked in System Settings, since no app can revoke its own.
+    private var emojiInsertionBinding: Binding<Bool> {
+        Binding(
+            get: { agent.isEmojiInsertionTrusted },
+            set: { isOn in if isOn { agent.requestEmojiInsertionTrust() } }
+        )
     }
 
     /// Grouped three and three, which is how people read a six-digit code aloud.

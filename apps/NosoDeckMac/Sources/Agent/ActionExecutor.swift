@@ -4,11 +4,12 @@ import Foundation
 
 /// Carries out what a tile tap asks for.
 ///
-/// Text insertion arrives in M8 and returns a clear failure until then, rather than
-/// silently doing nothing.
+/// Every failure carries a message the phone can show, because a tile that does nothing
+/// and says nothing is the worst outcome available.
 @MainActor
 struct ActionExecutor {
     private let shortcuts = ShortcutsBridge()
+    private let inserter = TextInserter()
 
     func perform(_ request: ActionRequest) async -> Result<Void, ActionFailure> {
         switch request.kind {
@@ -21,7 +22,7 @@ struct ActionExecutor {
         case .openURL:
             return openURL(request.target)
         case .insertText:
-            return .failure(.notImplemented("Text insertion arrives in M8"))
+            return inserter.insert(request.target)
         }
     }
 

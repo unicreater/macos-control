@@ -298,6 +298,33 @@ final class AppModel {
         deckStore.save(deck)
     }
 
+    // MARK: - Recents and emoji (FR-15, FR-16)
+
+    /// The four cells of the recents column, most recent first (FR-16).
+    var visibleRecents: [String] { macState.visibleRecents }
+
+    func name(forBundleID bundleID: String) -> String {
+        catalog.first { $0.bundleID == bundleID }?.name ?? bundleID
+    }
+
+    func icon(forBundleID bundleID: String) -> Image? {
+        icons.image(forHash: catalog.first { $0.bundleID == bundleID }?.iconHash)
+    }
+
+    func activateRecent(_ bundleID: String) {
+        guard session.acceptsActions else { return }
+        lastActionError = nil
+        client.send(.action(ActionRequest(kind: .activateApp, target: bundleID)))
+    }
+
+    /// Sends an emoji for the Mac to type — or, without Accessibility, to put on the
+    /// clipboard and announce. Both are success; the phone doesn't need to know which.
+    func send(emoji: String) {
+        guard session.acceptsActions else { return }
+        lastActionError = nil
+        client.send(.action(ActionRequest(kind: .insertText, target: emoji)))
+    }
+
     // MARK: - Catalog and icons (FR-7, FR-8)
 
     func requestCatalog(query: String? = nil) {

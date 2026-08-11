@@ -325,6 +325,7 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
 - [ ] **M8 — Recents & emoji.** Recents left column with free-tier locked teaser
   (S9); emoji insertion with Accessibility opt-in and clipboard fallback. Delivers:
   FR-15, FR-16. *Verify: owner manual script.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M8.
 - [ ] **M9 — Polish & submission prep.** Haptics, keep-awake, unpair flows, login item,
   onboarding, privacy strings, App Store metadata checklist. Delivers: FR-5, FR-20,
   FR-21, FR-22. *Verify: full VERIFY.md pass by owner on clean devices.*

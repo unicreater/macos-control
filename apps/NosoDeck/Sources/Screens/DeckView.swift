@@ -18,11 +18,25 @@ struct DeckView: View {
             topBar
                 .padding(.bottom, 14)
 
-            pages
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(model.session.state.deckOpacity)
-                .disabled(!model.session.acceptsActions && !model.isEditing)
-                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+            // The recents column takes the landscape slack; the 4×2 grid keeps its size
+            // whether the column is there or not (S9, FR-16).
+            HStack(spacing: DeckGrid.recentsColumnGap) {
+                RecentsColumn(
+                    bundleIDs: model.visibleRecents,
+                    isUnlocked: model.entitlement.unlocksRecentsColumn,
+                    iconProvider: { model.icon(forBundleID: $0) },
+                    nameProvider: { model.name(forBundleID: $0) },
+                    onActivate: { model.activateRecent($0) },
+                    onUpgrade: { model.presentPaywall(reason: "The recents column is part of Premium.") }
+                )
+
+                pages
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(model.session.state.deckOpacity)
+            .disabled(!model.session.acceptsActions && !model.isEditing)
+            .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
             bottomBar
                 .padding(.top, DeckSpace.m)
@@ -85,6 +99,10 @@ struct DeckView: View {
                         .deckFont(.bodySmall)
                         .foregroundStyle(DeckColor.redInk)
                         .lineLimit(1)
+                }
+
+                EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
+                    model.send(emoji: emoji)
                 }
 
                 Button { isConfirmingUnpair = true } label: {

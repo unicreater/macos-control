@@ -350,7 +350,36 @@ that holds someone's work hostage.
 
 ---
 
-## Milestones not yet implemented
+## M8 — Recents & emoji · implemented, pending verification
 
-M8 and M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+Delivers FR-15 and FR-16.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M8.1 | Free tier, look left of the grid | A 92pt locked teaser with an ochre "Premium" label | ☐ |
+| M8.2 | Tap the teaser | The paywall opens — never a dead tap (FR-16) | ☐ |
+| M8.3 | Measure the grid with and without premium | The 4×2 grid is the **same size** either way; the column takes the slack, not the tiles | ☐ |
+| M8.4 | Premium, activate three apps on the Mac in order | They appear in that order within 2 s, most recent first (FR-16) | ☐ |
+| M8.5 | Activate one of them again | It moves to the top; no duplicate row | ☐ |
+| M8.6 | Quit a recent app on the Mac | It drops out of the column | ☐ |
+| M8.7 | Look for NosoDeck itself in the column | Never there — the agent excludes itself | ☐ |
+| M8.8 | Tap a recents cell | That app activates on the Mac | ☐ |
+| M8.9 | Mac menu → **Type emoji from the deck** | The Accessibility prompt appears — and only now, never at launch (FR-24) | ☐ |
+| M8.10 | Grant it, focus TextEdit, tap 🎉 on the phone | 🎉 is typed into TextEdit (FR-15) | ☐ |
+| M8.11 | Copy something on the Mac, then tap an emoji | After ~1 s your clipboard holds the original text again (FR-15) | ☐ |
+| M8.12 | Revoke Accessibility in System Settings, tap 🎉 | 🎉 lands on the clipboard and the Mac shows a "press ⌘V" notification | ☐ |
+| M8.13 | With Accessibility off, tap app and website tiles | They still work — only typing degrades | ☐ |
+
+**The known-flaky one.** FR-15 is P1 precisely because synthetic ⌘V behaves
+inconsistently across apps: some ignore a posted event, some are picky about timing.
+M8.10 in TextEdit is the baseline; if it works there and nowhere else, that is the
+feature's real ceiling and the clipboard fallback is what ships. It can be cut without
+touching anything P0.
+
+The paste uses virtual key code 9, which is positional rather than character-based, so
+it is still ⌘V on Dvorak and AZERTY.
+
+---
+
+## M9 section is appended when that milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

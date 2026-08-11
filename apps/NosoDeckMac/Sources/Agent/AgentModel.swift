@@ -45,6 +45,7 @@ final class AgentModel {
     private let executor = ActionExecutor()
     private let stateObserver = MacStateObserver()
     private let shortcuts = ShortcutsBridge()
+    private let textInserter = TextInserter()
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
@@ -72,6 +73,14 @@ final class AgentModel {
     var isConnected: Bool {
         if case .connected = status { return true }
         return false
+    }
+
+    /// FR-15 is opt-in: Accessibility is never requested at launch, only when the user
+    /// turns emoji typing on from the menu.
+    var isEmojiInsertionTrusted: Bool { textInserter.isTrusted }
+
+    func requestEmojiInsertionTrust() {
+        textInserter.requestTrust()
     }
 
     // MARK: - Lifecycle
