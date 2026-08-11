@@ -329,6 +329,8 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
 - [ ] **M9 — Polish & submission prep.** Haptics, keep-awake, unpair flows, login item,
   onboarding, privacy strings, App Store metadata checklist. Delivers: FR-5, FR-20,
   FR-21, FR-22. *Verify: full VERIFY.md pass by owner on clean devices.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M9, submission
+  steps in `docs/APP-STORE.md`.
 
 ## 8. Risks & open questions
 

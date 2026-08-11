@@ -43,6 +43,15 @@ struct AgentMenu: View {
              ? "Emoji are typed into whatever you're writing."
              : "Off: emoji are copied to the clipboard instead.")
 
+        // FR-20.
+        Toggle("Open at login", isOn: loginItemBinding)
+        if agent.loginItemNeedsApproval {
+            Text("Waiting for approval in System Settings → General → Login Items.")
+        }
+        if let error = agent.loginItemError {
+            Text(error)
+        }
+
         Divider()
 
         Button("Quit NosoDeck") {
@@ -57,6 +66,13 @@ struct AgentMenu: View {
         Binding(
             get: { agent.isEmojiInsertionTrusted },
             set: { isOn in if isOn { agent.requestEmojiInsertionTrust() } }
+        )
+    }
+
+    private var loginItemBinding: Binding<Bool> {
+        Binding(
+            get: { agent.opensAtLogin },
+            set: { agent.setOpensAtLogin($0) }
         )
     }
 

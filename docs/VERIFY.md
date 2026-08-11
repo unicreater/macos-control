@@ -381,5 +381,43 @@ it is still ⌘V on Dvorak and AZERTY.
 
 ---
 
-## M9 section is appended when that milestone lands. See `docs/PRD.md` §7 for the
+## M9 — Polish & submission prep · implemented, pending verification
+
+Delivers FR-5, FR-20, FR-21, FR-22. Submission steps are in `docs/APP-STORE.md`.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M9.1 | Tap a tile | A rigid haptic, once (FR-21) | ☐ |
+| M9.2 | Pair successfully | A success haptic; a wrong PIN gives an error haptic alongside the shake | ☐ |
+| M9.3 | Anything else — page swipes, edit mode, settings | **No** haptic. Two events only, by design | ☐ |
+| M9.4 | Leave the deck open and connected past the screen-lock interval | Screen stays awake (FR-21) | ☐ |
+| M9.5 | Disconnect the Mac and wait | Screen sleeps normally — a dead deck has no claim on the battery | ☐ |
+| M9.6 | Open Settings and wait | Screen sleeps normally; the idle timer is deck-only | ☐ |
+| M9.7 | Settings → **Keep this iPhone awake** off | Takes effect at once and survives relaunch | ☐ |
+| M9.8 | Settings screen in landscape | Fits on one screen — **no scrolling** (S7) | ☐ |
+| M9.9 | Settings → **Unpair** | Confirms, then unpairs; reconnecting needs the PIN (FR-5) | ☐ |
+| M9.10 | Settings → Permissions row | Reads "N of 3 granted" and tracks reality | ☐ |
+| M9.11 | Settings → **Emoji insertion** off | The emoji strip disappears from the deck; everything else is unaffected | ☐ |
+| M9.12 | Mac menu → **Open at login**, then reboot | The menu-bar icon is there without launching anything (FR-20) | ☐ |
+| M9.13 | macOS asks for approval instead | The menu says so rather than looking broken | ☐ |
+| M9.14 | System Settings → Login Items, turn NosoDeck off | The menu toggle reflects it — status is read live, not remembered | ☐ |
+| M9.15 | Relaunch the phone app with a Mac already paired | Onboarding is skipped entirely (FR-22) | ☐ |
+| M9.16 | Delete and reinstall the phone app | Onboarding returns | ☐ |
+
+### What is deliberately not in v1
+
+Recorded so none of it reads as an oversight: light mode and portrait are undesigned;
+the macOS popovers use native conventions rather than the Hardware language; the
+onboarding QR is a placeholder. All four are in `docs/APP-STORE.md` as decisions to
+confirm, not bugs to fix.
+
+---
+
+## After the first successful build
+
+Once `swift test` passes and both apps compile, work back through M0 → M9 in order. The
+milestones build on each other, so an early failure will usually explain several later
+ones. Send back verbatim errors — for code that has never been compiled, the first
+hundred lines of compiler output are worth more than any description of what it
+should do. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

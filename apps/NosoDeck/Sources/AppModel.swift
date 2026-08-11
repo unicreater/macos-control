@@ -2,6 +2,7 @@ import DeckKit
 import Foundation
 import Observation
 import SwiftUI
+import UIKit
 
 /// The coordinator: routing, discovery, pairing, and the session.
 ///
@@ -16,6 +17,7 @@ final class AppModel {
         case discovery
         case pin
         case deck
+        case settings
     }
 
     // MARK: - Published state
@@ -74,6 +76,10 @@ final class AppModel {
         self.deckStore = deckStore
         self.hasSavedDeck = saved != nil
         self.deck = saved ?? Deck()
+
+        let defaults = UserDefaults.standard
+        self.keepsScreenAwake = defaults.object(forKey: Self.keepAwakeKey) as? Bool ?? true
+        self.isEmojiStripEnabled = defaults.object(forKey: Self.emojiStripKey) as? Bool ?? true
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
@@ -205,6 +211,7 @@ final class AppModel {
     /// down, which is the same condition the deck's opacity is showing.
     func activate(_ tile: Tile) {
         guard session.acceptsActions else { return }
+        Haptics.tileTap()
         lastActionError = nil
         client.send(.action(ActionRequest(activating: tile.target)))
     }
@@ -248,6 +255,35 @@ final class AppModel {
     func isPageLocked(_ index: Int) -> Bool {
         deck.lockedPageIndices(for: entitlement).contains(index)
     }
+
+    // MARK: - Settings and polish (FR-21)
+
+    func openSettings() { route = .settings }
+    func closeSettings() { route = .deck }
+
+    /// FR-21: the idle timer is disabled *only* while the deck is foregrounded and
+    /// connected. A deck that can't reach the Mac has no claim on the user's battery.
+    private(set) var keepsScreenAwake = true
+    private(set) var isEmojiStripEnabled = true
+
+    func setKeepsScreenAwake(_ enabled: Bool) {
+        keepsScreenAwake = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.keepAwakeKey)
+        applyIdleTimer()
+    }
+
+    func setEmojiStripEnabled(_ enabled: Bool) {
+        isEmojiStripEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.emojiStripKey)
+    }
+
+    func applyIdleTimer() {
+        UIApplication.shared.isIdleTimerDisabled =
+            keepsScreenAwake && route == .deck && session.state.isLive
+    }
+
+    fileprivate static let keepAwakeKey = "com.noso.nosodeck.keepAwake"
+    fileprivate static let emojiStripKey = "com.noso.nosodeck.emojiStrip"
 
     func presentPaywall(reason: String? = nil) {
         paywallReason = reason
@@ -418,6 +454,7 @@ final class AppModel {
         client.onSessionEvent = { [weak self] event in
             guard let self else { return }
             self.session.handle(event)
+            self.applyIdleTimer()
             if case .reconnecting = self.session.state {
                 self.scheduleReconnect()
             }
@@ -488,6 +525,7 @@ final class AppModel {
         identityStore.save(pairing.trust)
         pinEntry = ""
         route = .deck
+        Haptics.pairingSucceeded()
         // First thing after pairing: the catalog, which also carries the starter deck.
         requestCatalog()
     }
@@ -500,6 +538,7 @@ final class AppModel {
         pairing.handle(.pairRejected)
         pinEntry = ""
         shakeToken += 1
+        Haptics.pairingFailed()
 
         if case .discovering = pairing.state {
             // Out of tries; back to the device list.

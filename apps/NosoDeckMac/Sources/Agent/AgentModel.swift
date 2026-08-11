@@ -46,6 +46,7 @@ final class AgentModel {
     private let stateObserver = MacStateObserver()
     private let shortcuts = ShortcutsBridge()
     private let textInserter = TextInserter()
+    private let loginItem = LoginItem()
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
@@ -81,6 +82,18 @@ final class AgentModel {
 
     func requestEmojiInsertionTrust() {
         textInserter.requestTrust()
+    }
+
+    // MARK: - Open at login (FR-20)
+
+    /// Read live rather than remembered: the user can also turn this off in System
+    /// Settings, and a toggle that disagrees with the system is worse than none.
+    var opensAtLogin: Bool { loginItem.isEnabled }
+    var loginItemNeedsApproval: Bool { loginItem.needsApproval }
+    private(set) var loginItemError: String?
+
+    func setOpensAtLogin(_ enabled: Bool) {
+        loginItemError = loginItem.setEnabled(enabled)
     }
 
     // MARK: - Lifecycle

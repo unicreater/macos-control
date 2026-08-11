@@ -20,15 +20,22 @@ struct RootView: View {
                 PINEntryView(model: model)
             case .deck:
                 DeckView(model: model)
+            case .settings:
+                SettingsView(model: model)
             }
         }
         .preferredColorScheme(.dark)
         .animation(DeckMotion.stateChange, value: model.route)
         .task {
+            Haptics.prepare()
             // Onboarding starts the browse itself, once its pre-prompt is accepted.
             if model.route != .onboarding {
                 model.beginDiscovery()
             }
+        }
+        .onChange(of: model.route) { _, _ in
+            // Leaving the deck gives the screen its normal sleep behaviour back (FR-21).
+            model.applyIdleTimer()
         }
     }
 }

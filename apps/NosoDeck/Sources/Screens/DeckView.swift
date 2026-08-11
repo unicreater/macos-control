@@ -101,11 +101,13 @@ struct DeckView: View {
                         .lineLimit(1)
                 }
 
-                EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
-                    model.send(emoji: emoji)
+                if model.isEmojiStripEnabled {
+                    EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
+                        model.send(emoji: emoji)
+                    }
                 }
 
-                Button { isConfirmingUnpair = true } label: {
+                Button { model.openSettings() } label: {
                     Image(systemName: "gearshape")
                         .foregroundStyle(DeckColor.inkMuted)
                         .frame(width: 36, height: 36)
