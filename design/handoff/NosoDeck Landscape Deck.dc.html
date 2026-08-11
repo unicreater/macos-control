@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#0a0a0a;font-family:Inter,-apple-system,sans-serif}@keyframes led{0%,100%{opacity:1}50%{opacity:.45}}@keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}a{color:#a4d4c5}a:hover{color:#e8b94a}</style></helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+<section data-label="Cover" data-screen-label="01" data-speaker-notes="NosoDeck in landscape, Hardware direction: keycap tiles, mono labels, lit status LEDs. 4x2 is the fixed maximum." style="background:#111;color:#e8e8e8;padding:110px;display:flex;flex-direction:column;justify-content:center;gap:44px;font-family:'IBM Plex Mono',ui-monospace,monospace">
+  <div style="font-size:26px;letter-spacing:4px;color:#8a8a8a">NOSODECK · LANDSCAPE · DIRECTION 2C "HARDWARE"</div>
+  <div style="font-family:Inter,sans-serif;font-size:132px;font-weight:500;letter-spacing:-4px;line-height:.98">Your Mac,<br>eight keys away.</div>
+  <div style="font-family:Inter,sans-serif;font-size:34px;line-height:1.5;color:#9a9a9a;max-width:1180px;text-wrap:pretty">iPhone 15 Pro Max, 932×430, docked beside the keyboard. A fixed 4×2 deck — keycap tiles, monospace legends, lit status LEDs. Colour is reserved for state, never decoration.</div>
+  <div style="display:flex;gap:18px;padding-top:12px;font-size:24px;letter-spacing:2px">
+    <span style="border:1px solid #2f2f2f;border-radius:10px;padding:16px 28px;background:#1a1a1a">8 TILES / PAGE</span>
+    <span style="border:1px solid #2f2f2f;border-radius:10px;padding:16px 28px;background:#1a1a1a">2 PAGES FREE · 8 PREMIUM</span>
+    <span style="border:1px solid #a4d4c5;border-radius:10px;padding:16px 28px;color:#a4d4c5">MINT = STATE ONLY</span>
+  </div>
+</section>
+
+<section data-label="Palette" data-screen-label="02" data-speaker-notes="Greys build the chassis. Mint, ochre and red are reserved for state and never used decoratively." style="background:#0a0a0a;color:#e8e8e8;padding:80px;display:flex;flex-direction:column;gap:36px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Palette</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a">greys build the chassis · colour means something</span></div>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:20px">
+    <div style="height:180px;border-radius:16px;background:#0a0a0a;border:1px solid #2a2a2a;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><b style="font-size:22px;letter-spacing:1px">VOID</b><span style="font-size:19px;color:#8a8a8a">#0a0a0a</span></div>
+    <div style="height:180px;border-radius:16px;background:#111;border:1px solid #2a2a2a;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><b style="font-size:22px;letter-spacing:1px">CHASSIS</b><span style="font-size:19px;color:#8a8a8a">#111111</span></div>
+    <div style="height:180px;border-radius:16px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><b style="font-size:22px;letter-spacing:1px">KEYCAP</b><span style="font-size:19px;color:#8a8a8a">#242424→#191919</span></div>
+    <div style="height:180px;border-radius:16px;background:#a4d4c5;color:#0a1a1a;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><b style="font-size:22px;letter-spacing:1px">MINT</b><span style="font-size:19px">#a4d4c5 · state</span></div>
+    <div style="height:180px;border-radius:16px;background:#e8b94a;color:#1a1300;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><b style="font-size:22px;letter-spacing:1px">OCHRE</b><span style="font-size:19px">#e8b94a · premium</span></div>
+    <div style="height:180px;border-radius:16px;background:#ef4444;color:#2a0505;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><b style="font-size:22px;letter-spacing:1px">RED</b><span style="font-size:19px">#ef4444 · destructive</span></div>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:30px;display:flex;flex-direction:column;gap:12px"><div style="font-size:20px;letter-spacing:2px;color:#a4d4c5">RUNNING</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.45;color:#9a9a9a">Mint LED, 8pt, glow. Plus a VoiceOver value — never colour alone.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:30px;display:flex;flex-direction:column;gap:12px"><div style="font-size:20px;letter-spacing:2px;color:#a4d4c5">FRONTMOST</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.45;color:#9a9a9a">Mint 1pt edge + 3pt glow ring + lighter cap fill.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:30px;display:flex;flex-direction:column;gap:12px"><div style="font-size:20px;letter-spacing:2px;color:#8a8a8a">DISCONNECTED</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.45;color:#9a9a9a">Deck at 38% opacity behind a red banner with retry text.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:30px;display:flex;flex-direction:column;gap:12px"><div style="font-size:20px;letter-spacing:2px;color:#e8b94a">PREMIUM</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.45;color:#9a9a9a">Ochre outline on gates. Visible affordance, never a dead tap.</div></div>
+  </div>
+</section>
+
+<section data-label="Type &amp; space" data-screen-label="03" data-speaker-notes="Two families with one job each: mono for machine legends, Inter for anything a human wrote." style="background:#111;color:#e8e8e8;padding:80px;display:flex;flex-direction:column;gap:36px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Type &amp; space</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a">two families, one job each</span></div>
+  <div style="flex:1;display:grid;grid-template-columns:1.25fr 1fr;gap:40px">
+    <div style="display:flex;flex-direction:column;gap:26px">
+      <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-2px">Pair this iPhone</span><span style="font-size:20px;color:#8a8a8a">display · Inter 56/500/-2</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:32px;font-weight:500;letter-spacing:-1px">Nora's MacBook Pro</span><span style="font-size:20px;color:#8a8a8a">title · Inter 32/500/-1</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:24px;line-height:1.5">Tiles still launch apps without this.</span><span style="font-size:20px;color:#8a8a8a">body · Inter 24/400/1.5</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:2px">XCODE</span><span style="font-size:20px;color:#8a8a8a">legend · Plex Mono 24/500/+2 · UPPER</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:20px;letter-spacing:3px;color:#8a8a8a">EDITING PAGE 1</span><span style="font-size:20px;color:#8a8a8a">meta · Plex Mono 20/400/+3</span></div>
+      <div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.5;color:#9a9a9a;border-top:1px solid #2a2a2a;padding-top:22px;text-wrap:pretty">Mono is for what the machine says — legends, status, page numbers. Inter is for anything a person wrote. Mixing them inside one element is a violation. In-product both map to SF Mono / SF Pro so Dynamic Type works natively.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:30px;display:flex;flex-direction:column;gap:18px">
+        <div style="font-size:20px;letter-spacing:2px;color:#8a8a8a">SPACING · 4PT BASE</div>
+        <div style="display:flex;align-items:flex-end;gap:14px"><div style="width:4px;height:34px;background:#a4d4c5"></div><div style="width:8px;height:48px;background:#a4d4c5"></div><div style="width:12px;height:62px;background:#a4d4c5"></div><div style="width:16px;height:76px;background:#a4d4c5"></div><div style="width:24px;height:92px;background:#e8e8e8"></div><div style="width:34px;height:110px;background:#e8e8e8"></div></div>
+        <div style="font-family:Inter,sans-serif;font-size:22px;line-height:1.5;color:#9a9a9a">Deck: 16pt safe margins, 12pt gutters, 8 caps in a 4×2 grid.</div>
+      </div>
+      <div style="flex:1;border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:30px;display:flex;flex-direction:column;gap:18px">
+        <div style="font-size:20px;letter-spacing:2px;color:#8a8a8a">RADIUS &amp; DEPTH</div>
+        <div style="display:flex;gap:18px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;font-size:18px;color:#8a8a8a"><div style="width:66px;height:66px;background:#242424;border:1px solid #2f2f2f;border-radius:6px"></div>6</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;font-size:18px;color:#8a8a8a"><div style="width:66px;height:66px;background:#242424;border:1px solid #2f2f2f;border-radius:10px"></div>10</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;font-size:18px;color:#8a8a8a"><div style="width:66px;height:66px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;border-radius:12px;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505"></div>12 cap</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;font-size:18px;color:#8a8a8a"><div style="width:66px;height:66px;background:#242424;border:1px solid #2f2f2f;border-radius:16px"></div>16</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;font-size:18px;color:#8a8a8a"><div style="width:66px;height:66px;background:#242424;border:1px solid #2f2f2f;border-radius:46px"></div>46 frame</div>
+        </div>
+        <div style="font-family:Inter,sans-serif;font-size:22px;line-height:1.5;color:#9a9a9a">One shadow recipe: <span style="font-family:'IBM Plex Mono',monospace;font-size:19px">inset 0 1px 0 #3a3a3a, 0 3px 0 #050505</span>. Depth is structural, not atmospheric.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Motion &amp; a11y" data-screen-label="04" data-speaker-notes="Motion is at the subtle tier and every animation has a fade-only variant. Accessibility rules are blocking." style="background:#0a0a0a;color:#e8e8e8;padding:80px;display:flex;flex-direction:column;gap:36px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Motion &amp; accessibility</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a">subtle tier · blocking rules</span></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-family:Inter,sans-serif;font-size:46px;font-weight:500;letter-spacing:-1px;color:#a4d4c5">80–150ms</div><div style="font-family:Inter,sans-serif;font-size:23px;line-height:1.45;color:#9a9a9a">Cap press. Sink 4pt and swap the shadow — bounds never move.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-family:Inter,sans-serif;font-size:46px;font-weight:500;letter-spacing:-1px;color:#a4d4c5">200ms</div><div style="font-family:Inter,sans-serif;font-size:23px;line-height:1.45;color:#9a9a9a">LED lighting, frontmost ring moving between caps.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-family:Inter,sans-serif;font-size:46px;font-weight:500;letter-spacing:-1px;color:#a4d4c5">&gt;300ms</div><div style="font-family:Inter,sans-serif;font-size:23px;line-height:1.45;color:#9a9a9a">Only then a spinner. Reconnecting dims the deck, never blanks it.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-family:Inter,sans-serif;font-size:46px;font-weight:500;letter-spacing:-1px;color:#a4d4c5">Reduce</div><div style="font-family:Inter,sans-serif;font-size:23px;line-height:1.45;color:#9a9a9a">Fade-only variants; the LED stops pulsing and stays lit.</div></div>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-size:20px;letter-spacing:2px;color:#8a8a8a">TARGETS &amp; CONTRAST</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.5;color:#9a9a9a">Caps run ~196×140pt — far past 44pt. Text meets 4.5:1, mint LED meets 3:1 against the cap fill.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-size:20px;letter-spacing:2px;color:#8a8a8a">VOICEOVER</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.5;color:#9a9a9a">Label = app name, value = running / frontmost, trait = button. Focus order follows the grid.</div></div>
+    <div style="border-radius:16px;background:#161616;border:1px solid #2a2a2a;padding:32px;display:flex;flex-direction:column;gap:14px"><div style="font-size:20px;letter-spacing:2px;color:#8a8a8a">EVERY SCREEN SHIPS STATES</div><div style="font-family:Inter,sans-serif;font-size:24px;line-height:1.5;color:#9a9a9a">Empty · loading · error · disconnected, designed with the happy path, not after it.</div></div>
+  </div>
+</section>
+
+<section data-label="S4 Deck home" data-screen-label="05" data-speaker-notes="The hero screen. Tiles are ~196x140pt keycaps. Running is a lit LED; frontmost adds a mint edge and glow ring." style="background:#0a0a0a;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S4</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Deck home</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a;margin-left:auto">connected · page 1 of 2</span></div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div style="width:932px;height:430px;transform:scale(1.62);animation:riseIn .5s ease both">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;color:#e8e8e8;box-shadow:0 40px 80px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:16px 0 14px">
+          <div style="display:flex;align-items:center;gap:12px;padding-bottom:14px">
+            <div style="display:flex;align-items:center;gap:9px;font-size:13px;letter-spacing:1.5px;color:#8a8a8a"><span style="width:9px;height:9px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 10px #a4d4c5;animation:led 2.4s ease-in-out infinite"></span>NORA'S MACBOOK · 12MS</div>
+            <div style="flex:1"></div><div style="font-size:13px;color:#6a6a6a">09:41</div>
+            <div style="width:36px;height:36px;border-radius:10px;background:#1c1c1c;border:1px solid #2c2c2c;display:flex;align-items:center;justify-content:center;font-size:15px;color:#8a8a8a">⚙</div>
+          </div>
+          <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:12px">
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">MAIL</span><span style="position:absolute;top:11px;right:11px;width:8px;height:8px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 8px #a4d4c5;animation:led 2.4s ease-in-out infinite"></span></div>
+            <div style="border-radius:12px;background:linear-gradient(#2c2c2c,#202020);border:1px solid #a4d4c5;box-shadow:inset 0 1px 0 #444,0 0 0 3px rgba(164,212,197,.18),0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative"><span style="width:40px;height:40px;background:#fff;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px;color:#fff">XCODE</span><span style="position:absolute;top:11px;right:11px;width:8px;height:8px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 8px #a4d4c5"></span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">FIGMA</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">SLACK</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">LINEAR</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">NOTION</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">MUSIC</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="font-size:34px;line-height:1">🎬</span><span style="font-size:12px;letter-spacing:1px">RECORD</span></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:9px;padding-top:12px">
+            <span style="width:22px;height:5px;border-radius:3px;background:#e8e8e8"></span><span style="width:22px;height:5px;border-radius:3px;background:#333"></span>
+            <span style="margin-left:10px;border:1px solid #e8b94a;color:#e8b94a;border-radius:6px;padding:2px 10px;font-size:11px;letter-spacing:1px">+ PAGE</span>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Tile states" data-screen-label="06" data-speaker-notes="Every state gets two cues. Bounds never move — pressed changes fill and depth only." style="background:#111;color:#e8e8e8;padding:80px;display:flex;flex-direction:column;gap:44px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">The keycap</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a">two cues per state, always</span></div>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:32px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center"><div style="width:100%;aspect-ratio:1.4;border-radius:20px;background:linear-gradient(#242424,#191919);border:2px solid #2f2f2f;box-shadow:inset 0 2px 0 #3a3a3a,0 6px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"><span style="width:76px;height:76px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat"></span><span style="font-size:22px;letter-spacing:2px">FIGMA</span></div><span style="font-size:24px;letter-spacing:2px;color:#8a8a8a">IDLE</span></div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center"><div style="position:relative;width:100%;aspect-ratio:1.4;border-radius:20px;background:linear-gradient(#242424,#191919);border:2px solid #2f2f2f;box-shadow:inset 0 2px 0 #3a3a3a,0 6px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"><span style="width:76px;height:76px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat"></span><span style="font-size:22px;letter-spacing:2px">MAIL</span><span style="position:absolute;top:18px;right:18px;width:16px;height:16px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 14px #a4d4c5;animation:led 2.4s ease-in-out infinite"></span></div><span style="font-size:24px;letter-spacing:2px;color:#8a8a8a">RUNNING</span></div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center"><div style="position:relative;width:100%;aspect-ratio:1.4;border-radius:20px;background:linear-gradient(#2c2c2c,#202020);border:2px solid #a4d4c5;box-shadow:inset 0 2px 0 #444,0 0 0 6px rgba(164,212,197,.18),0 6px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"><span style="width:76px;height:76px;background:#fff;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat"></span><span style="font-size:22px;letter-spacing:2px;color:#fff">XCODE</span><span style="position:absolute;top:18px;right:18px;width:16px;height:16px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 14px #a4d4c5"></span></div><span style="font-size:24px;letter-spacing:2px;color:#a4d4c5">FRONTMOST</span></div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center"><div style="width:100%;aspect-ratio:1.4;border-radius:20px;background:#151515;border:2px solid #2a2a2a;box-shadow:inset 0 3px 8px rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transform:translateY(4px)"><span style="width:76px;height:76px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat"></span><span style="font-size:22px;letter-spacing:2px;color:#c8c8c8">SLACK</span></div><span style="font-size:24px;letter-spacing:2px;color:#8a8a8a">PRESSED</span></div>
+    <div style="display:flex;flex-direction:column;gap:20px;align-items:center"><div style="width:100%;aspect-ratio:1.4;border-radius:20px;background:linear-gradient(#242424,#191919);border:2px solid #2f2f2f;opacity:.4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"><span style="width:76px;height:76px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat"></span><span style="font-size:22px;letter-spacing:2px">NOTION</span></div><span style="font-size:24px;letter-spacing:2px;color:#8a8a8a">DISCONNECTED</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:36px;font-family:Inter,sans-serif;font-size:26px;line-height:1.5;color:#9a9a9a">
+    <div><b style="color:#fff">Depth is the affordance.</b> Idle caps sit 3pt proud; pressed sinks into the chassis in 80–150ms.</div>
+    <div><b style="color:#fff">The LED is real state.</b> It only lights when the app is actually running, and VoiceOver reads it as a value.</div>
+    <div><b style="color:#fff">Mono legends only.</b> Uppercase, 1pt tracking, one line — like a key legend, never a caption.</div>
+  </div>
+</section>
+
+<section data-label="Onboarding" data-screen-label="07" data-speaker-notes="Two steps, no tour. Landscape splits into statement plus artifact." style="background:#0a0a0a;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S1</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Onboarding — two steps</span></div>
+  <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+    <div style="width:932px;height:430px;transform:scale(.92);transform-origin:center;justify-self:center">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;padding:24px 0">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="font-size:12px;letter-spacing:2px;color:#8a8a8a">STEP 1 / 2</div>
+            <div style="font-family:Inter,sans-serif;font-size:38px;font-weight:500;letter-spacing:-1px;line-height:1.15">Install NosoDeck<br>on your Mac</div>
+            <div style="font-family:Inter,sans-serif;font-size:17px;line-height:1.5;color:#9a9a9a">Same Wi-Fi, that's it — no account, no cable.</div>
+            <div style="display:flex;gap:12px;padding-top:6px"><div style="height:48px;padding:0 26px;border-radius:12px;background:#e8b94a;color:#1a1300;display:flex;align-items:center;font-size:14px;letter-spacing:1px">CONTINUE</div><div style="height:48px;padding:0 22px;border-radius:12px;border:1px solid #2f2f2f;color:#9a9a9a;display:flex;align-items:center;font-size:14px">Already installed</div></div>
+            <div style="display:flex;gap:7px;padding-top:6px"><span style="width:22px;height:5px;border-radius:3px;background:#e8e8e8"></span><span style="width:22px;height:5px;border-radius:3px;background:#333"></span></div>
+          </div>
+          <div style="height:100%;border-radius:16px;background:linear-gradient(#1c1c1c,#151515);border:1px solid #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"><div style="width:132px;height:132px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;color:#555;font-size:11px">QR → App Store</div><div style="font-size:12px;letter-spacing:1px;color:#8a8a8a">nosodeck.app/mac</div></div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+    <div style="width:932px;height:430px;transform:scale(.92);transform-origin:center;justify-self:center">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;padding:24px 0">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="font-size:12px;letter-spacing:2px;color:#8a8a8a">STEP 2 / 2</div>
+            <div style="font-family:Inter,sans-serif;font-size:38px;font-weight:500;letter-spacing:-1px;line-height:1.15">Pair this iPhone</div>
+            <div style="font-family:Inter,sans-serif;font-size:17px;line-height:1.5;color:#9a9a9a">We find your Mac on the local network and swap a 6-digit PIN.</div>
+            <div style="height:48px;padding:0 26px;border-radius:12px;background:#e8b94a;color:#1a1300;display:flex;align-items:center;width:fit-content;font-size:14px;letter-spacing:1px">FIND MY MAC</div>
+            <div style="display:flex;gap:7px;padding-top:6px"><span style="width:22px;height:5px;border-radius:3px;background:#333"></span><span style="width:22px;height:5px;border-radius:3px;background:#e8e8e8"></span></div>
+          </div>
+          <div style="height:100%;border-radius:16px;background:#1a1a1a;border:1px solid #2a2a2a;padding:26px;display:flex;flex-direction:column;gap:14px;justify-content:center">
+            <div style="font-size:12px;letter-spacing:2px;color:#8a8a8a">LOCAL NETWORK ACCESS</div>
+            <div style="font-family:Inter,sans-serif;font-size:16px;line-height:1.55;color:#c8c8c8"><b style="color:#fff">Why</b> — to reach your Mac on this Wi-Fi.<br><b style="color:#fff">Without it</b> — nothing connects at all.<br><b style="color:#fff">Degraded path</b> — none; this one is required.</div>
+            <div style="height:44px;border-radius:10px;background:#a4d4c5;color:#0a1a1a;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:15px;font-weight:600">Allow</div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Discovery + PIN" data-screen-label="08" data-speaker-notes="Landscape lets error and re-pair states live beside the keypad instead of replacing it." style="background:#111;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S2 · S3</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Find the Mac, then the PIN</span></div>
+  <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+    <div style="width:932px;height:430px;transform:scale(.92);justify-self:center">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;padding:20px 0">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:12px;letter-spacing:2px;color:#8a8a8a">CHOOSE YOUR MAC</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #a4d4c5;padding:12px 14px;display:flex;align-items:center;gap:12px;min-height:52px"><div style="width:34px;height:34px;border-radius:8px;background:#2c2c2c"></div><div style="flex:1;font-family:Inter,sans-serif"><div style="font-size:15px">Nora's MacBook Pro</div><div style="font-size:12px;color:#8a8a8a">macOS 15 · this network</div></div><div style="font-size:11px;letter-spacing:1px;color:#a4d4c5;border:1px solid #a4d4c5;border-radius:6px;padding:3px 9px">PAIRED</div></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;padding:12px 14px;display:flex;align-items:center;gap:12px;min-height:52px"><div style="width:34px;height:34px;border-radius:8px;background:#2c2c2c"></div><div style="flex:1;font-family:Inter,sans-serif"><div style="font-size:15px">Studio</div><div style="font-size:12px;color:#8a8a8a">macOS 15</div></div><div style="color:#6a6a6a">›</div></div>
+              <div style="border-radius:12px;background:#161616;border:1px solid #232323;padding:12px 14px;display:flex;align-items:center;gap:12px;min-height:52px;opacity:.45"><div style="width:34px;height:34px;border-radius:8px;background:#2c2c2c"></div><div style="flex:1;font-family:Inter,sans-serif"><div style="font-size:15px">Mac mini (office)</div><div style="font-size:12px;color:#8a8a8a">last seen 2d ago</div></div></div>
+            </div>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:1px;color:#8a8a8a"><span style="width:10px;height:10px;border-radius:50%;border:1.5px solid #8a8a8a"></span>STILL SCANNING…</div>
+          </div>
+          <div style="border-radius:16px;background:#1a1a1a;border:1px solid #2a2a2a;padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+            <div style="font-size:12px;letter-spacing:2px;color:#8a8a8a">NOTHING FOUND?</div>
+            <div style="font-family:Inter,sans-serif;font-size:16px;line-height:1.6;color:#c8c8c8;text-align:center">Mac app running · same Wi-Fi ·<br>local network allowed on both</div>
+            <div style="height:44px;padding:0 22px;border-radius:10px;border:1px solid #3a3a3a;display:flex;align-items:center;font-family:Inter,sans-serif;font-size:14px">Troubleshoot</div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+    <div style="width:932px;height:430px;transform:scale(.92);justify-self:center">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:20px 0;align-items:center">
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div style="font-family:Inter,sans-serif;font-size:32px;font-weight:500;letter-spacing:-1px;line-height:1.2">Enter the PIN<br>shown on your Mac</div>
+            <div style="display:flex;gap:10px">
+              <div style="width:56px;height:74px;border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;display:flex;align-items:center;justify-content:center;font-size:30px">4</div>
+              <div style="width:56px;height:74px;border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;display:flex;align-items:center;justify-content:center;font-size:30px">8</div>
+              <div style="width:56px;height:74px;border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;display:flex;align-items:center;justify-content:center;font-size:30px">1</div>
+              <div style="width:56px;height:74px;border-radius:12px;background:#202020;border:2px solid #a4d4c5;box-shadow:0 0 0 3px rgba(164,212,197,.16)"></div>
+              <div style="width:56px;height:74px;border-radius:12px;background:#181818;border:1px solid #262626"></div>
+              <div style="width:56px;height:74px;border-radius:12px;background:#181818;border:1px solid #262626"></div>
+            </div>
+            <div style="font-size:12px;letter-spacing:1px;color:#8a8a8a">MENU BAR → NOSODECK ICON</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="border-radius:14px;background:#1a1a1a;border:1px solid #ef4444;padding:16px;display:flex;flex-direction:column;gap:8px"><div style="font-size:11px;letter-spacing:2px;color:#8a8a8a">ERROR</div><div style="font-family:Inter,sans-serif;font-size:16px;color:#ff8080">Wrong PIN — 2 tries left</div><div style="font-family:Inter,sans-serif;font-size:14px;color:#8a8a8a">Digits shake and clear in place. The flow never resets.</div></div>
+            <div style="border-radius:14px;background:#1a1a1a;border:1px solid #2a2a2a;padding:16px;display:flex;flex-direction:column;gap:8px"><div style="font-size:11px;letter-spacing:2px;color:#8a8a8a">IDENTITY CHANGED</div><div style="font-family:Inter,sans-serif;font-size:15px;line-height:1.45;color:#c8c8c8">This Mac's identity changed. It may have been reinstalled — or it isn't your Mac.</div><div style="display:flex;gap:8px"><div style="flex:1;height:40px;border-radius:9px;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:14px">Re-pair</div><div style="flex:1;height:40px;border-radius:9px;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:14px">Cancel</div></div></div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Edit mode" data-screen-label="09" data-speaker-notes="Keycaps tilt rather than jiggle-scale, so grid bounds hold. Remove badges sit outside the cap." style="background:#0a0a0a;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S5</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Edit mode</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a;margin-left:auto">long-press ≥500ms · drag to reorder</span></div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div style="width:932px;height:430px;transform:scale(1.58)">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:16px 0 14px">
+          <div style="display:flex;align-items:center;gap:12px;padding-bottom:14px"><div style="font-size:12px;letter-spacing:2px;color:#8a8a8a">EDITING PAGE 1</div><div style="flex:1"></div><div style="height:34px;padding:0 18px;border-radius:8px;background:#a4d4c5;color:#0a1a1a;display:flex;align-items:center;font-size:13px;letter-spacing:1px">DONE</div></div>
+          <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:12px">
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;transform:rotate(-1deg)"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">MAIL</span><span style="position:absolute;top:-7px;left:-7px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">−</span></div>
+            <div style="border-radius:12px;background:#1c1c1c;border:2px dashed #a4d4c5;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:1px;color:#a4d4c5;transform:rotate(-3deg) scale(1.04);box-shadow:0 12px 26px rgba(0,0,0,.6)">DRAGGING</div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;transform:rotate(1deg)"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">FIGMA</span><span style="position:absolute;top:-7px;left:-7px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">−</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;transform:rotate(-1.4deg)"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">SLACK</span><span style="position:absolute;top:-7px;left:-7px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">−</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;transform:rotate(1.2deg)"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">LINEAR</span><span style="position:absolute;top:-7px;left:-7px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">−</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;transform:rotate(-.8deg)"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">NOTION</span><span style="position:absolute;top:-7px;left:-7px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">−</span></div>
+            <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;transform:rotate(1.5deg)"><span style="font-size:34px;line-height:1">🎬</span><span style="font-size:12px;letter-spacing:1px">RECORD</span><span style="position:absolute;top:-7px;left:-7px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">−</span></div>
+            <div style="border-radius:12px;border:2px dashed #2f2f2f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#6a6a6a"><span style="font-size:26px">+</span><span style="font-size:11px;letter-spacing:1px">ADD TILE</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding-top:12px">
+            <div style="height:32px;padding:0 16px;border-radius:8px;background:#1c1c1c;border:1px solid #a4d4c5;color:#a4d4c5;display:flex;align-items:center;font-size:12px;letter-spacing:1px">PAGE 1</div>
+            <div style="height:32px;padding:0 16px;border-radius:8px;background:#1c1c1c;border:1px solid #2c2c2c;color:#8a8a8a;display:flex;align-items:center;font-size:12px;letter-spacing:1px">PAGE 2</div>
+            <div style="height:32px;padding:0 14px;border-radius:8px;border:1px solid #e8b94a;color:#e8b94a;display:flex;align-items:center;font-size:12px;letter-spacing:1px">+ PAGE</div>
+            <div style="flex:1"></div>
+            <div style="font-size:11px;letter-spacing:1px;color:#6a6a6a">DELETE PAGE CONFIRMS</div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Add tile" data-screen-label="10" data-speaker-notes="With 8 slots per page, the picker has to say where the tile lands." style="background:#111;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S6</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Add a tile</span><span style="font-family:Inter,sans-serif;font-size:28px;color:#8a8a8a;margin-left:auto">apps · shortcuts · website</span></div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div style="width:932px;height:430px;transform:scale(1.58)">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1.35fr 1fr;gap:24px;padding:16px 0 14px">
+          <div style="display:flex;flex-direction:column;gap:10px;min-height:0">
+            <div style="display:flex;gap:6px;border-radius:9px;background:#1a1a1a;border:1px solid #2a2a2a;padding:4px">
+              <div style="flex:1;height:34px;border-radius:6px;background:#e8e8e8;color:#111;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:1px">APPS</div>
+              <div style="flex:1;height:34px;border-radius:6px;color:#8a8a8a;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:1px">SHORTCUTS</div>
+              <div style="flex:1;height:34px;border-radius:6px;color:#8a8a8a;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:1px">WEBSITE</div>
+            </div>
+            <div style="height:38px;border-radius:9px;background:#1a1a1a;border:1px solid #2a2a2a;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#6a6a6a">⌕ Search apps on your Mac</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:7px;overflow:hidden">
+              <div style="border-radius:10px;background:#1c1c1c;border:1px solid #a4d4c5;padding:10px 14px;display:flex;align-items:center;gap:12px;min-height:46px"><span style="width:26px;height:26px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat"></span><span style="flex:1;font-family:Inter,sans-serif;font-size:15px">Xcode</span><span style="color:#a4d4c5">✓</span></div>
+              <div style="border-radius:10px;background:#1a1a1a;border:1px solid #262626;padding:10px 14px;display:flex;align-items:center;gap:12px;min-height:46px"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat"></span><span style="flex:1;font-family:Inter,sans-serif;font-size:15px">Figma</span></div>
+              <div style="border-radius:10px;background:#1a1a1a;border:1px solid #262626;padding:10px 14px;display:flex;align-items:center;gap:12px;min-height:46px"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/github.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/github.svg) center/contain no-repeat"></span><span style="flex:1;font-family:Inter,sans-serif;font-size:15px">GitHub Desktop</span></div>
+              <div style="border-radius:10px;background:#1a1a1a;border:1px solid #262626;padding:10px 14px;display:flex;align-items:center;gap:12px;min-height:46px"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat"></span><span style="flex:1;font-family:Inter,sans-serif;font-size:15px">Spotify</span></div>
+            </div>
+          </div>
+          <div style="border-radius:16px;background:#1a1a1a;border:1px solid #2a2a2a;padding:20px;display:flex;flex-direction:column;gap:14px;align-items:center">
+            <div style="font-size:11px;letter-spacing:2px;color:#8a8a8a;align-self:flex-start">PREVIEW</div>
+            <div style="width:150px;height:112px;border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px"><span style="width:40px;height:40px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat"></span><span style="font-size:12px;letter-spacing:1px">XCODE</span></div>
+            <div style="width:100%;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;letter-spacing:1px;color:#8a8a8a">LABEL</div><div style="height:38px;border-radius:9px;background:#141414;border:1px solid #2a2a2a;display:flex;align-items:center;padding:0 12px;font-family:Inter,sans-serif;font-size:14px">Xcode</div></div>
+            <div style="width:100%;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;letter-spacing:1px;color:#8a8a8a">GOES TO</div><div style="font-family:Inter,sans-serif;font-size:14px;color:#8a8a8a">Page 1 · slot 8 of 8 <span style="color:#e8b94a">— page full after this</span></div></div>
+            <div style="margin-top:auto;width:100%;display:flex;gap:8px"><div style="flex:1;height:44px;border-radius:10px;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:1px">CANCEL</div><div style="flex:1;height:44px;border-radius:10px;background:#a4d4c5;color:#0a1a1a;display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:1px">ADD</div></div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Settings" data-screen-label="11" data-speaker-notes="Everything fits without scrolling — it matters when the phone is docked and you're reaching over a keyboard." style="background:#0a0a0a;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S7</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Settings, one screen</span></div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div style="width:932px;height:430px;transform:scale(1.58)">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:16px 0 14px;gap:12px">
+          <div style="display:flex;align-items:center"><div style="font-family:Inter,sans-serif;font-size:26px;font-weight:500;letter-spacing:-.5px">Settings</div><div style="flex:1"></div><div style="font-size:12px;letter-spacing:1px;color:#8a8a8a">v1.0 (114)</div></div>
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="border-radius:14px;background:#1a1a1a;border:1px solid #2a2a2a;padding:16px;display:flex;align-items:center;gap:14px"><div style="width:40px;height:40px;border-radius:10px;background:#2a2a2a"></div><div style="flex:1;font-family:Inter,sans-serif"><div style="font-size:16px">Nora's MacBook Pro</div><div style="font-size:13px;color:#a4d4c5">● Connected · 12ms</div></div><div style="height:36px;padding:0 16px;border-radius:9px;border:1px solid #ef4444;color:#ff8080;display:flex;align-items:center;font-size:12px;letter-spacing:1px">UNPAIR</div></div>
+              <div style="flex:1;border-radius:14px;background:#1a1a1a;border:1px solid #2a2a2a;padding:16px;display:flex;flex-direction:column;gap:12px">
+                <div style="font-size:11px;letter-spacing:2px;color:#8a8a8a">DECK</div>
+                <div style="display:flex;align-items:center;gap:12px;min-height:44px"><div style="flex:1;font-family:Inter,sans-serif;font-size:15px">Emoji insertion</div><div style="width:50px;height:28px;border-radius:999px;background:#2a2a2a;display:flex;align-items:center;padding:0 3px"><div style="width:22px;height:22px;border-radius:50%;background:#6a6a6a"></div></div></div>
+                <div style="font-family:Inter,sans-serif;font-size:13px;line-height:1.5;color:#8a8a8a;margin-top:-6px">Needs Accessibility on the Mac. Off = tiles still launch apps; only typed emoji stops working.</div>
+                <div style="display:flex;align-items:center;gap:12px;min-height:44px;border-top:1px solid #262626;padding-top:8px"><div style="flex:1;font-family:Inter,sans-serif;font-size:15px">Keep Mac awake while connected</div><div style="width:50px;height:28px;border-radius:999px;background:#a4d4c5;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:22px;height:22px;border-radius:50%;background:#0a1a1a"></div></div></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="border-radius:14px;background:linear-gradient(#221c0c,#1a1608);border:1px solid #e8b94a;padding:16px;display:flex;flex-direction:column;gap:8px"><div style="font-size:11px;letter-spacing:2px;color:#e8b94a">PREMIUM</div><div style="font-family:Inter,sans-serif;font-size:16px;line-height:1.45;color:#f0e4c0">8 pages instead of 2 · recents row · themes</div><div style="height:42px;border-radius:9px;background:#e8b94a;color:#1a1300;display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:1px">START FREE TRIAL</div></div>
+              <div style="flex:1;border-radius:14px;background:#1a1a1a;border:1px solid #2a2a2a;padding:6px 16px;display:flex;flex-direction:column;font-family:Inter,sans-serif;font-size:15px">
+                <div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #262626"><span style="flex:1">Restore purchases</span><span style="color:#5a5a5a">›</span></div>
+                <div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #262626"><span style="flex:1">Permissions</span><span style="color:#8a8a8a;font-size:13px">2 of 3 granted</span></div>
+                <div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #262626"><span style="flex:1">Help &amp; troubleshooting</span><span style="color:#5a5a5a">›</span></div>
+                <div style="display:flex;align-items:center;min-height:46px"><span style="flex:1">About &amp; privacy</span><span style="color:#5a5a5a">›</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Recents + offline" data-screen-label="12" data-speaker-notes="Recents takes a left column so the 4x2 grid never shrinks. Disconnected keeps the deck on screen, desaturated, with a text banner." style="background:#111;color:#e8e8e8;padding:70px 80px;display:flex;flex-direction:column;gap:28px;font-family:'IBM Plex Mono',monospace">
+  <div style="display:flex;align-items:baseline;gap:24px"><span style="font-size:24px;letter-spacing:3px;color:#8a8a8a">S9 · S4-OFFLINE</span><span style="font-family:Inter,sans-serif;font-size:56px;font-weight:500;letter-spacing:-1.5px">Recents, and when it drops</span></div>
+  <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+    <div style="width:932px;height:430px;transform:scale(.92);justify-self:center">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:16px 0 14px">
+          <div style="display:flex;align-items:center;gap:12px;padding-bottom:12px"><div style="display:flex;align-items:center;gap:9px;font-size:13px;letter-spacing:1.5px;color:#8a8a8a"><span style="width:9px;height:9px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 10px #a4d4c5;animation:led 2.4s ease-in-out infinite"></span>NORA'S MACBOOK</div><div style="flex:1"></div><div style="font-size:13px;color:#6a6a6a">09:41</div><div style="width:36px;height:36px;border-radius:10px;background:#1c1c1c;border:1px solid #2c2c2c;display:flex;align-items:center;justify-content:center;font-size:15px;color:#8a8a8a">⚙</div></div>
+          <div style="flex:1;display:flex;gap:14px">
+            <div style="width:92px;flex:none;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:10px;letter-spacing:2px;color:#6a6a6a">RECENT</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/github.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/github.svg) center/contain no-repeat"></span></div>
+                <div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/raycast.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/raycast.svg) center/contain no-repeat"></span></div>
+                <div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/zoom.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/zoom.svg) center/contain no-repeat"></span></div>
+                <div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;background:#c8c8c8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/obsidian.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/obsidian.svg) center/contain no-repeat"></span></div>
+              </div>
+            </div>
+            <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:12px">
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative"><span style="width:38px;height:38px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px">MAIL</span><span style="position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:50%;background:#a4d4c5;box-shadow:0 0 8px #a4d4c5"></span></div>
+              <div style="border-radius:12px;background:linear-gradient(#2c2c2c,#202020);border:1px solid #a4d4c5;box-shadow:inset 0 1px 0 #444,0 0 0 3px rgba(164,212,197,.18),0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative"><span style="width:38px;height:38px;background:#fff;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px;color:#fff">XCODE</span><span style="position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:50%;background:#a4d4c5"></span></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:38px;height:38px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px">FIGMA</span></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:38px;height:38px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px">SLACK</span></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:38px;height:38px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px">LINEAR</span></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:38px;height:38px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px">NOTION</span></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:38px;height:38px;background:#e8e8e8;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat"></span><span style="font-size:11px;letter-spacing:1px">MUSIC</span></div>
+              <div style="border-radius:12px;background:linear-gradient(#242424,#191919);border:1px solid #2f2f2f;box-shadow:inset 0 1px 0 #3a3a3a,0 3px 0 #050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="font-size:32px;line-height:1">🎬</span><span style="font-size:11px;letter-spacing:1px">RECORD</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+    <div style="width:932px;height:430px;transform:scale(.92);justify-self:center">
+      <div style="width:932px;height:430px;border-radius:46px;border:4px solid #000;background:#111;display:flex;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)">
+        <div style="width:34px;flex:none"></div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:16px 0 14px">
+          <div style="display:flex;align-items:center;gap:12px;padding-bottom:12px"><div style="flex:1;border-radius:10px;border:1px solid #ef4444;background:#1e1414;padding:9px 14px;display:flex;align-items:center;gap:10px;font-family:Inter,sans-serif;font-size:14px;color:#ff9a9a">Disconnected — tiles are inactive until your Mac is back.<span style="margin-left:auto;color:#fff;text-decoration:underline">Retry</span></div><div style="width:36px;height:36px;border-radius:10px;background:#1c1c1c;border:1px solid #2c2c2c;display:flex;align-items:center;justify-content:center;font-size:15px;color:#8a8a8a">⚙</div></div>
+          <div style="flex:1;display:flex;gap:14px;opacity:.38">
+            <div style="width:92px;flex:none;display:flex;flex-direction:column;gap:8px"><div style="font-size:10px;letter-spacing:2px;color:#6a6a6a">RECENT</div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626"></div><div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626"></div><div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626"></div><div style="flex:1;border-radius:10px;background:#1a1a1a;border:1px solid #262626"></div></div></div>
+            <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:12px">
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/apple.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/xcode.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/figma.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/slack.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/linear.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/notion.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;background:#8a8a8a;mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat;-webkit-mask:url(https://cdn.jsdelivr.net/npm/simple-icons@13/icons/spotify.svg) center/contain no-repeat"></span></div>
+              <div style="border-radius:12px;background:#1c1c1c;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:30px;filter:grayscale(1)">🎬</div>
+            </div>
+          </div>
+        </div>
+        <div style="width:34px;flex:none"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Next" data-screen-label="13" data-speaker-notes="What this direction still owes: Mac-side surfaces, light mode, and the token sheet." style="background:#0a0a0a;color:#e8e8e8;padding:110px;display:flex;flex-direction:column;justify-content:center;gap:48px;font-family:'IBM Plex Mono',monospace">
+  <div style="font-family:Inter,sans-serif;font-size:96px;font-weight:500;letter-spacing:-3px;line-height:1.05;max-width:1400px">Direction locked.<br>Three things still open.</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px">
+    <div style="border-radius:20px;background:#161616;border:1px solid #2a2a2a;padding:40px;display:flex;flex-direction:column;gap:16px"><div style="font-size:22px;letter-spacing:3px;color:#a4d4c5">01 · MAC SIDE</div><div style="font-family:Inter,sans-serif;font-size:28px;line-height:1.45;color:#c8c8c8">Menu-bar glyph states and both popovers, in the same keycap language.</div></div>
+    <div style="border-radius:20px;background:#161616;border:1px solid #2a2a2a;padding:40px;display:flex;flex-direction:column;gap:16px"><div style="font-size:22px;letter-spacing:3px;color:#a4d4c5">02 · LIGHT MODE</div><div style="font-family:Inter,sans-serif;font-size:28px;line-height:1.45;color:#c8c8c8">Keycaps on a pale chassis — the LED needs a new treatment to survive it.</div></div>
+    <div style="border-radius:20px;background:#161616;border:1px solid #2a2a2a;padding:40px;display:flex;flex-direction:column;gap:16px"><div style="font-size:22px;letter-spacing:3px;color:#a4d4c5">03 · TOKENS</div><div style="font-family:Inter,sans-serif;font-size:28px;line-height:1.45;color:#c8c8c8">Token → light → dark → SwiftUI asset name, ready for the build.</div></div>
+  </div>
+</section>
+
+</x-import>
+</x-dc>
+</body>
+</html>

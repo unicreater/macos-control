@@ -1,6 +1,8 @@
 # NosoDeck — Product Requirements Document
 
-Version 1.0 · 2026-08-11 · Sources: `docs/decisions.md` (D1–D13), `docs/research-choclift.md`
+Version 1.1 · 2026-08-11 · Sources: `docs/decisions.md` (D1–D18), `docs/research-choclift.md`,
+**`design/handoff/README.md`** (accepted "Hardware" design language — where this PRD and the
+design handoff disagree on visual/layout specifics, the design handoff wins)
 
 ## 1. Overview
 
@@ -92,9 +94,12 @@ Each cites its decision (D#).
   the initiating device. *Accept: after unpairing, connecting again requires the PIN.*
 
 ### B. Deck & tiles (D4, D5, D6, D13)
-- **FR-6 (P0)** The deck is a fixed grid (4 columns; rows fit the device) of tiles;
-  layout is edited on the iPhone: add, remove, and reorder via drag. *Accept: a
-  reordered layout survives app relaunch.*
+- **FR-6 (P0)** The deck is a landscape **4×2 grid — 8 tiles per page maximum, never
+  more on larger devices** (design D14/D15; target 932×430pt, verified at 852×393pt).
+  Tiles are the "keycap" component specified in `design/handoff/README.md` (fixed
+  bounds across all states). Layout is edited on the iPhone: long-press ≥500 ms enters
+  edit mode; add, remove, drag-reorder within and across pages. *Accept: a reordered
+  layout survives app relaunch; no page ever renders more than 8 tiles.*
 - **FR-7 (P0)** App tiles show the real Mac app icon and name, served by the agent.
   *Accept: adding any installed Mac app shows its actual icon within 2 s.*
 - **FR-8 (P0)** The agent provides a searchable catalog of installed apps (from
@@ -127,18 +132,22 @@ Each cites its decision (D#).
   within 1 s after insertion.*
 
 ### D. Recent apps (D9, D10)
-- **FR-16 (P1, premium)** A horizontally scrollable recents row shows the Mac's
-  recently activated apps, most recent first, deduplicated, excluding the agent itself;
-  tapping activates. *Accept: activating three apps on the Mac shows them in that
-  order on the phone within 2 s.*
+- **FR-16 (P1, premium)** A 92pt-wide left column ("RECENT", per design S9) shows 4
+  recently activated Mac apps, most recent first, deduplicated, excluding the agent
+  itself; tapping activates; the 4×2 grid does not shrink to accommodate it. Free
+  users see a locked teaser that opens the paywall — never a dead tap. *Accept:
+  activating three apps on the Mac shows them in that order on the phone within 2 s.*
 
 ### E. Pages & premium (D8, D10)
-- **FR-17 (P0)** Free tier: one deck page with full live functionality. Premium: up to
-  8 pages, the recents row, and icon themes. *Accept: a free user tapping "add page"
-  hits the paywall; nothing already free is ever locked.*
-- **FR-18 (P0)** StoreKit 2 purchase flow with 7-day trial, restore purchases, and
-  graceful offline behavior (entitlement cached). *Accept: sandbox-account purchase
-  unlocks pages immediately; "Restore" recovers it after reinstall.*
+- **FR-17 (P0)** Free tier: **two** deck pages with full live functionality (D16,
+  supersedes the earlier one-page split). Premium: up to 8 pages, the recents column,
+  and themes. *Accept: a free user tapping "+ PAGE" on page 2 hits the paywall;
+  nothing already free is ever locked.*
+- **FR-18 (P0)** StoreKit 2 purchase flow at **$2.99/month after a 7-day free trial**
+  (D17), restore purchases, graceful offline behavior (entitlement cached). Paywall
+  has a full-size close button present from the first frame — no timers, no fake
+  discounts (design S8). *Accept: sandbox-account purchase unlocks pages immediately;
+  "Restore" recovers it after reinstall.*
 
 ### F. Mac agent UX (D2, D3, D13)
 - **FR-19 (P0)** The agent is a menu-bar-only app (no Dock icon) showing: connection
@@ -151,8 +160,17 @@ Each cites its decision (D#).
 ### G. iOS UX polish (D6, D9)
 - **FR-21 (P1)** Haptic feedback on tile tap; the screen stays awake while the deck is
   foregrounded and connected. *Accept: idle timer disabled only while connected.*
-- **FR-22 (P1)** Onboarding: a 2-screen explainer (install Mac app → pair) with a link
-  to the Mac App Store listing. *Accept: shown only when no Mac has ever been paired.*
+- **FR-22 (P1)** Onboarding: the designed 2-step flow (install Mac app with QR/link →
+  pair), no tour, no account. *Accept: shown only when no Mac has ever been paired.*
+- **FR-23 (P0)** The iPhone experience is **landscape-primary** (D14): all v1 screens
+  ship in the landscape layouts specified in the design handoff; the deck is designed
+  for the phone docked beside a keyboard. *Accept: every S1–S9 screen matches its
+  design slide at 932×430 and does not break at 852×393.*
+- **FR-24 (P0)** Every permission ask (Local Network, Automation, Accessibility) is
+  preceded by the designed pre-prompt card stating *why · what breaks without it ·
+  the degraded path* before the system dialog appears. *Accept: denying Automation
+  hides the Shortcuts tab; denying Accessibility falls back to clipboard-copy for
+  emoji; both states are reachable and recoverable from Settings.*
 
 ## 5. System architecture
 
@@ -213,6 +231,18 @@ Length-prefixed JSON frames over TLS; every message carries `v` (protocol versio
   by the Mac on every change and on subscribe.
 - `ping` / `pong` — 10 s keepalive; 2 misses ⇒ reconnect state.
 
+### Design & state alignment
+
+The visual layer implements the accepted "Hardware" design language exactly as
+specified in `design/handoff/README.md`: color tokens (`void`/`chassis`/`surface`/
+keycap gradients; `mint` = state only, `ochre` = premium only, `red` = destructive
+only), SF Pro + SF Mono typography roles, the 4/8/12/16/24/34 spacing scale, and the
+keycap component state table. The HTML prototypes in `design/handoff/` are reference
+only — recreate in SwiftUI, never port. DeckKit's models mirror the handoff's state
+model verbatim: `pairing`, `connection(latencyMs)`, `deck` (pages ≤8 tiles),
+`macState` (runningBundleIDs, frontmostBundleID), `entitlement`, `permissions` (each
+with a degraded path), `recents`.
+
 ### Persistence
 - Deck layout: versioned Codable JSON in the iOS app's Application Support (models in
   DeckKit so the Mac can render/edit later).
@@ -250,23 +280,30 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
 - [ ] **M2 — Mac agent MVP.** Menu bar app, Bonjour advertise, TLS listener, PIN
   display, pairing handshake, Keychain trust store. Delivers: FR-1, FR-2, FR-3, FR-19.
   *Verify: owner pairs from the M3 phone build (or the included CLI test client).*
-- [ ] **M3 — iOS app MVP.** Discovery list, PIN entry, session client, reconnect
-  banner, empty deck shell. Delivers: FR-1–FR-4 end-to-end, FR-22 skeleton.
-  *Verify: owner pairs phone↔Mac; kills Wi-Fi and watches auto-reconnect.*
-- [ ] **M4 — App tiles & activation.** Catalog + icons, add/reorder/remove tiles,
-  starter deck from Dock, tap-to-activate. Delivers: FR-6, FR-7, FR-8, FR-9, FR-12.
-  *Verify: owner manual script in VERIFY.md.*
-- [ ] **M5 — Live status.** NSWorkspace observers → stateEvent stream → tile
-  indicators; quit-on-swipe. Delivers: FR-10, FR-11. *Verify: DeckKit diff-logic unit
-  tests + owner's 1-second-update check.*
+- [ ] **M3 — iOS app MVP.** Landscape shell + design tokens/typography as SwiftUI
+  theme layer, discovery list (design S2), PIN entry with shake/attempt-counter
+  behavior (S3), session client, reconnect/disconnected treatments (S4 connection
+  states), onboarding flow with permission pre-prompt cards (S1). Delivers: FR-1–FR-4
+  end-to-end, FR-22–FR-24 skeleton. *Verify: owner pairs phone↔Mac; kills Wi-Fi and
+  watches auto-reconnect; screens compared against design slides.*
+- [ ] **M4 — App tiles & activation.** Keycap component with full state table (idle/
+  running/frontmost/pressed/disconnected/edit/dragging/empty), 4×2 grid, catalog +
+  icons, add-tile flow (S6), edit mode (S5), starter deck from Dock, tap-to-activate.
+  Delivers: FR-6, FR-7, FR-8, FR-9, FR-12. *Verify: owner manual script in VERIFY.md
+  against slides S4–S6.*
+- [ ] **M5 — Live status.** NSWorkspace observers → stateEvent stream → LED/frontmost
+  ring per keycap spec; quit-on-swipe. Delivers: FR-10, FR-11. *Verify: DeckKit
+  diff-logic unit tests + owner's 1-second-update check.*
 - [ ] **M6 — Shortcuts & URL tiles.** Shortcuts listing + run via Apple events with
   consent flow; URL tiles. Delivers: FR-13, FR-14. *Verify: owner runs a notification
   Shortcut from the deck.*
-- [ ] **M7 — Pages & premium.** Multi-page deck, StoreKit 2 paywall + trial + restore,
-  free/premium gating. Delivers: FR-17, FR-18. *Verify: StoreKit configuration file
-  sandbox testing in Xcode by owner.*
-- [ ] **M8 — Recents & emoji.** Recents row (premium); emoji strip with Accessibility
-  opt-in and clipboard fallback. Delivers: FR-15, FR-16. *Verify: owner manual script.*
+- [ ] **M7 — Pages & premium.** Multi-page deck (2 free / 8 premium), StoreKit 2
+  paywall at $2.99/mo + 7-day trial + restore, gating per design S7/S8. Delivers:
+  FR-17, FR-18. *Verify: StoreKit configuration file sandbox testing in Xcode by
+  owner.*
+- [ ] **M8 — Recents & emoji.** Recents left column with free-tier locked teaser
+  (S9); emoji insertion with Accessibility opt-in and clipboard fallback. Delivers:
+  FR-15, FR-16. *Verify: owner manual script.*
 - [ ] **M9 — Polish & submission prep.** Haptics, keep-awake, unpair flows, login item,
   onboarding, privacy strings, App Store metadata checklist. Delivers: FR-5, FR-20,
   FR-21, FR-22. *Verify: full VERIFY.md pass by owner on clean devices.*
@@ -276,7 +313,9 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
 | Risk / open item | Impact | Mitigation / owner |
 |---|---|---|
 | Final bundle-ID domain (placeholder `com.noso.nosodeck`) | Blocks App Store submission, not code | Owner confirms developer-account domain before M9 |
-| Premium price point & sub-vs-one-time | Blocks submission, not code | Owner decides during M7 |
+| Portrait behavior is undesigned (v1 is landscape-primary, FR-23) | UX gap if users hold the phone upright | Default: v1 locks the deck to landscape with a "rotate your phone" hint; owner may commission a portrait pass post-v1 |
+| macOS menu-bar popovers exist only as wireframes, not in the Hardware language | Mac agent visuals may drift | M2 builds them with native macOS conventions (vibrancy, system controls) per wireframe flows; a styling pass follows the next design round |
+| Light mode not yet designed (design handoff is dark-only) | App Review / HIG expectations | v1 ships dark-appearance UI (declared as such); light mode queued for the next design round |
 | App Review on local-network control apps | Rejection risk | Follow ChocLift precedent: clear privacy strings, local-only claim, demo video for review notes |
 | Synthetic ⌘V (FR-15) may behave inconsistently across apps | Feature flakiness | Shipped as opt-in P1 with clipboard fallback; can be cut without touching P0 |
 | `NSRunningApplication.terminate()` behavior from sandbox (FR-11) | Quit gesture may need Apple-events fallback | P1; verify in M5 on real hardware, fall back to Apple events `quit` |

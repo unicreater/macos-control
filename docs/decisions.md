@@ -20,6 +20,11 @@ All decisions recorded from the /grill-me session with the product owner.
 | 11 | Product name | **NosoDeck** | Owner's choice. Targets: NosoDeck (iOS), NosoDeck for Mac (agent), DeckKit (shared package). Bundle-ID root placeholder `com.noso.nosodeck` until the owner confirms their domain. | 2026-08-11 |
 | 12 | Build verification | **Owner builds/runs on their Mac; Claude unit-tests DeckKit on Linux** | Agent environment is Linux: full swift test coverage for DeckKit + syntax checks; app targets verified by owner in Xcode at milestone boundaries, per docs/VERIFY.md. | 2026-08-11 |
 | 13 | Deck editing surface (delegated) | **iPhone is the primary editor in v1; Mac agent supplies the installed-app catalog and a read-only status menu** | Delegated to recommendation: keeps v1 UI surface small; Mac-side editing arrives with the v1.1 helper work. | 2026-08-11 |
+| 14 | Design language & orientation | **"Hardware" direction (design handoff 2c), landscape-primary iPhone experience** | Accepted design round in `design/handoff/`; dark keycap aesthetic, mint/ochre/red semantic accents, SF Pro + SF Mono. Supersedes the generated teal baseline in `design-system/nosodeck/MASTER.md` (kept as background). | 2026-08-11 |
+| 15 | Deck grid | **4×2 = 8 tiles per page, hard maximum; larger devices get larger tiles, never more** | Design handoff "non-negotiable" grid spec. | 2026-08-11 |
+| 16 | Free tier size | **Free = 2 pages** (supersedes D10's 1 page) | Design round judged 1 page too thin to demonstrate value; premium remains 8 pages + recents + themes. | 2026-08-11 |
+| 17 | Premium price | **$2.99/month after 7-day free trial** | Set during design round (paywall S8); no fake urgency, full-size close from first frame. | 2026-08-11 |
+| 18 | Recents presentation | **92pt left column with 4 cells (premium); locked teaser for free users** | Landscape slack absorbs the column without shrinking the grid. | 2026-08-11 |
 
 ## Non-goals for v1 (explicitly out)
 
