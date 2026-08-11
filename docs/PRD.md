@@ -320,6 +320,8 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
   paywall at $2.99/mo + 7-day trial + restore, gating per design S7/S8. Delivers:
   FR-17, FR-18. *Verify: StoreKit configuration file sandbox testing in Xcode by
   owner.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M7, which includes
+  the StoreKit configuration file the owner needs to create in Xcode.
 - [ ] **M8 — Recents & emoji.** Recents left column with free-tier locked teaser
   (S9); emoji insertion with Accessibility opt-in and clipboard fallback. Delivers:
   FR-15, FR-16. *Verify: owner manual script.*

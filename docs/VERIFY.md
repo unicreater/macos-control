@@ -319,7 +319,38 @@ flags "Shortcuts enumeration inside sandbox" as a verify-in-M6 item.
 
 ---
 
+## M7 — Pages & premium · implemented, pending verification
+
+Delivers FR-17 and FR-18. Needs a **StoreKit configuration file**, which I cannot
+generate reliably without Xcode:
+
+> Xcode → File → New → File → StoreKit Configuration File. Add an auto-renewable
+> subscription with product ID **`com.noso.nosodeck.premium.monthly`**, price $2.99/month,
+> and a 7-day free-trial introductory offer. Then set it in the scheme:
+> Run → Options → StoreKit Configuration.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| M7.1 | Free tier, swipe to page 2 | Works — two pages are free (D16) | ☐ |
+| M7.2 | Free tier, tap **+ Page** on page 2 | Paywall opens; no third page is created (FR-17) | ☐ |
+| M7.3 | The paywall, first frame | Full-size ✕ top-left, present immediately. No timer, no countdown, no fake discount | ☐ |
+| M7.4 | The price shown | Comes from StoreKit, reading "7 days free, then $2.99/month" | ☐ |
+| M7.5 | Buy with a sandbox account | Unlocks immediately and the paywall dismisses itself | ☐ |
+| M7.6 | After purchase, **+ Page** repeatedly | Reaches 8 pages, then stops offering more | ☐ |
+| M7.7 | Delete the app, reinstall, pair, **Restore purchases** | Premium returns (FR-18) | ☐ |
+| M7.8 | **Restore** on an Apple ID that never bought | A plain "No previous purchase found", not a crash or silence | ☐ |
+| M7.9 | Build 8 pages on premium, then revoke the subscription in the StoreKit transaction manager | All 8 pages remain and are still usable; only **+ Page** is gated (FR-17: nothing already free is ever locked) | ☐ |
+| M7.10 | Airplane mode with premium active | Still premium — the entitlement is cached | ☐ |
+| M7.11 | Edit mode, bottom bar | Page strip with per-page buttons, ochre **+ Page**, and **Delete page** (S5) | ☐ |
+| M7.12 | **Delete page** | Confirms first, then removes it and its tiles | ☐ |
+| M7.13 | Try to delete the only page | Refused — a deck always keeps one page | ☐ |
+
+M7.9 is the one I would not skip: it is the difference between a fair paywall and one
+that holds someone's work hostage.
+
+---
+
 ## Milestones not yet implemented
 
-M7–M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
+M8 and M9 sections are appended as each milestone lands. See `docs/PRD.md` §7 for the
 milestone list and each one's stated verification method.

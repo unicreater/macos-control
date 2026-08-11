@@ -40,7 +40,10 @@ final class AppModel {
     private var shortcutsAnswered = false
     /// The most recent action failure, for the tile that reported it.
     private(set) var lastActionError: String?
+    private(set) var isShowingPaywall = false
+    private(set) var paywallReason: String?
     let icons = IconCache()
+    let entitlements = EntitlementStore()
 
     /// Digits typed into the six PIN cells so far.
     private(set) var pinEntry = ""
@@ -216,6 +219,43 @@ final class AppModel {
 
     func setPage(_ index: Int) {
         currentPage = min(max(index, 0), deck.pageCount - 1)
+    }
+
+    // MARK: - Pages and premium (FR-17)
+
+    var entitlement: Entitlement { entitlements.entitlement }
+    var canAddPage: Bool { deck.canAddPage(for: entitlement) }
+
+    /// Hitting the tier's page limit opens the paywall. It is never a dead tap, and
+    /// nothing that was already free becomes locked.
+    func addPage() {
+        guard deck.addPage(for: entitlement) else {
+            presentPaywall(reason: "Free decks hold \(Entitlement.free.maxPages) pages. Premium takes you to \(Entitlement.premium.maxPages).")
+            return
+        }
+        persistDeck()
+        setPage(deck.pageCount - 1)
+    }
+
+    func removePage(at index: Int) {
+        guard deck.removePage(at: index) else { return }
+        persistDeck()
+        setPage(min(currentPage, deck.pageCount - 1))
+    }
+
+    /// Pages beyond the current tier's limit — visible, but not added to. A lapsed
+    /// subscriber keeps everything they built.
+    func isPageLocked(_ index: Int) -> Bool {
+        deck.lockedPageIndices(for: entitlement).contains(index)
+    }
+
+    func presentPaywall(reason: String? = nil) {
+        paywallReason = reason
+        isShowingPaywall = true
+    }
+
+    func dismissPaywall() {
+        isShowingPaywall = false
     }
 
     func toggleEditing() {

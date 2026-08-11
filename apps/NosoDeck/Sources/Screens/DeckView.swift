@@ -9,6 +9,7 @@ struct DeckView: View {
     let model: AppModel
 
     @State private var isConfirmingUnpair = false
+    @State private var isConfirmingPageDelete = false
     @State private var isAddingTile = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -34,6 +35,10 @@ struct DeckView: View {
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
         }
+        .sheet(isPresented: paywallBinding) {
+            PaywallView(store: model.entitlements, reason: model.paywallReason)
+        }
+        .task { await model.entitlements.start() }
         .confirmationDialog(
             "Unpair \(model.connectedMacName ?? "this Mac")?",
             isPresented: $isConfirmingUnpair,
@@ -98,18 +103,87 @@ struct DeckView: View {
         }
     }
 
+    @ViewBuilder
     private var bottomBar: some View {
-        HStack(spacing: DeckSpace.s) {
-            Spacer()
-            ForEach(0..<model.pageCount, id: \.self) { index in
-                Capsule()
-                    .fill(index == model.currentPage ? DeckColor.ink : Color(hex: 0x333333))
-                    .frame(width: 22, height: 5)
-                    .onTapGesture { model.setPage(index) }
+        if model.isEditing {
+            editPageStrip
+        } else {
+            HStack(spacing: DeckSpace.s) {
+                Spacer()
+                ForEach(0..<model.pageCount, id: \.self) { index in
+                    Capsule()
+                        .fill(index == model.currentPage ? DeckColor.ink : Color(hex: 0x333333))
+                        .frame(width: 22, height: 5)
+                        .onTapGesture { model.setPage(index) }
+                }
+                // The ochre pill only appears at the tier's limit — the gate is where
+                // the user meets it, not decoration on every page (design S4).
+                if !model.canAddPage {
+                    addPagePill
+                }
+                Spacer()
             }
-            Spacer()
+            .accessibilityLabel("Page \(model.currentPage + 1) of \(model.pageCount)")
         }
-        .accessibilityLabel("Page \(model.currentPage + 1) of \(model.pageCount)")
+    }
+
+    /// S5's page strip: switch pages, add one, delete one with a confirm.
+    private var editPageStrip: some View {
+        HStack(spacing: DeckSpace.s) {
+            ForEach(0..<model.pageCount, id: \.self) { index in
+                Button { model.setPage(index) } label: {
+                    Text("Page \(index + 1)")
+                        .deckFont(.legend)
+                        .foregroundStyle(index == model.currentPage ? DeckColor.mint : DeckColor.inkMuted)
+                        .padding(.horizontal, DeckSpace.m)
+                        .frame(height: 32)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
+                                .strokeBorder(
+                                    index == model.currentPage ? DeckColor.mint : Color(hex: 0x2C2C2C),
+                                    lineWidth: 1
+                                )
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+
+            addPagePill
+
+            Spacer()
+
+            if model.pageCount > 1 {
+                Button { isConfirmingPageDelete = true } label: {
+                    Text("Delete page")
+                        .deckFont(.legend)
+                        .foregroundStyle(DeckColor.redInk)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .confirmationDialog(
+            "Delete page \(model.currentPage + 1)?",
+            isPresented: $isConfirmingPageDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Delete page", role: .destructive) { model.removePage(at: model.currentPage) }
+            Button("Keep it", role: .cancel) {}
+        } message: {
+            Text("The tiles on this page are removed too. Your other pages are untouched.")
+        }
+    }
+
+    private var addPagePill: some View {
+        Button { model.addPage() } label: {
+            Text("+ Page")
+                .deckFont(.meta)
+                .foregroundStyle(DeckColor.onOchre)
+                .padding(.horizontal, DeckSpace.m)
+                .frame(height: model.isEditing ? 32 : 20)
+                .background(DeckColor.ochre, in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(model.canAddPage ? "Add a page" : "Add a page — requires Premium")
     }
 
     // MARK: - Grid
@@ -192,6 +266,13 @@ struct DeckView: View {
     private func openAddTile(page: Int) {
         model.setPage(page)
         isAddingTile = true
+    }
+
+    private var paywallBinding: Binding<Bool> {
+        Binding(
+            get: { model.isShowingPaywall },
+            set: { if !$0 { model.dismissPaywall() } }
+        )
     }
 
     private var pageBinding: Binding<Int> {
