@@ -60,3 +60,15 @@ by the environment's egress policy, so one cannot be installed. Consequences and
 resulting verification plan are recorded at the top of `docs/VERIFY.md`. In short:
 Swift written in the container is unverified until you compile it, and `swift test` on
 your Mac is the cheapest, highest-value check at every milestone boundary.
+
+One check does run there, and is worth running anywhere:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install tree-sitter tree-sitter-language-pack
+.venv/bin/python scripts/swift-syntax-check.py .
+```
+
+It parses every Swift file with a real Swift grammar and exits non-zero on a syntax
+error. It is not a compiler — no types, no name resolution — so a clean run means the
+files are well-formed Swift, not that they build.

@@ -166,8 +166,10 @@ final class FrameDecoderTests: XCTestCase {
     func testEncodedFrameCarriesABigEndianLengthPrefix() throws {
         let frame = try FrameCodec.encode(Envelope(message: .ping))
         let bytes = Array(frame)
-        let declared = (UInt32(bytes[0]) << 24) | (UInt32(bytes[1]) << 16)
-            | (UInt32(bytes[2]) << 8) | UInt32(bytes[3])
+        let declared = (UInt32(bytes[0]) << 24) |
+            (UInt32(bytes[1]) << 16) |
+            (UInt32(bytes[2]) << 8) |
+            UInt32(bytes[3])
 
         XCTAssertEqual(Int(declared), frame.count - FrameCodec.headerSize)
     }

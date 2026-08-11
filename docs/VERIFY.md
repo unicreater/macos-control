@@ -17,6 +17,7 @@ authoritative list of what has *not* been proven yet.
 | Swift toolchain in the container | **Unavailable** | `swift build` / `swift test` cannot be run here at all |
 | `download.swift.org` | Blocked by egress policy (HTTP 403 at the proxy) | No toolchain can be installed; `apt` has no `swiftlang` package |
 | Xcode / iOS + macOS SDKs | Unavailable (Linux) | App targets were never expected to build here (D12) |
+| Swift **syntax** checking | **Available** — `scripts/swift-syntax-check.py` | Parses all 73 files with a real Swift grammar; catches malformed syntax, nothing semantic |
 
 This is worse than D12 assumed. D12 planned for **DeckKit to be `swift test`-green on
 Linux**, with only the app targets deferred to the owner. With no toolchain, *all*
@@ -27,6 +28,15 @@ just a "behaves" row, and DeckKit's unit tests are written but never executed he
 Running `swift test` at the repo root on the owner's Mac is now the single most
 valuable verification step at every milestone boundary — it is fast, needs no device,
 and covers the protocol and state-machine logic that everything else depends on.
+
+**What *is* checked here.** `scripts/swift-syntax-check.py` parses every Swift file
+with a real Swift grammar (tree-sitter, from PyPI) and currently reports zero problems.
+That rules out one whole class of failure — unbalanced delimiters, malformed
+declarations, a brace closed a level too early — which is exactly the sort of thing
+that is invisible when writing code you cannot compile. It rules out nothing else:
+there is no type checker behind it, so wrong argument labels, wrong types, and calls to
+APIs that do not exist all pass silently. **Treat a clean run as "the parser agrees this
+is Swift", not "this compiles."**
 
 ## How to verify
 

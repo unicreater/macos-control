@@ -387,7 +387,7 @@ final class AgentModel {
     }
 
     private static func storedNames() -> [String: String] {
-        UserDefaults.standard.dictionary(forKey: phoneNamesDefaultsKey) as? [String: String] ?? [:]
+        (UserDefaults.standard.dictionary(forKey: phoneNamesDefaultsKey) as? [String: String]) ?? [:]
     }
 
     private static func loadPairedPhones(identityStore: AgentIdentityStore) -> [PairedPhone] {

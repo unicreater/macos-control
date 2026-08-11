@@ -78,8 +78,8 @@ final class AppModel {
         self.deck = saved ?? Deck()
 
         let defaults = UserDefaults.standard
-        self.keepsScreenAwake = defaults.object(forKey: Self.keepAwakeKey) as? Bool ?? true
-        self.isEmojiStripEnabled = defaults.object(forKey: Self.emojiStripKey) as? Bool ?? true
+        self.keepsScreenAwake = (defaults.object(forKey: Self.keepAwakeKey) as? Bool) ?? true
+        self.isEmojiStripEnabled = (defaults.object(forKey: Self.emojiStripKey) as? Bool) ?? true
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)

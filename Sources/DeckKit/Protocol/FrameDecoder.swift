@@ -35,10 +35,10 @@ public struct FrameDecoder {
     public mutating func nextBody() throws -> Data? {
         guard buffer.count >= FrameCodec.headerSize else { return nil }
 
-        let length = (UInt32(buffer[0]) << 24)
-            | (UInt32(buffer[1]) << 16)
-            | (UInt32(buffer[2]) << 8)
-            | UInt32(buffer[3])
+        let length = (UInt32(buffer[0]) << 24) |
+            (UInt32(buffer[1]) << 16) |
+            (UInt32(buffer[2]) << 8) |
+            UInt32(buffer[3])
 
         guard length > 0 else { throw ProtocolError.invalidFrameLength(length) }
         guard length <= UInt32(clamping: maxFrameBytes) else {
