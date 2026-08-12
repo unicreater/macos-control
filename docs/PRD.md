@@ -246,7 +246,14 @@ with a degraded path), `recents`.
 ### Persistence
 - Deck layout: versioned Codable JSON in the iOS app's Application Support (models in
   DeckKit so the Mac can render/edit later).
-- Trust: pinned peer public keys + device identity in each platform's Keychain.
+- Trust: pinned peer identity + shared key in each platform's Keychain. **Implementation
+  note (M2):** transport authentication uses TLS pre-shared keys rather than a pinned
+  self-signed certificate — neither OS exposes a public API for generating an X.509
+  identity at runtime. Pairing runs over a key derived from the PIN; every later
+  connection over a 256-bit secret the agent mints at pairing, so a Mac that lacks the
+  secret cannot complete the handshake at all. `DeviceIdentity.publicKeyHash` therefore
+  carries an HMAC fingerprint of the agent's long-term secret. See
+  `apps/Shared/DeckTransport.swift` and `docs/VERIFY.md` §M2.
 - Premium entitlement: StoreKit 2 current-entitlement, cached.
 
 ### Permission / entitlement plan (Mac agent, all MAS-legal)
@@ -274,23 +281,35 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
   Linux, XcodeGen specs for both apps, `docs/VERIFY.md` template, CI-less build docs.
   Delivers: foundations. *Verify: `swift build`/`swift test` on Linux; owner runs
   `xcodegen` and both apps build empty in Xcode.*
+  — **implemented, pending verification** (no Swift toolchain in the container and
+  `download.swift.org` is blocked by egress policy, so the Linux half of D12 could not
+  be run either; queue in `docs/VERIFY.md` §M0).
 - [ ] **M1 — Protocol & pairing core (DeckKit).** Models, framing codec, all message
   types, pairing/trust state machine, session state machine with keepalive rules.
   Delivers: FR-2/3/4 logic. *Verify: unit tests on Linux incl. fuzz-ish framing tests.*
+  — **implemented, pending verification**: tests written, never executed (no Swift
+  toolchain in the container). `swift test` on the owner's Mac clears this whole
+  milestone without a device; queue in `docs/VERIFY.md` §M1.
 - [ ] **M2 — Mac agent MVP.** Menu bar app, Bonjour advertise, TLS listener, PIN
   display, pairing handshake, Keychain trust store. Delivers: FR-1, FR-2, FR-3, FR-19.
   *Verify: owner pairs from the M3 phone build (or the included CLI test client).*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M2. Carries the
+  TLS-PSK decision noted in §5.
 - [ ] **M3 — iOS app MVP.** Landscape shell + design tokens/typography as SwiftUI
   theme layer, discovery list (design S2), PIN entry with shake/attempt-counter
   behavior (S3), session client, reconnect/disconnected treatments (S4 connection
   states), onboarding flow with permission pre-prompt cards (S1). Delivers: FR-1–FR-4
   end-to-end, FR-22–FR-24 skeleton. *Verify: owner pairs phone↔Mac; kills Wi-Fi and
   watches auto-reconnect; screens compared against design slides.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M3, which also
+  raises one design question (the reconnecting banner's amber vs. the ochre rule).
 - [ ] **M4 — App tiles & activation.** Keycap component with full state table (idle/
   running/frontmost/pressed/disconnected/edit/dragging/empty), 4×2 grid, catalog +
   icons, add-tile flow (S6), edit mode (S5), starter deck from Dock, tap-to-activate.
   Delivers: FR-6, FR-7, FR-8, FR-9, FR-12. *Verify: owner manual script in VERIFY.md
   against slides S4–S6.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M4, which records
+  the sandbox-forced reinterpretation of FR-12's "Dock apps" starter deck.
 - [ ] **M5 — Live status.** NSWorkspace observers → stateEvent stream → LED/frontmost
   ring per keycap spec; quit-on-swipe. Delivers: FR-10, FR-11. *Verify: DeckKit
   diff-logic unit tests + owner's 1-second-update check.*
@@ -301,12 +320,17 @@ Sized for `/implementation-loop`: each is independently buildable and verifiable
   paywall at $2.99/mo + 7-day trial + restore, gating per design S7/S8. Delivers:
   FR-17, FR-18. *Verify: StoreKit configuration file sandbox testing in Xcode by
   owner.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M7, which includes
+  the StoreKit configuration file the owner needs to create in Xcode.
 - [ ] **M8 — Recents & emoji.** Recents left column with free-tier locked teaser
   (S9); emoji insertion with Accessibility opt-in and clipboard fallback. Delivers:
   FR-15, FR-16. *Verify: owner manual script.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M8.
 - [ ] **M9 — Polish & submission prep.** Haptics, keep-awake, unpair flows, login item,
   onboarding, privacy strings, App Store metadata checklist. Delivers: FR-5, FR-20,
   FR-21, FR-22. *Verify: full VERIFY.md pass by owner on clean devices.*
+  — **implemented, pending verification**; queue in `docs/VERIFY.md` §M9, submission
+  steps in `docs/APP-STORE.md`.
 
 ## 8. Risks & open questions
 
