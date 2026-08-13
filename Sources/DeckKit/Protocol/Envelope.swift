@@ -71,6 +71,8 @@ extension Envelope: Codable {
         case .stateEvent: message = .stateEvent(try payload(MacState.self))
         case .ping: message = .ping
         case .pong: message = .pong
+        case .browserTabsRequest: message = .browserTabsRequest
+        case .browserTabs: message = .browserTabs(try payload(BrowserTabList.self))
         }
 
         self.init(id: id, message: message, version: version)
@@ -95,7 +97,8 @@ extension Envelope: Codable {
         case .action(let payload): try container.encode(payload, forKey: .payload)
         case .actionResult(let payload): try container.encode(payload, forKey: .payload)
         case .stateEvent(let payload): try container.encode(payload, forKey: .payload)
-        case .shortcutsRequest, .ping, .pong: break
+        case .browserTabs(let payload): try container.encode(payload, forKey: .payload)
+        case .shortcutsRequest, .ping, .pong, .browserTabsRequest: break
         }
     }
 }

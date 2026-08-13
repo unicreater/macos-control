@@ -20,13 +20,17 @@ enum DeckRadius {
 }
 
 enum DeckGrid {
-    /// 4 columns × 2 rows. The maximum, and it does not scale with device size (D15).
+    /// Landscape: 4 columns × 2 rows. Portrait: 2 columns × 4 rows.
+    /// Always 8 tiles max per page (D15).
+    static func columns(isPortrait: Bool) -> Int { isPortrait ? 2 : 4 }
+    static func rows(isPortrait: Bool) -> Int { isPortrait ? 4 : 2 }
+
+    // Keep the old constants for backward compat
     static let columns = 4
     static let rows = 2
     static let gutter: CGFloat = 12
     static let topPadding: CGFloat = 16
     static let bottomPadding: CGFloat = 14
-    /// FR-16: the recents column takes the landscape slack; the grid never shrinks.
     static let recentsColumnWidth: CGFloat = 92
     static let recentsColumnGap: CGFloat = 14
 }

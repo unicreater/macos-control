@@ -147,6 +147,25 @@ public struct ShortcutList: Codable, Hashable, Sendable {
     }
 }
 
+/// A browser tab open on the Mac, for the website tile picker.
+public struct BrowserTab: Codable, Hashable, Sendable {
+    public var title: String
+    public var url: String
+
+    public init(title: String, url: String) {
+        self.title = title
+        self.url = url
+    }
+}
+
+public struct BrowserTabList: Codable, Hashable, Sendable {
+    public var tabs: [BrowserTab]
+
+    public init(tabs: [BrowserTab]) {
+        self.tabs = tabs
+    }
+}
+
 /// What the Mac should do (PRD §5, `action`).
 public enum ActionKind: String, Codable, Sendable, CaseIterable {
     /// Launch if closed, bring to front if running (FR-9).
@@ -156,6 +175,12 @@ public enum ActionKind: String, Codable, Sendable, CaseIterable {
     case runShortcut
     case openURL
     case insertText
+    /// Window management gestures
+    case maximizeWindow
+    case minimizeWindow
+    /// Clipboard gestures
+    case copyClipboard
+    case pasteClipboard
 }
 
 public struct ActionRequest: Codable, Hashable, Sendable {

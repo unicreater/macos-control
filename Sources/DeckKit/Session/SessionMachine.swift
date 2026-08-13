@@ -51,15 +51,19 @@ public struct SessionMachine: Hashable, Sendable {
         switch event {
         case .connectAttemptStarted:
             pingsOutstanding = 0
-            state = hasConnected ? .reconnecting : .connecting
+            let next: ConnectionState = hasConnected ? .reconnecting : .connecting
+            if state != next { state = next }
 
         case .handshakeCompleted:
             hasConnected = true
             pingsOutstanding = 0
             reconnectAttempt = 0
-            // Latency is unknown until the first pong; the top bar shows the pill
-            // without a figure rather than inventing one.
-            state = .connected(latencyMs: 0)
+            // Only mark connected once a pong proves the link is stable. During
+            // reconnect the banner stays on "Reconnecting" until then, avoiding the
+            // blink between connected/reconnecting on flaky links.
+            if !state.isLive {
+                state = .connected(latencyMs: 0)
+            }
 
         case .pingSent:
             guard state.isLive else { break }
@@ -71,8 +75,6 @@ public struct SessionMachine: Hashable, Sendable {
 
         case .pongReceived(let latencyMs):
             pingsOutstanding = 0
-            // A pong is proof the link is alive, even if a missed one had already
-            // pushed us into reconnecting.
             hasConnected = true
             reconnectAttempt = 0
             state = .connected(latencyMs: max(latencyMs, 0))
@@ -81,10 +83,8 @@ public struct SessionMachine: Hashable, Sendable {
             pingsOutstanding = 0
             if hasConnected {
                 reconnectAttempt += 1
-                state = .reconnecting
+                if state != .reconnecting { state = .reconnecting }
             } else {
-                // A first connection that never worked: the user is still in the
-                // pairing flow, so failing loudly beats retrying silently.
                 reconnectAttempt += 1
                 state = .disconnected
             }

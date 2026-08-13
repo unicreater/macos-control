@@ -4,9 +4,9 @@ import SwiftUI
 
 /// S3 — PIN pairing.
 ///
-/// The behavioural rule matters more than the layout: a wrong PIN shakes the row,
-/// clears the digits in place, and decrements a **textual** counter. The flow never
-/// resets, and the user never loses their position.
+/// Optimized for landscape: single centered column with compact digit cells.
+/// The hint card only shows on error or identity change — not by default,
+/// freeing vertical space for the PIN entry itself.
 struct PINEntryView: View {
     let model: AppModel
 
@@ -14,52 +14,50 @@ struct PINEntryView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(alignment: .center, spacing: 36) {
-            entryColumn
-            statusColumn
+        VStack(spacing: 0) {
+            Spacer()
+
+            VStack(spacing: DeckSpace.m) {
+                Text("Enter PIN from your Mac")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(DeckColor.ink)
+
+                digitCells
+
+                // Error or identity change — shown inline below the cells
+                statusInfo
+
+                Button("Cancel") { model.cancelPairing() }
+                    .font(.system(size: 14))
+                    .foregroundStyle(DeckColor.inkMuted)
+                    .buttonStyle(.plain)
+                    .padding(.top, DeckSpace.xs)
+            }
+
+            Spacer()
         }
-        .padding(.vertical, DeckSpace.xl)
         .padding(.horizontal, DeckSpace.safeInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
         .onAppear { isFieldFocused = true }
     }
 
-    private var entryColumn: some View {
-        VStack(alignment: .leading, spacing: DeckSpace.l) {
-            Text("Enter the PIN shown on your Mac")
-                .deckFont(.title)
-                .foregroundStyle(DeckColor.ink)
-                .fixedSize(horizontal: false, vertical: true)
-
-            digitCells
-
-            Text("Menu bar → NosoDeck icon")
-                .deckFont(.meta)
-                .foregroundStyle(DeckColor.inkMuted)
-
-            Button("Cancel") { model.cancelPairing() }
-                .deckFont(.bodySmall)
-                .foregroundStyle(DeckColor.inkMuted)
-                .buttonStyle(.plain)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private var digitCells: some View {
         HStack(spacing: 10) {
-            ForEach(0..<PairingPIN.length, id: \.self) { index in
+            ForEach(0..<3, id: \.self) { index in
+                cell(at: index)
+            }
+            // Visual gap between groups of 3
+            Spacer().frame(width: 12)
+            ForEach(3..<6, id: \.self) { index in
                 cell(at: index)
             }
         }
-        // One invisible field takes the keyboard so paste and autofill work exactly
-        // like typing; the cells are the visible half of the same control.
         .background {
             TextField("", text: pinBinding)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
                 .focused($isFieldFocused)
-                // Not zero: a fully transparent field is unreliable to focus and tap.
                 .opacity(0.01)
                 .accessibilityLabel("Pairing PIN")
         }
@@ -67,7 +65,6 @@ struct PINEntryView: View {
         .onTapGesture { isFieldFocused = true }
         .modifier(ShakeEffect(shakes: reduceMotion ? 0 : CGFloat(model.shakeToken)))
         .animation(.linear(duration: 0.2), value: model.shakeToken)
-        .opacity(reduceMotion && model.shakeToken > 0 ? 0.99 : 1)
     }
 
     private func cell(at index: Int) -> some View {
@@ -75,11 +72,11 @@ struct PINEntryView: View {
         let isFilled = index < digits.count
         let isActive = index == digits.count
 
-        return RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
+        return RoundedRectangle(cornerRadius: 12, style: .continuous)
             .fill(fillStyle(isFilled: isFilled, isActive: isActive))
-            .frame(width: 56, height: 74)
+            .frame(width: 64, height: 72)
             .overlay {
-                RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(
                         isActive ? DeckColor.mint : DeckColor.strokeSubtle,
                         lineWidth: isActive ? 2 : 1
@@ -88,7 +85,7 @@ struct PINEntryView: View {
             .overlay {
                 if isFilled {
                     Text(String(digits[index]))
-                        .font(.system(size: 30, weight: .regular, design: .monospaced))
+                        .font(.system(size: 32, weight: .medium, design: .monospaced))
                         .foregroundStyle(DeckColor.ink)
                 }
             }
@@ -107,94 +104,59 @@ struct PINEntryView: View {
     }
 
     @ViewBuilder
-    private var statusColumn: some View {
-        VStack(alignment: .leading, spacing: DeckSpace.m) {
-            if case .identityChanged(let identity) = model.pairing.state {
-                identityChangedCard(identity)
-            } else if let attemptsLeft = model.pairing.attemptsLeft {
-                errorCard(attemptsLeft: attemptsLeft)
-            } else {
-                hintCard
+    private var statusInfo: some View {
+        if case .identityChanged(let identity) = model.pairing.state {
+            identityChangedBanner(identity)
+        } else if let attemptsLeft = model.pairing.attemptsLeft {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundStyle(DeckColor.red)
+                    .font(.system(size: 14))
+                Text("Wrong PIN — \(attemptsLeft) \(attemptsLeft == 1 ? "try" : "tries") left")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(DeckColor.redInk)
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func errorCard(attemptsLeft: Int) -> some View {
-        card(borderColor: DeckColor.red) {
-            Text("Error")
-                .deckFont(.meta)
-                .foregroundStyle(DeckColor.inkMuted)
-            Text("Wrong PIN — \(attemptsLeft) \(attemptsLeft == 1 ? "try" : "tries") left")
-                .deckFont(.body)
-                .foregroundStyle(DeckColor.redInk)
-            Text("Check the Mac's menu bar — the PIN changes after three wrong tries.")
-                .deckFont(.bodySmall)
-                .foregroundStyle(DeckColor.inkMuted)
-                .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .background(DeckColor.redBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
     }
 
-    private func identityChangedCard(_ identity: DeviceIdentity) -> some View {
-        card(borderColor: DeckColor.red) {
-            Text("Identity changed")
-                .deckFont(.meta)
-                .foregroundStyle(DeckColor.inkMuted)
-            Text("\(identity.name) isn't the Mac you paired with before. It may have been reinstalled — or it may be a different machine using the same name.")
-                .deckFont(.bodySmall)
+    private func identityChangedBanner(_ identity: DeviceIdentity) -> some View {
+        VStack(spacing: DeckSpace.s) {
+            Text("\(identity.name) isn't the Mac you paired with before.")
+                .font(.system(size: 13))
                 .foregroundStyle(DeckColor.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.center)
 
             HStack(spacing: DeckSpace.m) {
                 Button { model.confirmRePair() } label: {
                     Text("Re-pair")
-                        .deckFont(.body)
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 40)
-                        .background(DeckColor.red, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
+                        .frame(minWidth: 80, minHeight: 36)
+                        .background(DeckColor.red, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
 
                 Button { model.cancelPairing() } label: {
                     Text("Cancel")
-                        .deckFont(.body)
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(DeckColor.inkSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .frame(minWidth: 80, minHeight: 36)
                         .overlay {
-                            RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .strokeBorder(Color(hex: 0x3A3A3A), lineWidth: 1)
                         }
                 }
                 .buttonStyle(.plain)
             }
         }
-    }
-
-    private var hintCard: some View {
-        card(borderColor: DeckColor.strokeSubtle) {
-            Text("Where's the PIN?")
-                .deckFont(.meta)
-                .foregroundStyle(DeckColor.inkMuted)
-            Text("Click the NosoDeck icon in your Mac's menu bar. The six digits are at the top of the menu.")
-                .deckFont(.bodySmall)
-                .foregroundStyle(DeckColor.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func card<Content: View>(
-        borderColor: Color,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DeckSpace.s) {
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DeckSpace.xl)
-        .background(DeckColor.surface, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
+        .padding(16)
+        .background(DeckColor.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(DeckColor.red.opacity(0.5), lineWidth: 1)
         }
     }
 
@@ -206,8 +168,6 @@ struct PINEntryView: View {
     }
 }
 
-/// Shakes horizontally, ~200ms, without moving anything else. Reduce Motion passes
-/// zero, which makes it a no-op rather than a different animation.
 private struct ShakeEffect: GeometryEffect {
     var shakes: CGFloat
 

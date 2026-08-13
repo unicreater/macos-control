@@ -38,6 +38,7 @@ final class AppModel {
     private(set) var catalog: [AppCatalogEntry] = []
     /// The Mac's Apple Shortcuts, once consent has been given (FR-13).
     private(set) var shortcuts: [String] = []
+    private(set) var browserTabs: [BrowserTab] = []
     private var hasRequestedShortcuts = false
     private var shortcutsAnswered = false
     /// The most recent action failure, for the tile that reported it.
@@ -83,11 +84,26 @@ final class AppModel {
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
-        // FR-22: onboarding is shown only when no Mac has ever been paired.
-        self.route = trust.hasNeverPaired ? .onboarding : .discovery
+
+        if trust.hasNeverPaired {
+            self.route = .onboarding
+        } else {
+            // Returning user: go straight to the deck and auto-connect in the
+            // background. The last paired Mac will be picked up by autoConnectIfPossible
+            // as soon as Bonjour finds it — no manual selection needed.
+            self.route = .deck
+            self.targetMacID = trust.pairedDeviceIDs.first
+        }
 
         wireClient()
         wireBrowser()
+
+        // If we have a paired Mac, start browsing immediately so the auto-connect
+        // fires as soon as the Mac is found on the network.
+        if !trust.hasNeverPaired {
+            pairing.handle(.beginDiscovery)
+            browser.start()
+        }
     }
 
     var connectedMacName: String? { pairing.device?.name }
@@ -132,8 +148,11 @@ final class AppModel {
         case .awaitingPIN:
             pinEntry = ""
             route = .pin
+            // Connect immediately with the open pairing key — the Mac will show
+            // the PIN popup when it receives our hello. The user reads the PIN
+            // from the Mac and enters it here.
+            client.connect(to: mac, credential: .pairing(PairingPIN.random()))
         case .identityChanged:
-            // The identity-changed card sits on the PIN screen (design S3).
             route = .pin
         default:
             break
@@ -152,12 +171,13 @@ final class AppModel {
     }
 
     private func submitPIN() {
-        guard let mac = targetMac, let pin = PairingPIN(pinEntry) else {
+        guard let pin = PairingPIN(pinEntry) else {
             failPIN()
             return
         }
         pendingPIN = pin
-        client.connect(to: mac, credential: .pairing(pin))
+        // Connection is already open from select() — just send the PIN.
+        client.sendPairRequest(pin: pin)
     }
 
     /// The user confirmed the destructive re-pair after an identity change.
@@ -225,7 +245,8 @@ final class AppModel {
     }
 
     func setPage(_ index: Int) {
-        currentPage = min(max(index, 0), deck.pageCount - 1)
+        // Allow pageCount as the AI Sessions page tag.
+        currentPage = min(max(index, 0), deck.pageCount)
     }
 
     // MARK: - Pages and premium (FR-17)
@@ -353,6 +374,27 @@ final class AppModel {
         client.send(.action(ActionRequest(kind: .activateApp, target: bundleID)))
     }
 
+    func requestBrowserTabs() {
+        guard session.acceptsActions else { return }
+        client.send(.browserTabsRequest)
+    }
+
+    func sendVoiceText(_ text: String) {
+        guard session.acceptsActions, !text.isEmpty else { return }
+        client.send(.action(ActionRequest(kind: .insertText, target: text)))
+    }
+
+    func sendGesture(_ kind: ActionKind) {
+        guard session.acceptsActions else { return }
+        client.send(.action(ActionRequest(kind: kind, target: "")))
+    }
+
+    func activateByBundleID(_ bundleID: String) {
+        guard session.acceptsActions else { return }
+        lastActionError = nil
+        client.send(.action(ActionRequest(kind: .activateApp, target: bundleID)))
+    }
+
     /// Sends an emoji for the Mac to type — or, without Accessibility, to put on the
     /// clipboard and announce. Both are success; the phone doesn't need to know which.
     func send(emoji: String) {
@@ -405,6 +447,12 @@ final class AppModel {
         }
 
         requestMissingIcons()
+
+        // Retry icon requests after a delay — the Mac may still be rendering them.
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            self.requestMissingIcons()
+        }
     }
 
     /// One request per unseen hash, for the tiles actually on the deck. The catalog is
@@ -422,8 +470,8 @@ final class AppModel {
     /// Journey 2: unlock the phone and the deck is already coming back. A Mac the phone
     /// has paired with needs no tap — only an unknown one does.
     private func autoConnectIfPossible() {
-        guard route == .discovery, !client.isConnected else { return }
-        guard case .discovering = pairing.state else { return }
+        guard !client.isConnected else { return }
+        guard route == .discovery || route == .deck else { return }
 
         let candidate = discovered.first {
             $0.speaksOurProtocol
@@ -477,8 +525,6 @@ final class AppModel {
             if let pin = self.pendingPIN {
                 self.client.sendPairRequest(pin: pin)
             } else if ack.isPaired {
-                // A trusted reconnect: ask for the catalog straight away so icons and
-                // the app list are ready before the user opens anything.
                 self.requestCatalog()
             }
         }
@@ -498,6 +544,10 @@ final class AppModel {
             self.permissions[.automation] = names.isEmpty ? .denied : .granted
         }
 
+        client.onBrowserTabs = { [weak self] tabs in
+            self?.browserTabs = tabs
+        }
+
         client.onActionResult = { [weak self] result in
             guard let self, !result.ok else { return }
             self.lastActionError = result.error
@@ -509,6 +559,14 @@ final class AppModel {
 
         client.onStateEvent = { [weak self] macState in
             self?.macState = macState
+            if !macState.sessions.isEmpty {
+                print("[NosoDeck] Sessions received: \(macState.sessions.map { "\($0.bundleID): \($0.sessions.count) sessions" })")
+                for info in macState.sessions {
+                    for s in info.sessions {
+                        print("[NosoDeck]   \(s.label) — \(s.status) \(s.detail ?? "") cpu:\(s.cpuPercent ?? 0)")
+                    }
+                }
+            }
         }
     }
 

@@ -19,8 +19,7 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
-    # Set DEVELOPMENT_TEAM in Xcode (or a local .xcconfig); intentionally unset here so
-    # the spec stays owner-agnostic. Bundle-ID root is a placeholder until confirmed.
+    DEVELOPMENT_TEAM: 8U4W79ZJ6G
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_STRICT_CONCURRENCY: complete
 
@@ -49,14 +48,21 @@ targets:
         CFBundleDisplayName: NosoDeck
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # v1 is landscape-primary; portrait is undesigned (D14, FR-23).
+        # Support both landscape and portrait like ChocLift.
         UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIRequiresFullScreen: true
         UILaunchScreen: {}
         # Dark-appearance only in v1; light mode is not yet designed.
         UIUserInterfaceStyle: Dark
+        # Voice-to-Mac dictation
+        NSSpeechRecognitionUsageDescription:
+          NosoDeck uses speech recognition to type your voice into your Mac.
+          Recognition runs on-device.
+        NSMicrophoneUsageDescription:
+          NosoDeck uses the microphone for voice dictation to your Mac.
         # Local-network discovery of the Mac agent (FR-1, FR-24).
         NSLocalNetworkUsageDescription:
           NosoDeck uses the local network to find and control your Mac. Nothing leaves

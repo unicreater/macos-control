@@ -44,9 +44,14 @@ final class AgentModel {
     private let catalogProvider = AppCatalogProvider()
     private let executor = ActionExecutor()
     private let stateObserver = MacStateObserver()
+    private let sessionTracker = SessionTracker()
     private let shortcuts = ShortcutsBridge()
     private let textInserter = TextInserter()
     private let loginItem = LoginItem()
+    private let browserTabReader = BrowserTabReader()
+    private let emojiRain = EmojiRainWindow()
+    private let dragDetector = DragDetector()
+    private let pinWindow = PINWindow()
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
@@ -70,6 +75,16 @@ final class AgentModel {
     }
 
     var isPaired: Bool { !pairedPhones.isEmpty }
+
+    func showPIN() {
+        pinWindow.show(pin: pin, macName: serviceName, paired: isPaired) { [weak self] in
+            guard let self else { return }
+            for phone in self.pairedPhones {
+                self.unpair(phoneID: phone.deviceID)
+            }
+            self.showPIN()
+        }
+    }
 
     var isConnected: Bool {
         if case .connected = status { return true }
@@ -99,6 +114,7 @@ final class AgentModel {
     // MARK: - Lifecycle
 
     func start() {
+        NSLog("[MacAgent] AgentModel.start() called")
         listener.onStateChange = { [weak self] state in
             self?.handleListenerState(state)
         }
@@ -106,19 +122,41 @@ final class AgentModel {
             self?.adopt(connection: connection)
         }
         stateObserver.onChange = { [weak self] macState in
-            self?.broadcast(macState)
+            self?.broadcastState()
+        }
+        sessionTracker.onChange = { [weak self] _ in
+            self?.broadcastState()
+        }
+        dragDetector.onChange = { [weak self] _ in
+            self?.broadcastState()
         }
         stateObserver.start()
+        sessionTracker.start()
+        dragDetector.start()
 
         restartListener()
-        warmCatalog()
+        // Warm the catalog in the background so it doesn't block the main thread
+        // and freeze the PIN window.
+        Task.detached { [weak self] in
+            let catalog = AppCatalogProvider().catalog()
+            await MainActor.run {
+                self?.cachedCatalog = catalog
+                self?.bundleIDsByIconHash = Dictionary(
+                    catalog.apps.compactMap { entry in entry.iconHash.map { ($0, entry.bundleID) } },
+                    uniquingKeysWith: { first, _ in first }
+                )
+            }
+        }
+
     }
 
-    /// Pushed to every paired phone on every change (FR-10). Unpaired sessions learn
-    /// nothing about what is running on this Mac.
-    private func broadcast(_ macState: MacState) {
+    /// Merges app state + session tracking + drag state and pushes to every paired phone.
+    private func broadcastState() {
+        var state = stateObserver.current
+        state.sessions = sessionTracker.current
+        state.isDragging = dragDetector.isDragging
         for session in sessions where session.isPaired {
-            session.connection.send(Envelope(message: .stateEvent(macState)))
+            session.connection.send(Envelope(message: .stateEvent(state)))
         }
     }
 
@@ -136,6 +174,8 @@ final class AgentModel {
 
     func stop() {
         stateObserver.stop()
+        sessionTracker.stop()
+        dragDetector.stop()
         for session in sessions {
             session.connection.cancel()
         }
@@ -149,9 +189,11 @@ final class AgentModel {
     /// and rotating the PIN all have to come through here. Live sessions survive it —
     /// only the advertised socket is replaced.
     private func restartListener() {
+        // The open pairing key lets any phone connect for the pairing flow.
+        // Authentication happens at the application layer (PIN in pairRequest).
         var keys = [PresharedKey(
             identity: DeckService.pairingKeyIdentity,
-            key: DeckTransport.pairingKey(pin: pin, deviceID: identityStore.deviceID)
+            key: DeckTransport.openPairingKey(deviceID: identityStore.deviceID)
         )]
         for (phoneID, secret) in identityStore.pairedPhones() {
             keys.append(PresharedKey(identity: phoneID, key: secret))
@@ -187,6 +229,12 @@ final class AgentModel {
     // MARK: - Sessions
 
     private func adopt(connection: PeerConnection) {
+        // Any incoming connection while unpaired — show the PIN immediately
+        // so the user can see it before they need to type it on the phone.
+        if !isPaired {
+            showPIN()
+        }
+
         let session = AgentSession(connection: connection)
         sessions.append(session)
 
@@ -247,10 +295,16 @@ final class AgentModel {
             }
             if paired {
                 rememberName(hello.deviceName, forPhoneID: hello.deviceID)
+                pinWindow.close()
                 refreshStatus()
                 // The current state, immediately — a phone that just connected should
                 // not have to wait for the Mac to change before its tiles light up.
-                session.connection.send(Envelope(message: .stateEvent(stateObserver.current)))
+                session.connection.send(Envelope(message: .stateEvent({
+                    var s = stateObserver.current; s.sessions = sessionTracker.current; s.isDragging = dragDetector.isDragging; return s
+                }())))
+            } else {
+                // An unpaired phone just connected — show the PIN so the user can see it.
+                pinWindow.show(pin: pin, macName: serviceName)
             }
 
         case .pairRequest(let request):
@@ -291,6 +345,11 @@ final class AgentModel {
         case .action(let request):
             guard session.isPaired else { break }
             perform(request, for: envelope, on: session)
+
+        case .browserTabsRequest:
+            guard session.isPaired else { break }
+            let tabs = browserTabReader.tabs()
+            session.connection.send(envelope.reply(.browserTabs(BrowserTabList(tabs: tabs))))
 
         default:
             // State events are pushed, not requested; nothing else is expected inbound.
@@ -342,7 +401,12 @@ final class AgentModel {
             identity: identityStore.identity(name: serviceName),
             sessionSecret: secret
         ))))
-        session.connection.send(Envelope(message: .stateEvent(stateObserver.current)))
+        session.connection.send(Envelope(message: .stateEvent({
+                    var s = stateObserver.current; s.sessions = sessionTracker.current; s.isDragging = dragDetector.isDragging; return s
+                }())))
+
+        // Pairing succeeded — close the PIN window.
+        pinWindow.close()
 
         // A used PIN is spent. Rotating also rebuilds the listener, which is what
         // registers this phone's new key for its next connection.
@@ -358,6 +422,9 @@ final class AgentModel {
         pin = PairingPIN.random()
         pairedPhones = Self.loadPairedPhones(identityStore: identityStore)
         restartListener()
+        if pinWindow.isVisible {
+            pinWindow.show(pin: pin, macName: serviceName)
+        }
     }
 
     /// Drops a phone's key. It needs the PIN again to come back (FR-5, Mac side).

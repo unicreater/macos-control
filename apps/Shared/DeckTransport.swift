@@ -35,6 +35,16 @@ enum DeckTransport {
         return Data(HMAC<SHA256>.authenticationCode(for: message, using: key))
     }
 
+    /// A fixed key used for the initial pairing connection. This only provides
+    /// encryption (not authentication) — the PIN exchange at the application layer
+    /// handles authentication. This lets the phone connect before knowing the PIN,
+    /// so the Mac can show the PIN popup in response to the connection.
+    static func openPairingKey(deviceID: String) -> Data {
+        let key = SymmetricKey(data: Data(DeckService.pairingKeyContext.utf8))
+        let message = Data("nosodeck-open-pairing:\(deviceID)".utf8)
+        return Data(HMAC<SHA256>.authenticationCode(for: message, using: key))
+    }
+
     /// Client-side parameters: one key, one identity.
     static func parameters(key: PresharedKey) -> NWParameters {
         parameters(keys: [key])

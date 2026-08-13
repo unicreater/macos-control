@@ -1,5 +1,6 @@
 import DeckKit
 import SwiftUI
+import UIKit
 
 /// The keycap — the core component.
 ///
@@ -21,152 +22,120 @@ struct KeycapView: View {
     var onQuit: () -> Void = {}
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @GestureState private var isPressed = false
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(fill)
-            .clipShape(shape)
-            .overlay { border }
-            .overlay(alignment: .top) { topHighlight }
-            .overlay(alignment: .topTrailing) { runningLED }
-            .overlay(alignment: .topLeading) { removeBadge }
-            .compositingGroup()
-            .shadow(color: dropShadowColor, radius: dropShadowRadius, y: dropShadowOffset)
-            .offset(y: isPressed ? 4 : 0)
-            .rotationEffect(.degrees(rotation))
-            .scaleEffect(isDragging ? 1.04 : 1)
-            .animation(reduceMotion ? nil : DeckMotion.tap, value: isPressed)
-            .animation(reduceMotion ? nil : DeckMotion.stateChange, value: activity)
-            .contentShape(shape)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .updating($isPressed) { _, state, _ in state = true }
-                    .onEnded { value in
-                        let vertical = value.translation.height
-                        let horizontal = value.translation.width
-
-                        // Downward, and clearly more vertical than horizontal, so a
-                        // page swipe is never mistaken for a quit.
-                        if vertical > 44, abs(vertical) > abs(horizontal) * 2 {
-                            // Only a running app can be quit; on anything else the
-                            // gesture is simply ignored rather than doing something else.
-                            if activity != .idle { onQuit() }
-                            return
-                        }
-
-                        if abs(vertical) < 20, abs(horizontal) < 20 {
-                            onTap()
-                        }
-                    }
-            )
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(tile.label)
-            .accessibilityValue(accessibilityValue)
-            .accessibilityAddTraits(.isButton)
+        Button {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            onTap()
+        } label: {
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    LinearGradient(
+                        colors: activity == .frontmost
+                            ? [Color(hex: 0x2A2A2A), Color(hex: 0x1E1E1E)]
+                            : [Color(hex: 0x1E1E1E), Color(hex: 0x161616)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(
+                            activity == .frontmost ? DeckColor.mint.opacity(0.3) : Color(hex: 0x2A2A2A),
+                            lineWidth: 1
+                        )
+                }
+                .overlay(alignment: .topTrailing) { runningLED }
+                .overlay(alignment: .topLeading) { removeBadge }
+        }
+        .buttonStyle(TileButtonStyle())
+        .scaleEffect(isDragging ? 1.04 : 1)
+        .rotationEffect(.degrees(rotation))
+        .animation(reduceMotion ? nil : DeckMotion.stateChange, value: activity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(tile.label)
+        .accessibilityValue(accessibilityValue)
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Content
 
     private var content: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: 4) {
             iconView
-                .frame(width: 40, height: 40)
+                .frame(width: 72, height: 72)
+                .overlay {
+                    if activity == .frontmost {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(DeckColor.mint, lineWidth: 2)
+                            .shadow(color: DeckColor.mint.opacity(0.4), radius: 8)
+                            .frame(width: 76, height: 76)
+                    }
+                }
             Text(tile.label)
-                .deckFont(.legend)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(legendColor)
-                // Legends truncate to one line and never reflow the grid.
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .textCase(.uppercase)
         }
-        .padding(.horizontal, DeckSpace.s)
     }
 
     @ViewBuilder
     private var iconView: some View {
         if isDragging {
-            Text("Dragging")
-                .deckFont(.meta)
+            Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                .font(.system(size: 24))
                 .foregroundStyle(DeckColor.mint)
         } else if let emoji = tile.emoji, !emoji.isEmpty {
-            // Shortcut and website tiles carry the emoji the user picked, at 34pt.
             Text(emoji)
-                .font(.system(size: 34))
+                .font(.system(size: 38))
+        } else if case .website(let url) = tile.target {
+            // Website tile: show favicon
+            AsyncImage(url: faviconURL(for: url)) { phase in
+                if let image = phase.image {
+                    image.resizable().aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                } else {
+                    Image(systemName: "globe")
+                        .font(.system(size: 28))
+                        .foregroundStyle(DeckColor.inkMuted)
+                }
+            }
         } else if let icon {
             icon
                 .resizable()
                 .aspectRatio(contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         } else {
-            // Before the icon arrives: a neutral placeholder, never a broken image.
-            RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
-                .fill(Color(hex: 0x2C2C2C))
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(hex: 0x2A2A2A))
         }
     }
 
-    // MARK: - The state table
-
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
+    private func faviconURL(for urlString: String) -> URL? {
+        guard let url = URL(string: urlString), let host = url.host else { return nil }
+        // Google's favicon service — reliable and fast
+        return URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=128")
     }
 
-    @ViewBuilder
-    private var fill: some View {
-        if isDragging {
-            Color(hex: 0x1C1C1C)
-        } else if isPressed {
-            DeckColor.keycapPressed
-        } else if activity == .frontmost {
-            LinearGradient(
-                colors: [DeckColor.keycapActiveTop, DeckColor.keycapActiveBottom],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        } else {
-            LinearGradient(
-                colors: [DeckColor.keycapTop, DeckColor.keycapBottom],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var border: some View {
-        if isDragging {
-            shape.strokeBorder(DeckColor.mint, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-        } else if activity == .frontmost {
-            // The frontmost ring: a mint border plus a soft 3pt halo.
-            shape.strokeBorder(DeckColor.mint, lineWidth: 1)
-                .background(shape.strokeBorder(DeckColor.mint.opacity(0.18), lineWidth: 3))
-        } else if isPressed {
-            shape.strokeBorder(Color(hex: 0x2A2A2A), lineWidth: 1)
-        } else {
-            shape.strokeBorder(DeckColor.stroke, lineWidth: 1)
-        }
-    }
-
-    /// The inset highlight along the top edge. Absent when pressed — the cap has sunk.
-    @ViewBuilder
-    private var topHighlight: some View {
-        if !isPressed && !isDragging {
-            Rectangle()
-                .fill(activity == .frontmost ? Color(hex: 0x444444) : DeckColor.keycapHighlight)
-                .frame(height: 1)
-                .padding(.horizontal, 2)
-        }
-    }
-
-    /// Running is a mint LED, 8pt, inset 11pt from the top-right, with a glow. Colour is
-    /// never the only cue — the LED is a shape, and VoiceOver says "running".
+    /// Running is a mint LED, 8pt, top-right, with a glow.
     @ViewBuilder
     private var runningLED: some View {
         if activity == .running || activity == .frontmost {
-            Circle()
-                .fill(DeckColor.mint)
-                .frame(width: 8, height: 8)
-                .shadow(color: DeckColor.mint, radius: 4)
-                .padding(11)
+            ZStack {
+                Circle()
+                    .fill(DeckColor.mint.opacity(0.2))
+                    .frame(width: 16, height: 16)
+                Circle()
+                    .fill(DeckColor.mint)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: DeckColor.mint, radius: 4)
+            }
+            .padding(2)
         }
     }
 
@@ -181,13 +150,12 @@ struct KeycapView: View {
                     .background(DeckColor.red, in: Circle())
             }
             .buttonStyle(.plain)
-            .offset(x: -7, y: -7)
+            .offset(x: -4, y: -4)
             .accessibilityLabel("Remove \(tile.label)")
         }
     }
 
     private var legendColor: Color {
-        if isPressed { return DeckColor.inkSecondary }
         if activity == .frontmost { return .white }
         return DeckColor.ink
     }
@@ -195,19 +163,8 @@ struct KeycapView: View {
     private var rotation: Double {
         if isDragging { return -3 }
         guard isEditing, !reduceMotion else { return 0 }
-        // Alternating ±0.8–1.5°, so a page of caps looks shaken loose rather than
-        // uniformly skewed.
         return editIndex.isMultiple(of: 2) ? 1.1 : -0.9
     }
-
-    private var dropShadowColor: Color {
-        if isDragging { return .black.opacity(0.6) }
-        if isPressed { return .clear }
-        return DeckColor.keycapDrop
-    }
-
-    private var dropShadowRadius: CGFloat { isDragging ? 26 : 0 }
-    private var dropShadowOffset: CGFloat { isDragging ? 12 : 3 }
 
     private var accessibilityValue: String {
         switch activity {
@@ -218,6 +175,16 @@ struct KeycapView: View {
     }
 }
 
+/// Press feedback — subtle scale + brightness shift. Spring physics for natural feel.
+struct TileButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .brightness(configuration.isPressed ? -0.05 : 0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
 /// The empty slot: dashed outline, a plus, and the words. An empty deck still has to
 /// say what to do next.
 struct EmptySlotView: View {
@@ -225,20 +192,22 @@ struct EmptySlotView: View {
 
     var body: some View {
         Button(action: onTap) {
-            RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
-                .strokeBorder(DeckColor.stroke, style: StrokeStyle(lineWidth: 2, dash: [6, 5]))
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color(hex: 0x2A2A2A), style: StrokeStyle(lineWidth: 1.5, dash: [8, 6]))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(hex: 0x141414), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay {
-                    VStack(spacing: DeckSpace.s) {
-                        Image(systemName: "plus")
-                            .foregroundStyle(DeckColor.inkFaint)
-                        Text("Add tile")
-                            .deckFont(.legend)
-                            .foregroundStyle(DeckColor.inkFaint)
+                    VStack(spacing: 6) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 24, weight: .light))
+                            .foregroundStyle(Color(hex: 0x3A3A3A))
+                        Text("ADD")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color(hex: 0x3A3A3A))
                     }
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TileButtonStyle())
         .accessibilityLabel("Add tile")
     }
 }

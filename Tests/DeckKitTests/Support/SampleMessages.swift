@@ -52,6 +52,13 @@ enum SampleMessages {
             return .ping
         case .pong:
             return .pong
+        case .browserTabsRequest:
+            return .browserTabsRequest
+        case .browserTabs:
+            return .browserTabs(BrowserTabList(tabs: [
+                BrowserTab(title: "GitHub", url: "https://github.com"),
+                BrowserTab(title: "Apple", url: "https://apple.com")
+            ]))
         }
     }
 

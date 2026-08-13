@@ -17,6 +17,8 @@ public enum MessageType: String, Codable, Sendable, CaseIterable {
     case stateEvent
     case ping
     case pong
+    case browserTabsRequest
+    case browserTabs
 }
 
 /// One protocol message, payload included.
@@ -39,6 +41,8 @@ public enum Message: Hashable, Sendable {
     case stateEvent(MacState)
     case ping
     case pong
+    case browserTabsRequest
+    case browserTabs(BrowserTabList)
 
     public var type: MessageType {
         switch self {
@@ -57,13 +61,15 @@ public enum Message: Hashable, Sendable {
         case .stateEvent: return .stateEvent
         case .ping: return .ping
         case .pong: return .pong
+        case .browserTabsRequest: return .browserTabsRequest
+        case .browserTabs: return .browserTabs
         }
     }
 
     /// Messages that mean nothing beyond their type.
     public var hasPayload: Bool {
         switch self {
-        case .shortcutsRequest, .ping, .pong: return false
+        case .shortcutsRequest, .ping, .pong, .browserTabsRequest: return false
         default: return true
         }
     }

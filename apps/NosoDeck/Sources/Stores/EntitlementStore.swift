@@ -22,7 +22,7 @@ final class EntitlementStore {
     private(set) var isPurchasing = false
     private(set) var lastError: String?
 
-    private var updatesTask: Task<Void, Never>?
+    nonisolated(unsafe) private var updatesTask: Task<Void, Never>?
 
     init() {
         let cached = UserDefaults.standard.string(forKey: Self.cacheKey)

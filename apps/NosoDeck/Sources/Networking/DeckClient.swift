@@ -34,6 +34,7 @@ final class DeckClient {
     var onCatalog: ((Catalog) -> Void)?
     var onIcon: ((IconResponse) -> Void)?
     var onShortcuts: (([String]) -> Void)?
+    var onBrowserTabs: (([BrowserTab]) -> Void)?
 
     init(identityStore: PhoneIdentityStore) {
         self.identityStore = identityStore
@@ -49,10 +50,12 @@ final class DeckClient {
 
         let key: PresharedKey
         switch credential {
-        case .pairing(let pin):
+        case .pairing:
+            // Connect with the open pairing key — no PIN needed for TLS.
+            // The PIN is verified at the application layer (pairRequest).
             key = PresharedKey(
                 identity: DeckService.pairingKeyIdentity,
-                key: DeckTransport.pairingKey(pin: pin, deviceID: mac.deviceID)
+                key: DeckTransport.openPairingKey(deviceID: mac.deviceID)
             )
         case .trusted(let secret):
             // The identity is this phone's ID, which is how the agent picks the right
@@ -170,6 +173,9 @@ final class DeckClient {
 
         case .shortcuts(let list):
             onShortcuts?(list.names)
+
+        case .browserTabs(let list):
+            onBrowserTabs?(list.tabs)
 
         default:
             break

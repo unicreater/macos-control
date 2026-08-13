@@ -11,24 +11,29 @@ struct DeckView: View {
     @State private var isConfirmingUnpair = false
     @State private var isConfirmingPageDelete = false
     @State private var isAddingTile = false
+    @State private var gestureFeedback: (String, String)? // (label, icon)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private var isPortrait: Bool { verticalSizeClass == .regular }
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
                 .padding(.bottom, 14)
 
-            // The recents column takes the landscape slack; the 4×2 grid keeps its size
-            // whether the column is there or not (S9, FR-16).
             HStack(spacing: DeckGrid.recentsColumnGap) {
-                RecentsColumn(
-                    bundleIDs: model.visibleRecents,
-                    isUnlocked: model.entitlement.unlocksRecentsColumn,
-                    iconProvider: { model.icon(forBundleID: $0) },
-                    nameProvider: { model.name(forBundleID: $0) },
-                    onActivate: { model.activateRecent($0) },
-                    onUpgrade: { model.presentPaywall(reason: "The recents column is part of Premium.") }
-                )
+                // Recents column only in landscape — no room in portrait.
+                if !isPortrait {
+                    RecentsColumn(
+                        bundleIDs: model.visibleRecents,
+                        isUnlocked: model.entitlement.unlocksRecentsColumn,
+                        iconProvider: { model.icon(forBundleID: $0) },
+                        nameProvider: { model.name(forBundleID: $0) },
+                        onActivate: { model.activateRecent($0) },
+                        onUpgrade: { model.presentPaywall(reason: "The recents column is part of Premium.") }
+                    )
+                }
 
                 pages
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -46,6 +51,40 @@ struct DeckView: View {
         .padding(.horizontal, DeckSpace.safeInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
+        .overlay {
+            // Multi-finger gesture detection layer
+            GestureOverlay(
+                onAction: { model.sendGesture($0) },
+                onFeedback: { label, icon in
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        gestureFeedback = (label, icon)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            gestureFeedback = nil
+                        }
+                    }
+                }
+            )
+            .allowsHitTesting(model.session.acceptsActions && !model.isEditing)
+        }
+        .overlay {
+            // Gesture feedback badge
+            if let feedback = gestureFeedback {
+                HStack(spacing: 8) {
+                    Image(systemName: feedback.1)
+                        .font(.system(size: 20, weight: .medium))
+                    Text(feedback.0.uppercased())
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                }
+                .foregroundStyle(DeckColor.mint)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(DeckColor.surface, in: Capsule())
+                .overlay { Capsule().strokeBorder(DeckColor.mint.opacity(0.3), lineWidth: 1) }
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
         }
@@ -80,8 +119,8 @@ struct DeckView: View {
                         .deckFont(.legend)
                         .foregroundStyle(DeckColor.onMint)
                         .padding(.horizontal, DeckSpace.l)
-                        .frame(height: 34)
-                        .background(DeckColor.mint, in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+                        .frame(height: 44)
+                        .background(DeckColor.mint, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
@@ -109,8 +148,9 @@ struct DeckView: View {
 
                 Button { model.openSettings() } label: {
                     Image(systemName: "gearshape")
+                        .font(.system(size: 15))
                         .foregroundStyle(DeckColor.inkMuted)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                         .background(Color(hex: 0x1C1C1C), in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
@@ -130,14 +170,29 @@ struct DeckView: View {
         } else {
             HStack(spacing: DeckSpace.s) {
                 Spacer()
+                // AI Sessions pip
+                if hasAISessions {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("AI")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundStyle(model.currentPage == aiPageTag ? DeckColor.mint : DeckColor.inkMuted)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        model.currentPage == aiPageTag ? DeckColor.mint.opacity(0.15) : Color(hex: 0x222222),
+                        in: Capsule()
+                    )
+                    .onTapGesture { model.setPage(aiPageTag) }
+                }
                 ForEach(0..<model.pageCount, id: \.self) { index in
                     Capsule()
                         .fill(index == model.currentPage ? DeckColor.ink : Color(hex: 0x333333))
                         .frame(width: 22, height: 5)
                         .onTapGesture { model.setPage(index) }
                 }
-                // The ochre pill only appears at the tier's limit — the gate is where
-                // the user meets it, not decoration on every page (design S4).
                 if !model.canAddPage {
                     addPagePill
                 }
@@ -208,11 +263,26 @@ struct DeckView: View {
 
     // MARK: - Grid
 
+    /// The total number of swipeable pages: deck pages + AI Sessions page (if any sessions exist).
+    private var hasAISessions: Bool {
+        !model.macState.sessions.isEmpty
+    }
+
+    /// Tag used for the AI Sessions page — sits after all deck pages.
+    private var aiPageTag: Int { model.pageCount }
+
     private var pages: some View {
         TabView(selection: pageBinding) {
             ForEach(0..<model.pageCount, id: \.self) { pageIndex in
                 grid(pageIndex: pageIndex)
                     .tag(pageIndex)
+            }
+            if hasAISessions {
+                AISessionsView(
+                    sessions: model.macState.sessions,
+                    onActivate: { bundleID in model.activateByBundleID(bundleID) }
+                )
+                .tag(aiPageTag)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -220,12 +290,14 @@ struct DeckView: View {
 
     private func grid(pageIndex: Int) -> some View {
         let page = model.deck.pages[pageIndex]
+        let cols = DeckGrid.columns(isPortrait: isPortrait)
+        let rows = DeckGrid.rows(isPortrait: isPortrait)
 
         return VStack(spacing: DeckGrid.gutter) {
-            ForEach(0..<DeckGrid.rows, id: \.self) { row in
+            ForEach(0..<rows, id: \.self) { row in
                 HStack(spacing: DeckGrid.gutter) {
-                    ForEach(0..<DeckGrid.columns, id: \.self) { column in
-                        let slot = row * DeckGrid.columns + column
+                    ForEach(0..<cols, id: \.self) { column in
+                        let slot = row * cols + column
                         cell(page: page, pageIndex: pageIndex, slot: slot)
                     }
                 }
@@ -235,7 +307,12 @@ struct DeckView: View {
 
     @ViewBuilder
     private func cell(page: Page, pageIndex: Int, slot: Int) -> some View {
-        if slot < page.tiles.count {
+        if slot == page.tiles.count && pageIndex == 0 && !model.isEditing {
+            // Voice tile sits in the first empty slot on page 1
+            VoiceTile(isEnabled: model.session.acceptsActions) { text in
+                model.sendVoiceText(text)
+            }
+        } else if slot < page.tiles.count {
             let tile = page.tiles[slot]
             let keycap = KeycapView(
                 tile: tile,
@@ -301,4 +378,5 @@ struct DeckView: View {
             set: { model.setPage($0) }
         )
     }
+
 }
