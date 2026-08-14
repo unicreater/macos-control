@@ -49,11 +49,13 @@ final class PeerConnection {
     func send(_ envelope: Envelope) {
         do {
             let frame = try FrameCodec.encode(envelope)
-            connection.send(content: frame, completion: .contentProcessed { [weak self] error in
-                guard let error else { return }
-                MainActor.assumeIsolated { self?.onError?(error) }
+            connection.send(content: frame, completion: .contentProcessed { error in
+                if let error {
+                    print("[PeerConn] send error: \(error)")
+                }
             })
         } catch {
+            print("[PeerConn] encode error: \(error)")
             onError?(error)
         }
     }

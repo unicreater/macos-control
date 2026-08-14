@@ -278,6 +278,7 @@ final class AgentModel {
     // MARK: - Protocol
 
     private func handle(_ envelope: Envelope, from session: AgentSession) {
+        NSLog("[MacAgent] Received: %@ isPaired=%d", envelope.type.rawValue, session.isPaired ? 1 : 0)
         switch envelope.message {
         case .hello(let hello):
             let paired = identityStore.isPaired(phoneID: hello.deviceID)

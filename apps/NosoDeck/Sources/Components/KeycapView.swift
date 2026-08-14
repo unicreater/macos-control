@@ -25,8 +25,6 @@ struct KeycapView: View {
 
     var body: some View {
         Button {
-            let impact = UIImpactFeedbackGenerator(style: .light)
-            impact.impactOccurred()
             onTap()
         } label: {
             content

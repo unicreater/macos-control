@@ -51,8 +51,10 @@ struct DeckView: View {
         .padding(.horizontal, DeckSpace.safeInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
-        .overlay {
-            // Multi-finger gesture detection layer
+        .background {
+            // Multi-finger gesture detection layer — in background with hit testing
+            // disabled so all single-finger taps reach the tiles. The UIKit gesture
+            // recognizers still fire because they're attached at the window level.
             GestureOverlay(
                 onAction: { model.sendGesture($0) },
                 onFeedback: { label, icon in
@@ -66,7 +68,7 @@ struct DeckView: View {
                     }
                 }
             )
-            .allowsHitTesting(model.session.acceptsActions && !model.isEditing)
+            .allowsHitTesting(false)
         }
         .overlay {
             // Gesture feedback badge
@@ -280,6 +282,7 @@ struct DeckView: View {
             if hasAISessions {
                 AISessionsView(
                     sessions: model.macState.sessions,
+                    iconProvider: { model.icon(forBundleID: $0) },
                     onActivate: { bundleID in model.activateByBundleID(bundleID) }
                 )
                 .tag(aiPageTag)

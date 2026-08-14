@@ -73,21 +73,119 @@ final class SessionTracker {
                 }
             }
 
-            // Claude
-            if procs.contains(where: { $0.command.contains("Claude.app") }) {
-                infos.append(AppSessionInfo(bundleID: claudeBundleID, sessions: [
-                    AppSession(id: claudeBundleID, label: "Claude", status: .idle)
-                ]))
-            }
-
-            // ChatGPT
-            if procs.contains(where: { $0.command.contains("ChatGPT.app") }) {
-                infos.append(AppSessionInfo(bundleID: chatGPTBundleID, sessions: [
-                    AppSession(id: chatGPTBundleID, label: "ChatGPT", status: .idle)
-                ]))
-            }
+            // Claude and ChatGPT are detected via Accessibility on the main thread
+            // (added in applyResults via axSessions)
 
             return infos
+    }
+
+    /// Reads Claude/ChatGPT sessions from the Accessibility tree (must run on main thread).
+    private func readAXSessions() -> [AppSessionInfo] {
+        guard AXIsProcessTrusted() else { return [] }
+        var infos: [AppSessionInfo] = []
+
+        if let claude = readClaudeSessions() { infos.append(claude) }
+        if let chatgpt = readChatGPTSessions() { infos.append(chatgpt) }
+
+        return infos
+    }
+
+    private func readClaudeSessions() -> AppSessionInfo? {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: Self.claudeBundleID).first else { return nil }
+
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        var windowsRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef)
+        guard let windows = windowsRef as? [AXUIElement], let win = windows.first else {
+            return AppSessionInfo(bundleID: Self.claudeBundleID, sessions: [
+                AppSession(id: Self.claudeBundleID, label: "Claude", status: .idle)
+            ])
+        }
+
+        // Find the Sidebar by description
+        guard let sidebar = findElementByDesc(win, desc: "Sidebar", maxDepth: 10) else {
+            return AppSessionInfo(bundleID: Self.claudeBundleID, sessions: [
+                AppSession(id: Self.claudeBundleID, label: "Claude", status: .idle)
+            ])
+        }
+
+        // Collect session buttons from sidebar — they have titles like "Idle Loop implementation"
+        var sessions: [AppSession] = []
+        collectSessionButtons(sidebar, into: &sessions, depth: 0)
+
+        if sessions.isEmpty {
+            sessions.append(AppSession(id: Self.claudeBundleID, label: "Claude", status: .idle))
+        }
+
+        return AppSessionInfo(bundleID: Self.claudeBundleID, sessions: sessions)
+    }
+
+    private func collectSessionButtons(_ el: AXUIElement, into sessions: inout [AppSession], depth: Int) {
+        guard depth < 10, sessions.count < 8 else { return }
+
+        var roleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &roleRef)
+        var titleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
+
+        let role = roleRef as? String ?? ""
+        let title = titleRef as? String ?? ""
+
+        // Session buttons have titles like "Idle Choclift Swift macOS/iOS implementation"
+        // Skip navigation buttons (Today, Aug 12, Older, New, etc.)
+        let navButtons = ["Today", "New", "Artifacts", "Customize", "Older", "Home", "Code"]
+        if role == "AXButton" && !title.isEmpty
+            && !navButtons.contains(title)
+            && !title.hasPrefix("Aug ") && !title.hasPrefix("Jul ")
+            && !title.hasPrefix("Jun ") && !title.hasPrefix("May ")
+            && !title.hasPrefix("Show ") {
+
+            // Parse status from title prefix (Claude uses "Idle" prefix)
+            let status: AppSession.Status
+            var label = title
+            if title.hasPrefix("Idle ") {
+                status = .idle
+                label = String(title.dropFirst(5))
+            } else if title.hasPrefix("Busy ") {
+                status = .busy
+                label = String(title.dropFirst(5))
+            } else {
+                status = .idle
+            }
+
+            sessions.append(AppSession(
+                id: "claude.\(sessions.count)",
+                label: label,
+                status: status
+            ))
+        }
+
+        var childrenRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef)
+        for child in (childrenRef as? [AXUIElement]) ?? [] {
+            collectSessionButtons(child, into: &sessions, depth: depth + 1)
+        }
+    }
+
+    private func readChatGPTSessions() -> AppSessionInfo? {
+        guard NSRunningApplication.runningApplications(withBundleIdentifier: Self.chatGPTBundleID).first != nil else { return nil }
+        // ChatGPT's Electron AX tree doesn't expose buttons well
+        return AppSessionInfo(bundleID: Self.chatGPTBundleID, sessions: [
+            AppSession(id: Self.chatGPTBundleID, label: "ChatGPT", status: .idle)
+        ])
+    }
+
+    private func findElementByDesc(_ el: AXUIElement, desc: String, maxDepth: Int) -> AXUIElement? {
+        guard maxDepth > 0 else { return nil }
+        var d: CFTypeRef?
+        AXUIElementCopyAttributeValue(el, kAXDescriptionAttribute as CFString, &d)
+        if (d as? String) == desc { return el }
+        var c: CFTypeRef?
+        AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &c)
+        for child in (c as? [AXUIElement]) ?? [] {
+            if let found = findElementByDesc(child, desc: desc, maxDepth: maxDepth - 1) { return found }
+        }
+        return nil
     }
 
     /// Gets process list using sysctl — no subprocess spawning needed.
@@ -123,15 +221,48 @@ final class SessionTracker {
                 }
             }
 
-            results.append(ProcessEntry(pid: pid, ppid: ppid, cpu: 0, command: command))
+            // p_comm is the short process name (e.g. "claude", "node", "zsh")
+            let processName = withUnsafePointer(to: proc.kp_proc.p_comm) { ptr in
+                ptr.withMemoryRebound(to: CChar.self, capacity: Int(MAXCOMLEN)) {
+                    String(cString: $0)
+                }
+            }
+
+            results.append(ProcessEntry(pid: pid, ppid: ppid, cpu: 0, command: command, processName: processName))
         }
         return results
     }
 
     private struct ProcessEntry {
-        let pid: Int32, ppid: Int32, cpu: Double, command: String
+        let pid: Int32, ppid: Int32, cpu: Double, command: String, processName: String
+
+        /// A readable short name for display. Handles cases where the binary is
+        /// named with a version number (e.g. claude-code's "2.1.81").
         var shortName: String {
-            (command as NSString).lastPathComponent
+            // Check known path patterns first
+            let knownTools: [(pattern: String, name: String)] = [
+                ("claude/versions", "claude"),
+                ("claude-code", "claude"),
+                ("Cellar/node", "node"),
+                ("nvm/versions", "node"),
+            ]
+            for tool in knownTools {
+                if command.contains(tool.pattern) { return tool.name }
+            }
+
+            // Use p_comm if it's not a version number
+            if !processName.isEmpty && !processName.allSatisfy({ $0.isNumber || $0 == "." }) {
+                return processName
+            }
+
+            // Last resort: walk up the path to find a meaningful name
+            let components = command.components(separatedBy: "/")
+            for component in components.reversed() {
+                if !component.isEmpty && !component.allSatisfy({ $0.isNumber || $0 == "." }) {
+                    return component
+                }
+            }
+            return processName.isEmpty ? "unknown" : processName
         }
     }
 
@@ -164,13 +295,14 @@ final class SessionTracker {
     }
 
     private func applyResults(_ infos: [AppSessionInfo]) {
-        NSLog("[MacAgent] applyResults called with %d infos", infos.count)
-        for info in infos {
-            NSLog("[MacAgent]   %@: %d sessions", info.bundleID, info.sessions.count)
-        }
-        guard infos != current else { return }
-        current = infos
-        onChange?(infos)
+        // Merge process-based sessions (Warp) with AX-based sessions (Claude/ChatGPT)
+        var merged = infos
+        let axSessions = readAXSessions()
+        merged.append(contentsOf: axSessions)
+
+        guard merged != current else { return }
+        current = merged
+        onChange?(merged)
     }
 
     // MARK: - Warp (process tree)

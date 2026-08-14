@@ -5,6 +5,7 @@ import SwiftUI
 /// Each session gets its own tile showing status (busy/idle/done).
 struct AISessionsView: View {
     let sessions: [AppSessionInfo]
+    let iconProvider: (String) -> Image?
     let onActivate: (String) -> Void
 
     private var allSessions: [(info: AppSessionInfo, session: AppSession)] {
@@ -129,24 +130,31 @@ struct AISessionsView: View {
 
     @ViewBuilder
     private func appIcon(for bundleID: String) -> some View {
-        // Map bundle IDs to SF Symbols
-        switch bundleID {
-        case "dev.warp.Warp-Stable":
-            Image(systemName: "terminal")
-                .font(.system(size: 24))
-                .foregroundStyle(DeckColor.ink)
-        case "com.anthropic.claudefordesktop":
-            Image(systemName: "brain")
-                .font(.system(size: 24))
-                .foregroundStyle(Color(hex: 0xD4A574))
-        case "com.openai.chat":
-            Image(systemName: "bubble.left.fill")
-                .font(.system(size: 24))
-                .foregroundStyle(Color(hex: 0x74AA9C))
-        default:
-            Image(systemName: "app")
-                .font(.system(size: 24))
-                .foregroundStyle(DeckColor.inkMuted)
+        if let icon = iconProvider(bundleID) {
+            icon
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        } else {
+            // Fallback SF Symbols
+            switch bundleID {
+            case "dev.warp.Warp-Stable":
+                Image(systemName: "terminal")
+                    .font(.system(size: 24))
+                    .foregroundStyle(DeckColor.ink)
+            case "com.anthropic.claudefordesktop":
+                Image(systemName: "brain")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color(hex: 0xD4A574))
+            case "com.openai.chat":
+                Image(systemName: "bubble.left.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color(hex: 0x74AA9C))
+            default:
+                Image(systemName: "app")
+                    .font(.system(size: 24))
+                    .foregroundStyle(DeckColor.inkMuted)
+            }
         }
     }
 
