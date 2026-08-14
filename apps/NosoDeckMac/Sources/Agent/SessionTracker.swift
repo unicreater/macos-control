@@ -213,14 +213,15 @@ final class SessionTracker {
             && !title.hasPrefix("Jun ") && !title.hasPrefix("May ")
             && !title.hasPrefix("Show ") {
 
-            // Parse status from title prefix (Claude uses "Idle" prefix)
+            // Parse status from title prefix
+            // Claude uses "Idle" for inactive and "Running" for active sessions
             let status: AppSession.Status
             var label = title
-            if title.hasPrefix("Idle ") {
-                status = .idle
-                label = String(title.dropFirst(5))
-            } else if title.hasPrefix("Busy ") {
+            if title.hasPrefix("Running ") {
                 status = .busy
+                label = String(title.dropFirst(8))
+            } else if title.hasPrefix("Idle ") {
+                status = .idle
                 label = String(title.dropFirst(5))
             } else {
                 status = .idle
