@@ -71,25 +71,6 @@ class GestureCoordinator: NSObject, UIGestureRecognizerDelegate {
         window.addGestureRecognizer(longPress)
         ourGestures.append(longPress)
 
-        // Find ALL UIScrollViews in the window and make their pan gestures
-        // yield to our 2-finger gestures. This prevents TabView page scrolling
-        // from eating multi-finger swipes.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            Self.configureScrollViews(in: window, toYieldTo: ourGestures)
-        }
-    }
-
-    /// Recursively finds UIScrollViews and makes their pan gesture require
-    /// our gesture recognizers to fail first.
-    private static func configureScrollViews(in view: UIView, toYieldTo gestures: [UIGestureRecognizer]) {
-        if let scrollView = view as? UIScrollView {
-            for gesture in gestures {
-                scrollView.panGestureRecognizer.require(toFail: gesture)
-            }
-        }
-        for subview in view.subviews {
-            configureScrollViews(in: subview, toYieldTo: gestures)
-        }
     }
 
     @objc func handleSwipe(_ gesture: UISwipeGestureRecognizer) {
