@@ -60,11 +60,10 @@ struct DeckView: View {
                 if !text.isEmpty {
                     model.sendVoiceText(text)
                 }
-                voiceRecognizer.transcript = ""
-                voiceRecognizer.cleanedTranscript = ""
+                voiceRecognizer.clear()
             }
             .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
-            .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.cleanedTranscript)
+            .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.sendableText)
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)

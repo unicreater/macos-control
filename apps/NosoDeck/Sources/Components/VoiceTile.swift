@@ -91,105 +91,120 @@ struct VoiceOverlay: View {
     var body: some View {
         if isVisible {
             ZStack {
-                Color.black.opacity(0.75)
+                Color.black.opacity(0.8)
                     .ignoresSafeArea()
-                    .onTapGesture { dismiss() }
 
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
+                    Spacer()
+
                     if recognizer.isRecording {
-                        // Recording state
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(DeckColor.red)
-                                .frame(width: 10, height: 10)
-                            Text("LISTENING")
-                                .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                .foregroundStyle(DeckColor.red)
-                        }
-
-                        if recognizer.transcript.isEmpty {
-                            Text("Speak now...")
-                                .font(.system(size: 22, weight: .light))
-                                .foregroundStyle(DeckColor.inkMuted)
-                        } else {
-                            Text(recognizer.transcript)
-                                .font(.system(size: 20, weight: .regular))
-                                .foregroundStyle(DeckColor.ink)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(6)
-                                .padding(.horizontal, 40)
-                        }
-
-                        Button {
-                            recognizer.stop()
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "stop.fill")
-                                    .font(.system(size: 11))
-                                Text("DONE")
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            }
-                            .foregroundStyle(DeckColor.ink)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color(hex: 0x2A2A2A), in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-
-                    } else if !recognizer.sendableText.isEmpty {
-                        // Review state — show cleaned text
-                        Text("READY TO SEND")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(DeckColor.mint)
-
-                        Text(recognizer.sendableText)
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundStyle(DeckColor.ink)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(8)
-                            .padding(.horizontal, 40)
-
-                        // Show what was cleaned
-                        if recognizer.sendableText != recognizer.transcript {
-                            Text("Cleaned up filler words")
-                                .font(.system(size: 11))
-                                .foregroundStyle(DeckColor.inkFaint)
-                        }
-
-                        HStack(spacing: 16) {
-                            Button {
-                                onSend()
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "paperplane.fill")
-                                        .font(.system(size: 13))
-                                    Text("SEND TO MAC")
-                                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                }
-                                .foregroundStyle(DeckColor.onMint)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(DeckColor.mint, in: Capsule())
-                            }
-                            .buttonStyle(.plain)
-
-                            Button { dismiss() } label: {
-                                Text("Cancel")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(DeckColor.inkMuted)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        recordingView
+                    } else {
+                        reviewView
                     }
+
+                    Spacer()
                 }
+                .padding(.horizontal, 40)
             }
             .transition(.opacity)
         }
     }
 
+    private var recordingView: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(DeckColor.red)
+                    .frame(width: 10, height: 10)
+                Text("LISTENING")
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundStyle(DeckColor.red)
+            }
+
+            if recognizer.transcript.isEmpty {
+                Text("Speak now...")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(DeckColor.inkMuted)
+            } else {
+                Text(recognizer.transcript)
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(DeckColor.ink)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(8)
+            }
+
+            HStack(spacing: 16) {
+                Button { recognizer.stop() } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("DONE")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundStyle(DeckColor.onMint)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(DeckColor.mint, in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button { dismiss() } label: {
+                    Text("Close")
+                        .font(.system(size: 14))
+                        .foregroundStyle(DeckColor.inkMuted)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var reviewView: some View {
+        VStack(spacing: 16) {
+            Text("READY TO SEND")
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(DeckColor.mint)
+
+            Text(recognizer.sendableText)
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(DeckColor.ink)
+                .multilineTextAlignment(.center)
+                .lineLimit(8)
+
+            if recognizer.sendableText != recognizer.transcript {
+                Text("Cleaned up filler words")
+                    .font(.system(size: 11))
+                    .foregroundStyle(DeckColor.inkFaint)
+            }
+
+            HStack(spacing: 16) {
+                Button {
+                    onSend()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 13))
+                        Text("SEND TO MAC")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundStyle(DeckColor.onMint)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(DeckColor.mint, in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button { dismiss() } label: {
+                    Text("Close")
+                        .font(.system(size: 14))
+                        .foregroundStyle(DeckColor.inkMuted)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     private func dismiss() {
-        recognizer.transcript = ""
-        recognizer.cleanedTranscript = ""
-        recognizer.stop()
+        recognizer.clear()
     }
 }

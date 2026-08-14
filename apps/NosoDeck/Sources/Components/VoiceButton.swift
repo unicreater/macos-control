@@ -106,8 +106,15 @@ final class SpeechRecognizer: ObservableObject {
         recognitionTask = nil
         recognitionRequest = nil
         audioEngine = nil
-        isRecording = false
+        // Set cleaned text BEFORE clearing isRecording so the overlay
+        // transitions to review state without disappearing.
         cleanedTranscript = Self.cleanup(transcript)
+        isRecording = false
+    }
+
+    func clear() {
+        transcript = ""
+        cleanedTranscript = ""
     }
 
     /// Cleans up raw speech transcript:
