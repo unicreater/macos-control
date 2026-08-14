@@ -86,15 +86,16 @@ final class SessionTracker {
                         let cmd = children.first!.shortName
                         let label = nextWindow?.projectName ?? cmd
 
-                        // Check if the command (e.g. claude) has its own children
-                        // claude with children (sourcekit-lsp, caffeinate) = actively working
-                        // claude with NO children = waiting for user input (done)
-                        let grandchildren = children.flatMap { child in
-                            procs.filter { $0.ppid == child.pid }
-                        }
-                        let isWorking = !grandchildren.isEmpty
+                        // Check descendants for actual work processes.
+                        // caffeinate lingers for 5min after claude finishes — ignore it.
+                        // Real work = sourcekit-lsp, swift-frontend, node, xcodebuild, etc.
+                        let ignoredProcesses: Set<String> = ["caffeinate", "sleep", "cat"]
+                        let allDescendants = Self.descendants(of: children.map(\.pid), in: procs)
+                        let meaningfulWork = allDescendants.filter { !ignoredProcesses.contains($0.shortName) }
+                        let isWorking = !meaningfulWork.isEmpty
                         let status: AppSession.Status = isWorking ? .busy : .done
-                        let detail = isWorking ? "Working" : "Needs input"
+                        let workNames = meaningfulWork.prefix(2).map(\.shortName).joined(separator: ", ")
+                        let detail = isWorking ? workNames : "Needs input"
 
                         sessions.append(AppSession(
                             id: "\(shell.pid)",
@@ -289,6 +290,19 @@ final class SessionTracker {
             results.append(ProcessEntry(pid: pid, ppid: ppid, cpu: 0, command: command, processName: processName))
         }
         return results
+    }
+
+    /// Recursively finds all descendant processes of the given PIDs.
+    nonisolated private static func descendants(of pids: [Int32], in procs: [ProcessEntry]) -> [ProcessEntry] {
+        var result: [ProcessEntry] = []
+        var queue = pids
+        while !queue.isEmpty {
+            let parentPID = queue.removeFirst()
+            let children = procs.filter { $0.ppid == parentPID }
+            result.append(contentsOf: children)
+            queue.append(contentsOf: children.map(\.pid))
+        }
+        return result
     }
 
     private struct WarpWindow {
