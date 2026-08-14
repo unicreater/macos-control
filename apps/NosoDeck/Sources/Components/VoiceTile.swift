@@ -5,12 +5,12 @@ import SwiftUI
 import UIKit
 
 /// A deck tile that records speech and sends the transcript to the Mac.
-/// Tap to start recording, tap again to send. Shows live waveform while recording.
+/// The tile itself just shows mic state. Live transcript is shown via
+/// the `VoiceOverlay` added at the DeckView level.
 struct VoiceTile: View {
     let isEnabled: Bool
+    @ObservedObject var recognizer: SpeechRecognizer
     let onTranscript: (String) -> Void
-
-    @StateObject private var recognizer = SpeechRecognizer()
 
     var body: some View {
         Button {
@@ -28,7 +28,6 @@ struct VoiceTile: View {
         } label: {
             VStack(spacing: 4) {
                 ZStack {
-                    // Pulsing ring when recording
                     if recognizer.isRecording {
                         Circle()
                             .stroke(DeckColor.red.opacity(0.3), lineWidth: 2)
@@ -39,7 +38,6 @@ struct VoiceTile: View {
                                 .easeOut(duration: 1).repeatForever(autoreverses: false),
                                 value: recognizer.isRecording
                             )
-
                         Circle()
                             .fill(DeckColor.red.opacity(0.15))
                             .frame(width: 52, height: 52)
@@ -52,18 +50,10 @@ struct VoiceTile: View {
                 }
                 .frame(width: 72, height: 72)
 
-                if recognizer.isRecording && !recognizer.transcript.isEmpty {
-                    Text(recognizer.transcript)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(DeckColor.ink)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                } else {
-                    Text(recognizer.isRecording ? "LISTENING..." : "VOICE")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundStyle(recognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                        .textCase(.uppercase)
-                }
+                Text(recognizer.isRecording ? "LISTENING..." : "VOICE")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(recognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                    .textCase(.uppercase)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
@@ -87,5 +77,77 @@ struct VoiceTile: View {
         .buttonStyle(TileButtonStyle())
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.38)
+    }
+}
+
+/// Fullscreen overlay showing live voice transcription.
+struct VoiceOverlay: View {
+    @ObservedObject var recognizer: SpeechRecognizer
+    let onSend: () -> Void
+
+    var body: some View {
+        if recognizer.isRecording {
+            ZStack {
+                // Dim background
+                Color.black.opacity(0.7)
+                    .ignoresSafeArea()
+
+                VStack(spacing: 20) {
+                    // Listening indicator
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(DeckColor.red)
+                            .frame(width: 10, height: 10)
+                        Text("LISTENING")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundStyle(DeckColor.red)
+                    }
+
+                    // Live transcript
+                    if recognizer.transcript.isEmpty {
+                        Text("Speak now...")
+                            .font(.system(size: 22, weight: .light))
+                            .foregroundStyle(DeckColor.inkMuted)
+                    } else {
+                        Text(recognizer.transcript)
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundStyle(DeckColor.ink)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(6)
+                            .padding(.horizontal, 40)
+                    }
+
+                    // Send button
+                    if !recognizer.transcript.isEmpty {
+                        Button {
+                            onSend()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 13))
+                                Text("SEND TO MAC")
+                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundStyle(DeckColor.onMint)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(DeckColor.mint, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Cancel
+                    Button {
+                        recognizer.stop()
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 14))
+                            .foregroundStyle(DeckColor.inkMuted)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .transition(.opacity)
+        }
     }
 }

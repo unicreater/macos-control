@@ -11,6 +11,7 @@ struct DeckView: View {
     @State private var isConfirmingUnpair = false
     @State private var isConfirmingPageDelete = false
     @State private var isAddingTile = false
+    @StateObject private var voiceRecognizer = SpeechRecognizer()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
@@ -51,9 +52,16 @@ struct DeckView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
         .background {
-            // Installs gesture recognizers on the UIWindow — works over tiles.
-            // 2-finger swipes for maximize/minimize, 3-finger for copy/paste.
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
+        }
+        .overlay {
+            VoiceOverlay(recognizer: voiceRecognizer) {
+                if !voiceRecognizer.transcript.isEmpty {
+                    model.sendVoiceText(voiceRecognizer.transcript)
+                    voiceRecognizer.stop()
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
@@ -281,8 +289,10 @@ struct DeckView: View {
     @ViewBuilder
     private func cell(page: Page, pageIndex: Int, slot: Int) -> some View {
         if slot == page.tiles.count && pageIndex == 0 && !model.isEditing {
-            // Voice tile sits in the first empty slot on page 1
-            VoiceTile(isEnabled: model.session.acceptsActions) { text in
+            VoiceTile(
+                isEnabled: model.session.acceptsActions,
+                recognizer: voiceRecognizer
+            ) { text in
                 model.sendVoiceText(text)
             }
         } else if slot < page.tiles.count {
