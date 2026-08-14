@@ -73,15 +73,19 @@ struct VoiceButton: View {
     }
 }
 
-/// Wraps SFSpeechRecognizer for live transcription.
+/// Wraps SFSpeechRecognizer for live transcription with text cleanup.
 @MainActor
 final class SpeechRecognizer: ObservableObject {
     @Published var transcript = ""
+    @Published var cleanedTranscript = ""
     @Published var isRecording = false
 
     private var audioEngine: AVAudioEngine?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+
+    /// The cleaned-up version ready to send.
+    var sendableText: String { cleanedTranscript.isEmpty ? transcript : cleanedTranscript }
 
     func start() {
         guard !isRecording else { return }
@@ -103,6 +107,71 @@ final class SpeechRecognizer: ObservableObject {
         recognitionRequest = nil
         audioEngine = nil
         isRecording = false
+        cleanedTranscript = Self.cleanup(transcript)
+    }
+
+    /// Cleans up raw speech transcript:
+    /// - Removes filler words (um, uh, like, you know, I mean, basically, actually, literally)
+    /// - Removes repeated words ("the the" → "the")
+    /// - Capitalizes first letter of sentences
+    /// - Trims extra whitespace
+    static func cleanup(_ raw: String) -> String {
+        var text = raw
+
+        // Filler words/phrases to remove (case-insensitive, whole word)
+        let fillers = [
+            "\\bum\\b", "\\buh\\b", "\\buhh\\b", "\\bumm\\b",
+            "\\blike\\b,?", "\\byou know\\b,?", "\\bi mean\\b,?",
+            "\\bbasically\\b,?", "\\bactually\\b,?", "\\bliterally\\b,?",
+            "\\bso\\b,?(?= (?:um|uh|like|I))",  // "so" before another filler
+            "\\bkind of\\b", "\\bsort of\\b",
+            "\\bright\\b\\??,?(?= (?:so|and|but))",  // "right" as filler
+        ]
+
+        for pattern in fillers {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                text = regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+            }
+        }
+
+        // Remove repeated words ("the the" → "the")
+        if let regex = try? NSRegularExpression(pattern: "\\b(\\w+)\\s+\\1\\b", options: .caseInsensitive) {
+            text = regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "$1")
+        }
+
+        // Collapse multiple spaces
+        while text.contains("  ") {
+            text = text.replacingOccurrences(of: "  ", with: " ")
+        }
+
+        // Collapse multiple commas/periods
+        text = text.replacingOccurrences(of: ", ,", with: ",")
+        text = text.replacingOccurrences(of: ",,", with: ",")
+        text = text.replacingOccurrences(of: " ,", with: ",")
+
+        text = text.trimmingCharacters(in: .whitespaces)
+
+        // Capitalize first letter
+        if let first = text.first, first.isLowercase {
+            text = first.uppercased() + text.dropFirst()
+        }
+
+        // Capitalize after periods
+        if let regex = try? NSRegularExpression(pattern: "\\. (\\w)") {
+            let mutable = NSMutableString(string: text)
+            regex.replaceMatches(in: mutable, range: NSRange(location: 0, length: mutable.length), withTemplate: ". $1")
+            // Uppercase the captured letter
+            let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            var result = text
+            for match in matches.reversed() {
+                if let range = Range(match.range(at: 1), in: result) {
+                    result.replaceSubrange(range, with: result[range].uppercased())
+                }
+            }
+            text = result
+        }
+
+        return text
     }
 
     private func beginRecording() {

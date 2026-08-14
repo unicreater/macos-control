@@ -56,12 +56,15 @@ struct DeckView: View {
         }
         .overlay {
             VoiceOverlay(recognizer: voiceRecognizer) {
-                if !voiceRecognizer.transcript.isEmpty {
-                    model.sendVoiceText(voiceRecognizer.transcript)
-                    voiceRecognizer.stop()
+                let text = voiceRecognizer.sendableText
+                if !text.isEmpty {
+                    model.sendVoiceText(text)
                 }
+                voiceRecognizer.transcript = ""
+                voiceRecognizer.cleanedTranscript = ""
             }
             .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
+            .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.cleanedTranscript)
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)

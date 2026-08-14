@@ -19,9 +19,8 @@ struct VoiceTile: View {
 
             if recognizer.isRecording {
                 recognizer.stop()
-                if !recognizer.transcript.isEmpty {
-                    onTranscript(recognizer.transcript)
-                }
+                // Don't auto-send — user taps "Send to Mac" in the overlay
+
             } else {
                 recognizer.start()
             }
@@ -80,74 +79,117 @@ struct VoiceTile: View {
     }
 }
 
-/// Fullscreen overlay showing live voice transcription.
+/// Fullscreen overlay showing live voice transcription with cleanup.
 struct VoiceOverlay: View {
     @ObservedObject var recognizer: SpeechRecognizer
     let onSend: () -> Void
 
+    private var isVisible: Bool {
+        recognizer.isRecording || !recognizer.sendableText.isEmpty
+    }
+
     var body: some View {
-        if recognizer.isRecording {
+        if isVisible {
             ZStack {
-                // Dim background
-                Color.black.opacity(0.7)
+                Color.black.opacity(0.75)
                     .ignoresSafeArea()
+                    .onTapGesture { dismiss() }
 
-                VStack(spacing: 20) {
-                    // Listening indicator
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(DeckColor.red)
-                            .frame(width: 10, height: 10)
-                        Text("LISTENING")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundStyle(DeckColor.red)
-                    }
+                VStack(spacing: 16) {
+                    if recognizer.isRecording {
+                        // Recording state
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(DeckColor.red)
+                                .frame(width: 10, height: 10)
+                            Text("LISTENING")
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .foregroundStyle(DeckColor.red)
+                        }
 
-                    // Live transcript
-                    if recognizer.transcript.isEmpty {
-                        Text("Speak now...")
-                            .font(.system(size: 22, weight: .light))
-                            .foregroundStyle(DeckColor.inkMuted)
-                    } else {
-                        Text(recognizer.transcript)
+                        if recognizer.transcript.isEmpty {
+                            Text("Speak now...")
+                                .font(.system(size: 22, weight: .light))
+                                .foregroundStyle(DeckColor.inkMuted)
+                        } else {
+                            Text(recognizer.transcript)
+                                .font(.system(size: 20, weight: .regular))
+                                .foregroundStyle(DeckColor.ink)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(6)
+                                .padding(.horizontal, 40)
+                        }
+
+                        Button {
+                            recognizer.stop()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "stop.fill")
+                                    .font(.system(size: 11))
+                                Text("DONE")
+                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundStyle(DeckColor.ink)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Color(hex: 0x2A2A2A), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+
+                    } else if !recognizer.sendableText.isEmpty {
+                        // Review state — show cleaned text
+                        Text("READY TO SEND")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(DeckColor.mint)
+
+                        Text(recognizer.sendableText)
                             .font(.system(size: 20, weight: .regular))
                             .foregroundStyle(DeckColor.ink)
                             .multilineTextAlignment(.center)
-                            .lineLimit(6)
+                            .lineLimit(8)
                             .padding(.horizontal, 40)
-                    }
 
-                    // Send button
-                    if !recognizer.transcript.isEmpty {
-                        Button {
-                            onSend()
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 13))
-                                Text("SEND TO MAC")
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            }
-                            .foregroundStyle(DeckColor.onMint)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(DeckColor.mint, in: Capsule())
+                        // Show what was cleaned
+                        if recognizer.sendableText != recognizer.transcript {
+                            Text("Cleaned up filler words")
+                                .font(.system(size: 11))
+                                .foregroundStyle(DeckColor.inkFaint)
                         }
-                        .buttonStyle(.plain)
-                    }
 
-                    // Cancel
-                    Button {
-                        recognizer.stop()
-                    } label: {
-                        Text("Cancel")
-                            .font(.system(size: 14))
-                            .foregroundStyle(DeckColor.inkMuted)
+                        HStack(spacing: 16) {
+                            Button {
+                                onSend()
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "paperplane.fill")
+                                        .font(.system(size: 13))
+                                    Text("SEND TO MAC")
+                                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                }
+                                .foregroundStyle(DeckColor.onMint)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(DeckColor.mint, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+
+                            Button { dismiss() } label: {
+                                Text("Cancel")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(DeckColor.inkMuted)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .transition(.opacity)
         }
+    }
+
+    private func dismiss() {
+        recognizer.transcript = ""
+        recognizer.cleanedTranscript = ""
+        recognizer.stop()
     }
 }
