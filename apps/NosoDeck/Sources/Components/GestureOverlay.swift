@@ -57,54 +57,48 @@ class GestureCoordinator: NSObject {
         down.cancelsTouchesInView = false
         window.addGestureRecognizer(down)
 
-        // 3-finger swipe left (copy)
-        let left = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        left.direction = .left
-        left.numberOfTouchesRequired = 3
-        left.cancelsTouchesInView = false
-        window.addGestureRecognizer(left)
+        // 2-finger double-tap (copy)
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        doubleTap.numberOfTouchesRequired = 2
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.cancelsTouchesInView = false
+        window.addGestureRecognizer(doubleTap)
 
-        // 3-finger swipe right (paste)
-        let right = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        right.direction = .right
-        right.numberOfTouchesRequired = 3
-        right.cancelsTouchesInView = false
-        window.addGestureRecognizer(right)
+        // 2-finger long-press (paste)
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPress.numberOfTouchesRequired = 2
+        longPress.minimumPressDuration = 0.5
+        longPress.cancelsTouchesInView = false
+        window.addGestureRecognizer(longPress)
     }
 
     @objc func handleSwipe(_ gesture: UISwipeGestureRecognizer) {
-        let fingers = gesture.numberOfTouchesRequired
-        var action: ActionKind?
-        var label = ""
-        var icon = ""
-
-        switch (fingers, gesture.direction) {
-        case (2, .up):
-            action = .maximizeWindow
-            label = "MAXIMIZE"
-            icon = "arrow.up.left.and.arrow.down.right"
-        case (2, .down):
-            action = .minimizeWindow
-            label = "MINIMIZE"
-            icon = "arrow.down.right.and.arrow.up.left"
-        case (3, .left):
-            action = .copyClipboard
-            label = "COPY"
-            icon = "doc.on.doc"
-        case (3, .right):
-            action = .pasteClipboard
-            label = "PASTE"
-            icon = "doc.on.clipboard"
+        switch gesture.direction {
+        case .up:
+            fire(.maximizeWindow, label: "MAXIMIZE", icon: "arrow.up.left.and.arrow.down.right")
+        case .down:
+            fire(.minimizeWindow, label: "MINIMIZE", icon: "arrow.down.right.and.arrow.up.left")
         default:
             break
         }
+    }
 
-        if let action {
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
-            onAction?(action)
-            feedbackView?.show(label: label, icon: icon)
-        }
+    @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        // 2-finger double-tap = copy
+        fire(.copyClipboard, label: "COPY", icon: "doc.on.doc")
+    }
+
+    @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        // 2-finger long-press = paste
+        fire(.pasteClipboard, label: "PASTE", icon: "doc.on.clipboard")
+    }
+
+    private func fire(_ action: ActionKind, label: String, icon: String) {
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        onAction?(action)
+        feedbackView?.show(label: label, icon: icon)
     }
 }
 

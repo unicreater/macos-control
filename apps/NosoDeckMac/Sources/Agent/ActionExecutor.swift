@@ -24,7 +24,7 @@ struct ActionExecutor {
         case .insertText:
             return inserter.insert(request.target)
         case .maximizeWindow:
-            return sendKeyCombo(key: 0x36, modifiers: [.maskControl, .maskCommand]) // Ctrl+Cmd+F (fullscreen toggle)
+            return sendKeyCombo(key: 0x03, modifiers: [.maskControl, .maskCommand]) // Ctrl+Cmd+F (fullscreen toggle)
         case .minimizeWindow:
             return sendKeyCombo(key: 0x2E, modifiers: .maskCommand) // Cmd+M
         case .copyClipboard:
