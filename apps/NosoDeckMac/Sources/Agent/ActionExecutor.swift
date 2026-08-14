@@ -163,59 +163,43 @@ struct ActionExecutor {
         }
     }
 
-    /// Raises a specific window by its CGWindowNumber, which triggers Space switching.
+    /// Raises a specific window by CGWindowNumber. Handles cross-Space switching.
     private func raiseWindow(bundleID: String, windowNumber: Int) -> Bool {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
 
-        // Get the target window's title from CGWindowList
+        // CGWindowList sees ALL windows including other Spaces
         let windowList = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? []
         let targetInfo = windowList.first { ($0["kCGWindowNumber"] as? Int) == windowNumber }
         let targetTitle = targetInfo?["kCGWindowName"] as? String ?? ""
-        let targetBounds = targetInfo?["kCGWindowBounds"] as? [String: Any]
-        let targetX = targetBounds?["X"] as? Double ?? -1
-        let targetY = targetBounds?["Y"] as? Double ?? -1
 
-        // Get AX windows
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
-        var windowsRef: CFTypeRef?
-        AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef)
-        let axWindows = (windowsRef as? [AXUIElement]) ?? []
+        // Extract project name from "project-name . context . uuid" format
+        let projectName = targetTitle.components(separatedBy: " \u{00b7} ").first ?? targetTitle
+        let appName = app.localizedName ?? bundleID.components(separatedBy: ".").last ?? "App"
 
-        // Match by title or position
-        var matched: AXUIElement?
-        for axWin in axWindows {
-            var titleRef: CFTypeRef?
-            AXUIElementCopyAttributeValue(axWin, kAXTitleAttribute as CFString, &titleRef)
-            let axTitle = titleRef as? String ?? ""
-
-            // Match by title
-            if !targetTitle.isEmpty && !axTitle.isEmpty && axTitle == targetTitle {
-                matched = axWin
-                break
-            }
-
-            // Match by position
-            var posRef: CFTypeRef?
-            AXUIElementCopyAttributeValue(axWin, kAXPositionAttribute as CFString, &posRef)
-            if let posValue = posRef {
-                var point = CGPoint.zero
-                AXValueGetValue(posValue as! AXValue, .cgPoint, &point)
-                if abs(point.x - targetX) < 2 && abs(point.y - targetY) < 2 {
-                    matched = axWin
-                    break
-                }
-            }
-        }
-
-        // Raise the matched window — this triggers macOS Space switching
-        if let win = matched ?? axWindows.first {
-            AXUIElementPerformAction(win, kAXRaiseAction as CFString)
-            app.activate(options: .activateAllWindows)
-            return true
-        }
-
-        // Fallback
+        // First activate the app — this may switch Spaces to where Warp is most recently used
         app.activate(options: .activateAllWindows)
+
+        // Then use AppleScript to raise the specific window by project name
+        if !projectName.isEmpty {
+            let safeName = projectName.replacingOccurrences(of: "\"", with: "")
+            let script = """
+            delay 0.3
+            tell application "System Events"
+                tell process "\(appName)"
+                    set allWindows to every window
+                    repeat with w in allWindows
+                        if name of w contains "\(safeName)" then
+                            perform action "AXRaise" of w
+                            return "raised"
+                        end if
+                    end repeat
+                end tell
+            end tell
+            """
+            let s = NSAppleScript(source: script)
+            var err: NSDictionary?
+            s?.executeAndReturnError(&err)
+        }
         return true
     }
 
