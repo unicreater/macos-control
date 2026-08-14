@@ -126,10 +126,11 @@ final class SessionTracker {
         // Briefly activate Claude once to populate the AX tree
         if !hasScannedClaude && cachedClaudeSessions == nil {
             hasScannedClaude = true
-            app.activate()
-            Thread.sleep(forTimeInterval: 0.5)
-            // Re-activate the frontmost app after
-            NSWorkspace.shared.frontmostApplication?.activate()
+            let previousApp = NSWorkspace.shared.frontmostApplication
+            app.activate(options: .activateAllWindows)
+            Thread.sleep(forTimeInterval: 1.5)
+            // Re-activate the previous frontmost app
+            previousApp?.activate(options: .activateAllWindows)
         }
 
         let axApp = AXUIElementCreateApplication(app.processIdentifier)

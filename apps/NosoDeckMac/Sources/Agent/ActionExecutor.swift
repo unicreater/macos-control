@@ -163,33 +163,60 @@ struct ActionExecutor {
         }
     }
 
-    /// Raises a specific window by its CGWindowNumber, which also switches Spaces.
+    /// Raises a specific window by its CGWindowNumber, which triggers Space switching.
     private func raiseWindow(bundleID: String, windowNumber: Int) -> Bool {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
 
+        // Get the target window's title from CGWindowList
+        let windowList = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? []
+        let targetInfo = windowList.first { ($0["kCGWindowNumber"] as? Int) == windowNumber }
+        let targetTitle = targetInfo?["kCGWindowName"] as? String ?? ""
+        let targetBounds = targetInfo?["kCGWindowBounds"] as? [String: Any]
+        let targetX = targetBounds?["X"] as? Double ?? -1
+        let targetY = targetBounds?["Y"] as? Double ?? -1
+
+        // Get AX windows
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         var windowsRef: CFTypeRef?
         AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef)
-        guard let windows = windowsRef as? [AXUIElement] else { return false }
+        let axWindows = (windowsRef as? [AXUIElement]) ?? []
 
-        // Match the AX window to the CGWindowNumber
-        // We iterate windows and check their position/size against CGWindowList
-        // Then raise the matching one
-        for window in windows {
-            // Try to raise each window and check if it matches
-            // The simplest approach: raise the window and activate the app
+        // Match by title or position
+        var matched: AXUIElement?
+        for axWin in axWindows {
             var titleRef: CFTypeRef?
-            AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
+            AXUIElementCopyAttributeValue(axWin, kAXTitleAttribute as CFString, &titleRef)
+            let axTitle = titleRef as? String ?? ""
+
+            // Match by title
+            if !targetTitle.isEmpty && !axTitle.isEmpty && axTitle == targetTitle {
+                matched = axWin
+                break
+            }
+
+            // Match by position
+            var posRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(axWin, kAXPositionAttribute as CFString, &posRef)
+            if let posValue = posRef {
+                var point = CGPoint.zero
+                AXValueGetValue(posValue as! AXValue, .cgPoint, &point)
+                if abs(point.x - targetX) < 2 && abs(point.y - targetY) < 2 {
+                    matched = axWin
+                    break
+                }
+            }
         }
 
-        // If we can't match by window number, just raise the first window
-        // AXRaise + activate should switch Spaces
-        if let window = windows.first {
-            AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+        // Raise the matched window — this triggers macOS Space switching
+        if let win = matched ?? axWindows.first {
+            AXUIElementPerformAction(win, kAXRaiseAction as CFString)
             app.activate(options: .activateAllWindows)
             return true
         }
-        return false
+
+        // Fallback
+        app.activate(options: .activateAllWindows)
+        return true
     }
 
     /// Sends a keyboard shortcut via CGEvent.
