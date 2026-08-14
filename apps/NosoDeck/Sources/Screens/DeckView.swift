@@ -11,7 +11,6 @@ struct DeckView: View {
     @State private var isConfirmingUnpair = false
     @State private var isConfirmingPageDelete = false
     @State private var isAddingTile = false
-    @State private var gestureFeedback: (String, String)? // (label, icon)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
@@ -52,40 +51,9 @@ struct DeckView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
         .background {
-            // Multi-finger gesture detection layer — in background with hit testing
-            // disabled so all single-finger taps reach the tiles. The UIKit gesture
-            // recognizers still fire because they're attached at the window level.
-            GestureOverlay(
-                onAction: { model.sendGesture($0) },
-                onFeedback: { label, icon in
-                    withAnimation(.easeOut(duration: 0.15)) {
-                        gestureFeedback = (label, icon)
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            gestureFeedback = nil
-                        }
-                    }
-                }
-            )
-            .allowsHitTesting(false)
-        }
-        .overlay {
-            // Gesture feedback badge
-            if let feedback = gestureFeedback {
-                HStack(spacing: 8) {
-                    Image(systemName: feedback.1)
-                        .font(.system(size: 20, weight: .medium))
-                    Text(feedback.0.uppercased())
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                }
-                .foregroundStyle(DeckColor.mint)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(DeckColor.surface, in: Capsule())
-                .overlay { Capsule().strokeBorder(DeckColor.mint.opacity(0.3), lineWidth: 1) }
-                .transition(.scale.combined(with: .opacity))
-            }
+            // Installs gesture recognizers on the UIWindow — works over tiles.
+            // 2-finger swipes for maximize/minimize, 3-finger for copy/paste.
+            WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
