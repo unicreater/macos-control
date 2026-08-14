@@ -89,13 +89,16 @@ public struct AppSession: Codable, Hashable, Sendable {
     public var detail: String?
     /// CPU usage 0-100, for activity indication
     public var cpuPercent: Double?
+    /// macOS window number, for raising the specific window/switching desktops
+    public var windowID: Int?
 
-    public init(id: String, label: String, status: Status, detail: String? = nil, cpuPercent: Double? = nil) {
+    public init(id: String, label: String, status: Status, detail: String? = nil, cpuPercent: Double? = nil, windowID: Int? = nil) {
         self.id = id
         self.label = label
         self.status = status
         self.detail = detail
         self.cpuPercent = cpuPercent
+        self.windowID = windowID
     }
 }
 

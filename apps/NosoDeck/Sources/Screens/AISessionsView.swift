@@ -6,7 +6,7 @@ import SwiftUI
 struct AISessionsView: View {
     let sessions: [AppSessionInfo]
     let iconProvider: (String) -> Image?
-    let onActivate: (String) -> Void
+    let onActivate: (String, Int?) -> Void // (bundleID, windowID?)
 
     private var allSessions: [(info: AppSessionInfo, session: AppSession)] {
         sessions.flatMap { info in
@@ -88,44 +88,56 @@ struct AISessionsView: View {
 
     private func sessionTile(_ info: AppSessionInfo, _ session: AppSession) -> some View {
         Button {
-            onActivate(info.bundleID)
+            onActivate(info.bundleID, session.windowID)
         } label: {
-            VStack(spacing: 6) {
-                ZStack {
-                    appIcon(for: info.bundleID)
-                        .frame(width: 52, height: 52)
+            VStack(spacing: 4) {
+                appIcon(for: info.bundleID)
+                    .frame(width: 48, height: 48)
 
-                    // Status ring
-                    Circle()
-                        .strokeBorder(statusColor(session.status), lineWidth: 2)
-                        .frame(width: 58, height: 58)
-                }
-
-                // Session label
                 Text(session.label)
-                    .deckFont(.legend)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(DeckColor.ink)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .textCase(.uppercase)
 
-                // Status + detail
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Circle()
                         .fill(statusColor(session.status))
-                        .frame(width: 6, height: 6)
+                        .frame(width: 5, height: 5)
                     Text(statusLabel(session))
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(statusColor(session.status))
                         .lineLimit(1)
                 }
-
-                // CPU indicator for busy sessions
-                if let cpu = session.cpuPercent, cpu > 0 {
-                    cpuBar(cpu)
-                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [Color(hex: 0x1E1E1E), Color(hex: 0x161616)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(statusColor(session.status).opacity(0.3), lineWidth: 1)
+            }
+            .overlay(alignment: .topTrailing) {
+                // Status LED
+                ZStack {
+                    Circle()
+                        .fill(statusColor(session.status).opacity(0.2))
+                        .frame(width: 14, height: 14)
+                    Circle()
+                        .fill(statusColor(session.status))
+                        .frame(width: 6, height: 6)
+                }
+                .padding(4)
+            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TileButtonStyle())
     }
 
     @ViewBuilder

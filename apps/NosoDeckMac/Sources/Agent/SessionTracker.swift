@@ -14,6 +14,9 @@ final class SessionTracker {
     var onChange: (([AppSessionInfo]) -> Void)?
 
     private(set) var current: [AppSessionInfo] = []
+    /// Cache last successful AX reads since Electron apps only expose AX when focused.
+    private var cachedClaudeSessions: [AppSession]?
+    private var hasScannedClaude = false
 
     // Bundle IDs we track
     private static let warpBundleID = "dev.warp.Warp-Stable"
@@ -43,15 +46,11 @@ final class SessionTracker {
             var infos: [AppSessionInfo] = []
 
             let procs = Self.runPS()
+            let warpWindows = Self.getWarpWindows()
 
-            // Warp: find all processes from Warp.app, then find shells whose parent
-            // is a Warp process (the terminal-server). Since proc_pidpath returns
-            // the same binary for both main and server, we identify the server by
-            // finding the Warp process whose children are shells.
             let warpProcs = procs.filter { $0.command.contains("Warp.app") }
             if !warpProcs.isEmpty {
                 let warpPIDSet = Set(warpProcs.map(\.pid))
-                // Shells whose parent is any Warp process
                 let shells = ["zsh", "bash", "fish", "sh", "tcsh", "ksh"]
                 let shellProcs = procs.filter { proc in
                     warpPIDSet.contains(proc.ppid) &&
@@ -61,11 +60,38 @@ final class SessionTracker {
                 var sessions: [AppSession] = []
                 for shell in shellProcs {
                     let children = procs.filter { $0.ppid == shell.pid }
+
+                    // Try to find a matching window for this session
+                    // Warp window names contain project dir and session context
+                    let matchedWindow = warpWindows.first { win in
+                        // Match by checking if shell PID appears in window hierarchy
+                        // or match by window name context
+                        win.isReal
+                    }
+
+                    // Find next unassigned window
+                    let usedWinIDs = Set(sessions.compactMap(\.windowID))
+                    let nextWindow = warpWindows.first(where: { w in w.isReal && !usedWinIDs.contains(w.windowNumber) })
+
                     if children.isEmpty {
-                        sessions.append(AppSession(id: "\(shell.pid)", label: "Terminal", status: .idle))
+                        let label = nextWindow?.projectName ?? "Terminal"
+                        sessions.append(AppSession(
+                            id: "\(shell.pid)",
+                            label: label,
+                            status: .idle,
+                            windowID: nextWindow?.windowNumber
+                        ))
                     } else {
                         let cmd = children.first!.shortName
-                        sessions.append(AppSession(id: "\(shell.pid)", label: cmd, status: .busy, detail: cmd, cpuPercent: 0))
+                        let label = nextWindow?.projectName ?? cmd
+                        sessions.append(AppSession(
+                            id: "\(shell.pid)",
+                            label: label,
+                            status: .busy,
+                            detail: cmd,
+                            cpuPercent: 0,
+                            windowID: nextWindow?.windowNumber
+                        ))
                     }
                 }
                 if !sessions.isEmpty {
@@ -91,12 +117,29 @@ final class SessionTracker {
     }
 
     private func readClaudeSessions() -> AppSessionInfo? {
-        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: Self.claudeBundleID).first else { return nil }
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: Self.claudeBundleID).first else {
+            cachedClaudeSessions = nil
+            hasScannedClaude = false
+            return nil
+        }
+
+        // Briefly activate Claude once to populate the AX tree
+        if !hasScannedClaude && cachedClaudeSessions == nil {
+            hasScannedClaude = true
+            app.activate()
+            Thread.sleep(forTimeInterval: 0.5)
+            // Re-activate the frontmost app after
+            NSWorkspace.shared.frontmostApplication?.activate()
+        }
 
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         var windowsRef: CFTypeRef?
         AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef)
         guard let windows = windowsRef as? [AXUIElement], let win = windows.first else {
+            // Electron AX not available (app not focused) — use cached sessions
+            if let cached = cachedClaudeSessions {
+                return AppSessionInfo(bundleID: Self.claudeBundleID, sessions: cached)
+            }
             return AppSessionInfo(bundleID: Self.claudeBundleID, sessions: [
                 AppSession(id: Self.claudeBundleID, label: "Claude", status: .idle)
             ])
@@ -116,6 +159,9 @@ final class SessionTracker {
         if sessions.isEmpty {
             sessions.append(AppSession(id: Self.claudeBundleID, label: "Claude", status: .idle))
         }
+
+        // Cache successful read for when Claude loses focus
+        cachedClaudeSessions = sessions
 
         return AppSessionInfo(bundleID: Self.claudeBundleID, sessions: sessions)
     }
@@ -231,6 +277,35 @@ final class SessionTracker {
             results.append(ProcessEntry(pid: pid, ppid: ppid, cpu: 0, command: command, processName: processName))
         }
         return results
+    }
+
+    private struct WarpWindow {
+        let windowNumber: Int
+        let name: String
+        let isOnScreen: Bool
+        /// Real content windows (not menu bar items)
+        var isReal: Bool { !name.isEmpty }
+        /// Extract the project directory name from window title like "content-creation-workflow · ..."
+        var projectName: String {
+            let parts = name.components(separatedBy: " · ")
+            return parts.first?.trimmingCharacters(in: .whitespaces) ?? name
+        }
+    }
+
+    nonisolated private static func getWarpWindows() -> [WarpWindow] {
+        guard let windowList = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] else { return [] }
+        return windowList.compactMap { w -> WarpWindow? in
+            guard (w["kCGWindowOwnerName"] as? String)?.contains("Warp") == true,
+                  (w["kCGWindowLayer"] as? Int) == 0 else { return nil }
+            let name = w["kCGWindowName"] as? String ?? ""
+            let num = w["kCGWindowNumber"] as? Int ?? 0
+            let onScreen = w["kCGWindowIsOnscreen"] as? Bool ?? false
+            // Skip tiny windows (menu bar items)
+            let bounds = w["kCGWindowBounds"] as? [String: Any] ?? [:]
+            let height = bounds["Height"] as? Double ?? 0
+            guard height > 100 else { return nil }
+            return WarpWindow(windowNumber: num, name: name, isOnScreen: onScreen)
+        }
     }
 
     private struct ProcessEntry {

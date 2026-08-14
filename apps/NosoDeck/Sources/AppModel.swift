@@ -394,6 +394,17 @@ final class AppModel {
         client.send(.action(ActionRequest(kind: kind, target: "")))
     }
 
+    func activateSession(bundleID: String, windowID: Int?) {
+        guard session.acceptsActions else { return }
+        lastActionError = nil
+        if let windowID {
+            // Send windowID in the target so the Mac can raise that specific window
+            client.send(.action(ActionRequest(kind: .activateApp, target: "\(bundleID):\(windowID)")))
+        } else {
+            client.send(.action(ActionRequest(kind: .activateApp, target: bundleID)))
+        }
+    }
+
     func activateByBundleID(_ bundleID: String) {
         guard session.acceptsActions else { return }
         lastActionError = nil
@@ -460,11 +471,14 @@ final class AppModel {
         }
     }
 
-    /// One request per unseen hash, for the tiles actually on the deck. The catalog is
-    /// hundreds of apps; the deck is at most sixty-four tiles.
+    /// Request icons for tiles on the deck AND any apps in active sessions.
     private func requestMissingIcons() {
-        let onDeck = deck.appBundleIDs
-        for entry in catalog where onDeck.contains(entry.bundleID) {
+        var needed = deck.appBundleIDs
+        // Also request icons for apps with active sessions (Warp, Claude, ChatGPT)
+        for info in macState.sessions {
+            needed.insert(info.bundleID)
+        }
+        for entry in catalog where needed.contains(entry.bundleID) {
             guard icons.shouldRequest(hash: entry.iconHash), let hash = entry.iconHash else { continue }
             client.send(.iconRequest(IconRequest(hash: hash)))
         }

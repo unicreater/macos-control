@@ -283,7 +283,9 @@ struct DeckView: View {
                 AISessionsView(
                     sessions: model.macState.sessions,
                     iconProvider: { model.icon(forBundleID: $0) },
-                    onActivate: { bundleID in model.activateByBundleID(bundleID) }
+                    onActivate: { bundleID, windowID in
+                        model.activateSession(bundleID: bundleID, windowID: windowID)
+                    }
                 )
                 .tag(aiPageTag)
             }
