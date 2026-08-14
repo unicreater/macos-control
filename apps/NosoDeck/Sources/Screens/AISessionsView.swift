@@ -105,7 +105,7 @@ struct AISessionsView: View {
                     Circle()
                         .fill(statusColor(session.status))
                         .frame(width: 5, height: 5)
-                    Text(statusLabel(session))
+                    Text(session.detail ?? statusLabel(session))
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(statusColor(session.status))
                         .lineLimit(1)

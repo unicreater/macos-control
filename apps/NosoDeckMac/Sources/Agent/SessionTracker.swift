@@ -79,17 +79,28 @@ final class SessionTracker {
                             id: "\(shell.pid)",
                             label: label,
                             status: .idle,
+                            detail: "Ready",
                             windowID: nextWindow?.windowNumber
                         ))
                     } else {
                         let cmd = children.first!.shortName
                         let label = nextWindow?.projectName ?? cmd
+
+                        // Check if the command (e.g. claude) has its own children
+                        // claude with children (sourcekit-lsp, caffeinate) = actively working
+                        // claude with NO children = waiting for user input (done)
+                        let grandchildren = children.flatMap { child in
+                            procs.filter { $0.ppid == child.pid }
+                        }
+                        let isWorking = !grandchildren.isEmpty
+                        let status: AppSession.Status = isWorking ? .busy : .done
+                        let detail = isWorking ? "Working" : "Needs input"
+
                         sessions.append(AppSession(
                             id: "\(shell.pid)",
                             label: label,
-                            status: .busy,
-                            detail: cmd,
-                            cpuPercent: 0,
+                            status: status,
+                            detail: detail,
                             windowID: nextWindow?.windowNumber
                         ))
                     }
