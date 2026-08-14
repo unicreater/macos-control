@@ -26,7 +26,7 @@ struct WindowGestureInstaller: UIViewRepresentable {
     func makeCoordinator() -> GestureCoordinator { GestureCoordinator() }
 }
 
-class GestureCoordinator: NSObject {
+class GestureCoordinator: NSObject, UIGestureRecognizerDelegate {
     var onAction: ((ActionKind) -> Void)?
     private var installed = false
     private weak var feedbackView: GestureFeedbackView?
@@ -43,33 +43,53 @@ class GestureCoordinator: NSObject {
         window.addSubview(feedback)
         self.feedbackView = feedback
 
-        // 2-finger swipe up (maximize)
-        let up = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        up.direction = .up
-        up.numberOfTouchesRequired = 2
-        up.cancelsTouchesInView = false
-        window.addGestureRecognizer(up)
+        var ourGestures: [UIGestureRecognizer] = []
 
-        // 2-finger swipe down (minimize)
-        let down = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        down.direction = .down
-        down.numberOfTouchesRequired = 2
-        down.cancelsTouchesInView = false
-        window.addGestureRecognizer(down)
+        // 2-finger swipe in all 4 directions
+        for direction: UISwipeGestureRecognizer.Direction in [.up, .down, .left, .right] {
+            let swipe = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
+            swipe.direction = direction
+            swipe.numberOfTouchesRequired = 2
+            swipe.delegate = self
+            window.addGestureRecognizer(swipe)
+            ourGestures.append(swipe)
+        }
 
         // 2-finger double-tap (copy)
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         doubleTap.numberOfTouchesRequired = 2
         doubleTap.numberOfTapsRequired = 2
-        doubleTap.cancelsTouchesInView = false
+        doubleTap.delegate = self
         window.addGestureRecognizer(doubleTap)
+        ourGestures.append(doubleTap)
 
         // 2-finger long-press (paste)
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         longPress.numberOfTouchesRequired = 2
         longPress.minimumPressDuration = 0.5
-        longPress.cancelsTouchesInView = false
+        longPress.delegate = self
         window.addGestureRecognizer(longPress)
+        ourGestures.append(longPress)
+
+        // Find ALL UIScrollViews in the window and make their pan gestures
+        // yield to our 2-finger gestures. This prevents TabView page scrolling
+        // from eating multi-finger swipes.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            Self.configureScrollViews(in: window, toYieldTo: ourGestures)
+        }
+    }
+
+    /// Recursively finds UIScrollViews and makes their pan gesture require
+    /// our gesture recognizers to fail first.
+    private static func configureScrollViews(in view: UIView, toYieldTo gestures: [UIGestureRecognizer]) {
+        if let scrollView = view as? UIScrollView {
+            for gesture in gestures {
+                scrollView.panGestureRecognizer.require(toFail: gesture)
+            }
+        }
+        for subview in view.subviews {
+            configureScrollViews(in: subview, toYieldTo: gestures)
+        }
     }
 
     @objc func handleSwipe(_ gesture: UISwipeGestureRecognizer) {
@@ -78,9 +98,18 @@ class GestureCoordinator: NSObject {
             fire(.maximizeWindow, label: "MAXIMIZE", icon: "arrow.up.left.and.arrow.down.right")
         case .down:
             fire(.minimizeWindow, label: "MINIMIZE", icon: "arrow.down.right.and.arrow.up.left")
+        case .left:
+            fire(.copyClipboard, label: "COPY", icon: "doc.on.doc")
+        case .right:
+            fire(.pasteClipboard, label: "PASTE", icon: "doc.on.clipboard")
         default:
             break
         }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        // Allow our gestures to work alongside other recognizers
+        true
     }
 
     @objc func handleTap(_ gesture: UITapGestureRecognizer) {
