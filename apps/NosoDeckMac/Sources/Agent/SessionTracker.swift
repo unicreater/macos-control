@@ -86,16 +86,30 @@ final class SessionTracker {
                         let cmd = children.first!.shortName
                         let label = nextWindow?.projectName ?? cmd
 
-                        // Check descendants for actual work processes.
-                        // caffeinate lingers for 5min after claude finishes — ignore it.
-                        // Real work = sourcekit-lsp, swift-frontend, node, xcodebuild, etc.
-                        let ignoredProcesses: Set<String> = ["caffeinate", "sleep", "cat"]
+                        // Detect status from descendant processes:
+                        // - caffeinate present = claude is actively running (keeps system awake)
+                        // - sourcekit-lsp, swift-frontend etc = specific tool running
+                        // - NO descendants at all = truly waiting for user input
                         let allDescendants = Self.descendants(of: children.map(\.pid), in: procs)
-                        let meaningfulWork = allDescendants.filter { !ignoredProcesses.contains($0.shortName) }
-                        let isWorking = !meaningfulWork.isEmpty
-                        let status: AppSession.Status = isWorking ? .busy : .done
-                        let workNames = meaningfulWork.prefix(2).map(\.shortName).joined(separator: ", ")
-                        let detail = isWorking ? workNames : "Needs input"
+                        let hasCaffeinate = allDescendants.contains { $0.shortName == "caffeinate" }
+                        let toolProcesses: Set<String> = ["caffeinate", "sleep", "cat"]
+                        let activeTools = allDescendants.filter { !toolProcesses.contains($0.shortName) }
+
+                        let status: AppSession.Status
+                        let detail: String
+                        if !activeTools.isEmpty {
+                            // Specific tools running (compiling, reading files, etc.)
+                            status = .busy
+                            detail = activeTools.prefix(2).map(\.shortName).joined(separator: ", ")
+                        } else if hasCaffeinate {
+                            // caffeinate = claude is processing (API calls, thinking)
+                            status = .busy
+                            detail = "Running"
+                        } else {
+                            // No descendants = truly idle, waiting for user
+                            status = .done
+                            detail = "Needs input"
+                        }
 
                         sessions.append(AppSession(
                             id: "\(shell.pid)",
