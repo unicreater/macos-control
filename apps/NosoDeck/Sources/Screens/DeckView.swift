@@ -48,6 +48,36 @@ struct DeckView: View {
             .padding(.trailing, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
+            // Voice overlay inside rotated frame so it's landscape
+            .overlay {
+                VoiceOverlay(recognizer: voiceRecognizer) {
+                    let text = voiceRecognizer.sendableText
+                    if !text.isEmpty { model.sendVoiceText(text) }
+                    voiceRecognizer.clear()
+                }
+                .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
+            }
+            // Emoji overlay inside rotated frame
+            .overlay {
+                if showEmojiOverlay {
+                    ZStack {
+                        Color.black.opacity(0.7)
+                            .onTapGesture { showEmojiOverlay = false }
+
+                        VStack(spacing: 16) {
+                            EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
+                                model.send(emoji: emoji)
+                                showEmojiOverlay = false
+                            }
+                            Text("Tap emoji to send, or tap anywhere to close")
+                                .font(.system(size: 11))
+                                .foregroundStyle(DeckColor.inkFaint)
+                        }
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
         }
@@ -55,36 +85,6 @@ struct DeckView: View {
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }
-        .overlay {
-            VoiceOverlay(recognizer: voiceRecognizer) {
-                let text = voiceRecognizer.sendableText
-                if !text.isEmpty { model.sendVoiceText(text) }
-                voiceRecognizer.clear()
-            }
-            .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
-        }
-        .overlay {
-            // Emoji overlay — shown on swipe down
-            if showEmojiOverlay {
-                ZStack {
-                    Color.black.opacity(0.7)
-                        .ignoresSafeArea()
-                        .onTapGesture { showEmojiOverlay = false }
-
-                    VStack(spacing: 16) {
-                        EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
-                            model.send(emoji: emoji)
-                            showEmojiOverlay = false
-                        }
-                        Text("Tap emoji to send, or tap anywhere to close")
-                            .font(.system(size: 11))
-                            .foregroundStyle(DeckColor.inkFaint)
-                    }
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
         .gesture(
             DragGesture(minimumDistance: 40)
                 .onEnded { value in
