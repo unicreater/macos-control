@@ -30,15 +30,20 @@ struct KeycapView: View {
             onTap()
         } label: {
             iconView
+                .scaleEffect(0.9)
                 .aspectRatio(1, contentMode: .fit)
-                .padding(8) // Icon is ~90% of container
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(2)
                 .background(
                     activity == .frontmost
-                        ? Color(hex: 0x3A3A3A) // Darker for active
-                        : Color(hex: 0x2A2A2A)  // Light warm grey
+                        ? Color.white.opacity(0.12)
+                        : Color.white.opacity(0.05)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 2, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: iconRadius + 2, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                }
                 .overlay(alignment: .topLeading) { removeBadge }
         }
         .buttonStyle(TileButtonStyle())
