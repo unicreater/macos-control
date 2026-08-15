@@ -29,24 +29,27 @@ struct KeycapView: View {
         Button {
             onTap()
         } label: {
-            iconView
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(1.5)
-                .background(
-                    activity == .frontmost
-                        ? Color.white.opacity(0.12)
-                        : Color.white.opacity(0.05)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                }
-                .overlay(alignment: .topLeading) { removeBadge }
+            GeometryReader { geo in
+                let size = min(geo.size.width, geo.size.height) * 0.8
+                iconView
+                    .frame(width: size, height: size)
+                    .padding(1.5)
+                    .background(
+                        activity == .frontmost
+                            ? Color.white.opacity(0.12)
+                            : Color.white.opacity(0.05)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                    }
+                    .overlay(alignment: .topLeading) { removeBadge }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .aspectRatio(1, contentMode: .fit)
         }
         .buttonStyle(TileButtonStyle())
-        .aspectRatio(1, contentMode: .fit)
         .scaleEffect(isDragging ? 1.04 : 1)
         .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
         .rotationEffect(.degrees(rotation))
