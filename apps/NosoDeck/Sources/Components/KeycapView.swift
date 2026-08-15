@@ -32,11 +32,11 @@ struct KeycapView: View {
             iconView
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(6)
+                .padding(3)
                 .background(Color(hex: 0x1A1A1A).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 6, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 3, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: iconRadius + 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: iconRadius + 3, style: .continuous)
                         .strokeBorder(
                             activity == .frontmost
                                 ? DeckColor.mint.opacity(0.5)

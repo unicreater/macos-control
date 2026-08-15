@@ -12,6 +12,7 @@ struct DeckView: View {
     @State private var isConfirmingPageDelete = false
     @State private var isAddingTile = false
     @StateObject private var voiceRecognizer = SpeechRecognizer()
+    @State private var showEmojiOverlay = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
 
@@ -30,39 +31,16 @@ struct DeckView: View {
                 utilitySidebar
                     .frame(width: 60)
 
-                // Emoji column + grid side by side so they align at the same top
-                HStack(alignment: .top, spacing: 6) {
-                    // Emoji strip as a vertical column (= phone top edge after rotation)
-                    if model.isEmojiStripEnabled {
-                        VStack(spacing: 4) {
-                            EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
-                                model.send(emoji: emoji)
-                            }
-                            .rotationEffect(.degrees(90))
-                            .fixedSize()
-                        }
-                        .frame(width: 36)
-                    }
+                VStack(spacing: 4) {
+                    pages
+                        .frame(maxWidth: .infinity)
+                    .opacity(model.session.state.deckOpacity)
+                    .disabled(!model.session.acceptsActions && !model.isEditing)
+                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
-                    // Grid + bottom bar
-                    VStack(spacing: 4) {
-                        // Connection status
-                        ConnectionBanner(
-                            state: model.session.state,
-                            macName: model.connectedMacName ?? "Mac",
-                            onRetry: { model.beginDiscovery() }
-                        )
+                    Spacer(minLength: 0)
 
-                        pages
-                            .frame(maxWidth: .infinity)
-                        .opacity(model.session.state.deckOpacity)
-                        .disabled(!model.session.acceptsActions && !model.isEditing)
-                        .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
-
-                        Spacer(minLength: 0)
-
-                        bottomBar
-                    }
+                    bottomBar
                 }
             }
             .padding(.vertical, DeckSpace.s)
@@ -79,15 +57,43 @@ struct DeckView: View {
         }
         .overlay {
             VoiceOverlay(recognizer: voiceRecognizer) {
-                // stop() sets cleanedTranscript, then send the cleaned version
                 let text = voiceRecognizer.sendableText
-                if !text.isEmpty {
-                    model.sendVoiceText(text)
-                }
+                if !text.isEmpty { model.sendVoiceText(text) }
                 voiceRecognizer.clear()
             }
             .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
         }
+        .overlay {
+            // Emoji overlay — shown on swipe down
+            if showEmojiOverlay {
+                ZStack {
+                    Color.black.opacity(0.7)
+                        .ignoresSafeArea()
+                        .onTapGesture { showEmojiOverlay = false }
+
+                    VStack(spacing: 16) {
+                        EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
+                            model.send(emoji: emoji)
+                            showEmojiOverlay = false
+                        }
+                        Text("Tap emoji to send, or tap anywhere to close")
+                            .font(.system(size: 11))
+                            .foregroundStyle(DeckColor.inkFaint)
+                    }
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
+        .gesture(
+            DragGesture(minimumDistance: 40)
+                .onEnded { value in
+                    // Swipe down with 1 finger → show emoji overlay
+                    if value.translation.height > 60 && abs(value.translation.height) > abs(value.translation.width) {
+                        showEmojiOverlay = true
+                    }
+                }
+        )
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
         }
@@ -162,37 +168,23 @@ struct DeckView: View {
         if model.isEditing {
             editPageStrip
         } else {
-            HStack(spacing: DeckSpace.s) {
+            HStack(spacing: 8) {
                 Spacer()
-                // AI Sessions pip
-                if hasAISessions {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 11, weight: .medium))
-                        Text("AI")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    }
-                    .foregroundStyle(model.currentPage == aiPageTag ? DeckColor.mint : DeckColor.inkMuted)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        model.currentPage == aiPageTag ? DeckColor.mint.opacity(0.15) : Color(hex: 0x222222),
-                        in: Capsule()
-                    )
-                    .onTapGesture { model.setPage(aiPageTag) }
-                }
                 ForEach(0..<model.pageCount, id: \.self) { index in
-                    Capsule()
+                    Circle()
                         .fill(index == model.currentPage ? DeckColor.ink : Color(hex: 0x333333))
-                        .frame(width: 22, height: 5)
+                        .frame(width: 7, height: 7)
                         .onTapGesture { model.setPage(index) }
                 }
-                if !model.canAddPage {
-                    addPagePill
+                // AI Sessions dot — colored mint
+                if hasAISessions {
+                    Circle()
+                        .fill(model.currentPage == aiPageTag ? DeckColor.mint : DeckColor.mint.opacity(0.3))
+                        .frame(width: 7, height: 7)
+                        .onTapGesture { model.setPage(aiPageTag) }
                 }
                 Spacer()
             }
-            .accessibilityLabel("Page \(model.currentPage + 1) of \(model.pageCount)")
         }
     }
 
