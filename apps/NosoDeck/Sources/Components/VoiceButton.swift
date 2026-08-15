@@ -193,50 +193,7 @@ final class SpeechRecognizer: ObservableObject {
             text = result
         }
 
-        // Convert to bullet points if multiple ideas are detected
-        text = bulletize(text)
-
         return text
-    }
-
-    /// Detects explicit pointer keywords and formats as bullet list.
-    /// Only splits on strong signals — numbered markers and explicit list words.
-    private static func bulletize(_ text: String) -> String {
-        // Only split on EXPLICIT pointer markers, not periods or "and"
-        let splitPattern = "(?i)(?:^|(?<=\\. ))(?:(?:first(?:ly)?|second(?:ly)?|third(?:ly)?|fourth(?:ly)?|number (?:one|two|three|four|five|six|seven|eight))[,:]?\\s*)"
-
-        guard let regex = try? NSRegularExpression(pattern: splitPattern) else { return text }
-
-        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
-
-        // Need at least 2 pointer markers to activate bullet mode
-        guard matches.count >= 2 else { return text }
-
-        // Split at each match position
-        var points: [String] = []
-        var lastEnd = text.startIndex
-
-        for match in matches {
-            guard let range = Range(match.range, in: text) else { continue }
-            // Text before this marker
-            let before = String(text[lastEnd..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-            if !before.isEmpty { points.append(before) }
-            lastEnd = range.upperBound
-        }
-        // Text after last marker
-        let remaining = String(text[lastEnd...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        if !remaining.isEmpty { points.append(remaining) }
-
-        guard points.count >= 2 else { return text }
-
-        return points.map { point in
-            var p = point
-            if let first = p.first, first.isLowercase {
-                p = first.uppercased() + p.dropFirst()
-            }
-            if p.hasSuffix(".") { p = String(p.dropLast()) }
-            return "• \(p)"
-        }.joined(separator: "\n")
     }
 
     private func beginRecording() {
