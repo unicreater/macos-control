@@ -193,7 +193,62 @@ final class SpeechRecognizer: ObservableObject {
             text = result
         }
 
+        // Convert to bullet points if multiple ideas are detected
+        text = bulletize(text)
+
         return text
+    }
+
+    /// Detects sentence breaks and pointer keywords, formats as bullet list.
+    private static func bulletize(_ text: String) -> String {
+        // Split on sentence-ending punctuation and pointer keywords
+        let pointerPatterns = [
+            "\\. ",                          // Period + space
+            "(?i)\\b(?:first|firstly)\\b[,:]?\\s*",
+            "(?i)\\b(?:second|secondly)\\b[,:]?\\s*",
+            "(?i)\\b(?:third|thirdly)\\b[,:]?\\s*",
+            "(?i)\\b(?:fourth|fourthly)\\b[,:]?\\s*",
+            "(?i)\\b(?:next|then|also|additionally|finally|lastly)\\b[,:]?\\s*",
+            "(?i)\\b(?:another thing|one more thing|on top of that)\\b[,:]?\\s*",
+            "(?i)\\bnumber (?:one|two|three|four|five|six|seven|eight)\\b[,:]?\\s*",
+        ]
+
+        var segments: [String] = [text]
+        for pattern in pointerPatterns {
+            var newSegments: [String] = []
+            for segment in segments {
+                if let regex = try? NSRegularExpression(pattern: pattern) {
+                    let parts = regex.stringByReplacingMatches(
+                        in: segment,
+                        range: NSRange(segment.startIndex..., in: segment),
+                        withTemplate: "\n@@SPLIT@@"
+                    ).components(separatedBy: "\n@@SPLIT@@")
+                    newSegments.append(contentsOf: parts)
+                } else {
+                    newSegments.append(segment)
+                }
+            }
+            segments = newSegments
+        }
+
+        // Clean up segments
+        let points = segments
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        // Only bulletize if there are 2+ distinct points
+        guard points.count >= 2 else { return text }
+
+        return points.map { point in
+            var p = point
+            // Capitalize first letter
+            if let first = p.first, first.isLowercase {
+                p = first.uppercased() + p.dropFirst()
+            }
+            // Remove trailing period (bullets don't need them)
+            if p.hasSuffix(".") { p = String(p.dropLast()) }
+            return "• \(p)"
+        }.joined(separator: "\n")
     }
 
     private func beginRecording() {
