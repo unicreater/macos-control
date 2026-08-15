@@ -473,7 +473,7 @@ struct DeckView: View {
                             }
                             .frame(width: size, height: size)
                             .padding(1.5)
-                            .background(Color.white.opacity(isFocused ? 0.15 : 0.08))
+                            .background(Color(hex: isFocused ? 0x3A3A3A : 0x2A2A2A))
                             .clipShape(RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous)
