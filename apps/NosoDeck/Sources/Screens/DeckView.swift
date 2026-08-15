@@ -56,6 +56,7 @@ struct DeckView: View {
         }
         .overlay {
             VoiceOverlay(recognizer: voiceRecognizer) {
+                // stop() sets cleanedTranscript, then send the cleaned version
                 let text = voiceRecognizer.sendableText
                 if !text.isEmpty {
                     model.sendVoiceText(text)
@@ -63,7 +64,6 @@ struct DeckView: View {
                 voiceRecognizer.clear()
             }
             .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
-            .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.sendableText)
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
