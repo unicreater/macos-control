@@ -16,24 +16,37 @@ struct DeckView: View {
     // Always 4×2 landscape layout in portrait frame
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-                .padding(.bottom, 14)
+        // Render landscape content rotated inside portrait frame.
+        // The phone stays portrait but the deck looks landscape.
+        GeometryReader { geo in
+            let portraitW = geo.size.width
+            let portraitH = geo.size.height
+            // Swap dimensions: landscape content uses portrait height as width
+            let landscapeW = portraitH
+            let landscapeH = portraitW
 
-            pages
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .opacity(model.session.state.deckOpacity)
-            .disabled(!model.session.acceptsActions && !model.isEditing)
-            .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+            VStack(spacing: 0) {
+                topBar
+                    .padding(.bottom, 10)
 
-            bottomBar
-                .padding(.top, DeckSpace.m)
+                pages
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(model.session.state.deckOpacity)
+                .disabled(!model.session.acceptsActions && !model.isEditing)
+                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+
+                bottomBar
+                    .padding(.top, DeckSpace.s)
+            }
+            .padding(.top, DeckGrid.topPadding)
+            .padding(.bottom, DeckGrid.bottomPadding)
+            .padding(.horizontal, DeckSpace.xl)
+            .frame(width: landscapeW, height: landscapeH)
+            .background(DeckColor.chassis)
+            .rotationEffect(.degrees(-90))
+            .frame(width: portraitW, height: portraitH)
         }
-        .padding(.top, DeckGrid.topPadding)
-        .padding(.bottom, DeckGrid.bottomPadding)
-        .padding(.horizontal, DeckSpace.safeInset)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DeckColor.chassis)
+        .ignoresSafeArea(.container, edges: .bottom)
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }

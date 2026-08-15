@@ -35,7 +35,7 @@ struct AppCatalogProvider {
         "com.apple.Terminal"
     ]
 
-    private let iconSide: CGFloat = 128
+    private let iconSide: CGFloat = 256
 
     func catalog() -> Catalog {
         let apps = installedApps()

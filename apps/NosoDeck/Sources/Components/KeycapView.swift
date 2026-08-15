@@ -30,12 +30,13 @@ struct KeycapView: View {
             onTap()
         } label: {
             iconView
+                .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(4)
+                .padding(6)
                 .background(Color(hex: 0x1A1A1A).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 4, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 6, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: iconRadius + 4, style: .continuous)
+                    RoundedRectangle(cornerRadius: iconRadius + 6, style: .continuous)
                         .strokeBorder(
                             activity == .frontmost
                                 ? DeckColor.mint.opacity(0.5)
