@@ -38,8 +38,7 @@ struct DeckView: View {
                 bottomBar
                     .padding(.top, DeckSpace.s)
             }
-            .padding(.top, DeckGrid.topPadding)
-            .padding(.bottom, DeckGrid.bottomPadding)
+            .padding(.vertical, DeckSpace.m)
             .padding(.horizontal, DeckSpace.xl)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)

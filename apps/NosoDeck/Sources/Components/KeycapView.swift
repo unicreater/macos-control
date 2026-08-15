@@ -49,6 +49,7 @@ struct KeycapView: View {
                 .overlay(alignment: .topLeading) { removeBadge }
         }
         .buttonStyle(TileButtonStyle())
+        .aspectRatio(1, contentMode: .fit)
         .scaleEffect(isDragging ? 1.04 : 1)
         .rotationEffect(.degrees(rotation))
         .animation(reduceMotion ? nil : DeckMotion.stateChange, value: activity)
@@ -178,6 +179,7 @@ struct EmptySlotView: View {
                 }
         }
         .buttonStyle(TileButtonStyle())
+        .aspectRatio(1, contentMode: .fit)
         .accessibilityLabel("Add tile")
     }
 }
