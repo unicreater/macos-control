@@ -30,18 +30,18 @@ struct DeckView: View {
                 utilitySidebar
                     .frame(width: 60)
 
-                VStack(spacing: 0) {
+                VStack(spacing: 4) {
                     topBar
-                        .padding(.bottom, 8)
 
                     pages
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity)
                     .opacity(model.session.state.deckOpacity)
                     .disabled(!model.session.acceptsActions && !model.isEditing)
                     .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
+                    Spacer(minLength: 0)
+
                     bottomBar
-                        .padding(.top, DeckSpace.s)
                 }
             }
             .padding(.vertical, DeckSpace.s)
