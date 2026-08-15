@@ -13,6 +13,7 @@ struct DeckView: View {
     @State private var isAddingTile = false
     @StateObject private var voiceRecognizer = SpeechRecognizer()
     @State private var showEmojiOverlay = false
+    @State private var showRecents = false
     @State private var selectedTab = 0 // 0 = Deck, 1 = Settings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
@@ -71,11 +72,6 @@ struct DeckView: View {
 
                     Spacer(minLength: 0)
 
-                    // App Time Travel — recent apps row
-                    if !model.macState.recents.isEmpty {
-                        recentsRow
-                    }
-
                     bottomBar
                 }
             }
@@ -111,6 +107,75 @@ struct DeckView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
+            // App Time Travel overlay — swipe up (landscape) to show
+            .overlay {
+                if showRecents {
+                    ZStack {
+                        Color.black.opacity(0.85)
+                            .onTapGesture { showRecents = false }
+
+                        VStack(spacing: 12) {
+                            Text("RECENT APPS")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundStyle(DeckColor.inkMuted)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: -16) {
+                                    ForEach(Array(model.macState.recents.reversed().enumerated()), id: \.element) { index, bundleID in
+                                        Button {
+                                            model.activateRecent(bundleID)
+                                            showRecents = false
+                                        } label: {
+                                            let iconSize: CGFloat = landscapeH / 2 * 0.8 * 0.8
+                                            if let icon = model.icon(forBundleID: bundleID) {
+                                                icon
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: iconSize, height: iconSize)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                                    .shadow(color: .black.opacity(0.6), radius: 6, y: 3)
+                                            } else {
+                                                // Show app name initial as fallback
+                                                let name = model.name(forBundleID: bundleID)
+                                                Text(String(name.prefix(1)).uppercased())
+                                                    .font(.system(size: 24, weight: .bold))
+                                                    .foregroundStyle(DeckColor.inkMuted)
+                                                    .frame(width: iconSize, height: iconSize)
+                                                    .background(Color(hex: 0x2A2A2A))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                                    .shadow(color: .black.opacity(0.6), radius: 6, y: 3)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .zIndex(Double(index))
+                                    }
+                                }
+                                .padding(.horizontal, 30)
+                            }
+
+                            Text("Tap app to switch, or tap anywhere to close")
+                                .font(.system(size: 10))
+                                .foregroundStyle(DeckColor.inkFaint)
+                        }
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: showRecents)
+            // Swipe up in landscape (= swipe left on phone) to show recents
+            .gesture(
+                DragGesture(minimumDistance: 40)
+                    .onEnded { value in
+                        // In landscape: up = negative Y
+                        if value.translation.height < -50 && abs(value.translation.height) > abs(value.translation.width) {
+                            showRecents = true
+                        }
+                        // Down = show emoji
+                        if value.translation.height > 50 && abs(value.translation.height) > abs(value.translation.width) {
+                            showEmojiOverlay = true
+                        }
+                    }
+            )
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
         }
@@ -138,15 +203,6 @@ struct DeckView: View {
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }
-        .gesture(
-            DragGesture(minimumDistance: 40)
-                .onEnded { value in
-                    // Swipe down with 1 finger → show emoji overlay
-                    if value.translation.height > 60 && abs(value.translation.height) > abs(value.translation.width) {
-                        showEmojiOverlay = true
-                    }
-                }
-        )
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
         }
@@ -399,36 +455,6 @@ struct DeckView: View {
         isAddingTile = true
     }
 
-
-    /// App Time Travel — horizontal row of stacked recent apps, latest on right.
-    private var recentsRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: -12) { // Negative spacing for stacked overlap
-                ForEach(Array(model.macState.recents.reversed().enumerated()), id: \.element) { index, bundleID in
-                    Button {
-                        model.activateRecent(bundleID)
-                    } label: {
-                        if let icon = model.icon(forBundleID: bundleID) {
-                            icon
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 36, height: 36)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
-                        } else {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color(hex: 0x2A2A2A))
-                                .frame(width: 36, height: 36)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .zIndex(Double(index)) // Later items on top
-                }
-            }
-            .padding(.horizontal, 8)
-        }
-        .frame(height: 40)
-    }
 
     private var paywallBinding: Binding<Bool> {
         Binding(

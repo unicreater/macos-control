@@ -481,12 +481,15 @@ final class AppModel {
         }
     }
 
-    /// Request icons for tiles on the deck AND any apps in active sessions.
+    /// Request icons for tiles on the deck, session apps, AND recent apps.
     private func requestMissingIcons() {
         var needed = deck.appBundleIDs
-        // Also request icons for apps with active sessions (Warp, Claude, ChatGPT)
         for info in macState.sessions {
             needed.insert(info.bundleID)
+        }
+        // Also request icons for recent apps (App Time Travel)
+        for bundleID in macState.recents {
+            needed.insert(bundleID)
         }
         for entry in catalog where needed.contains(entry.bundleID) {
             guard icons.shouldRequest(hash: entry.iconHash), let hash = entry.iconHash else { continue }
