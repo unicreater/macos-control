@@ -33,15 +33,15 @@ struct KeycapView: View {
                 .scaleEffect(0.9)
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(2)
+                .padding(1)
                 .background(
                     activity == .frontmost
                         ? Color.white.opacity(0.12)
                         : Color.white.opacity(0.05)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 2, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: iconRadius + 2, style: .continuous)
+                    RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
                 }
                 .overlay(alignment: .topLeading) { removeBadge }
