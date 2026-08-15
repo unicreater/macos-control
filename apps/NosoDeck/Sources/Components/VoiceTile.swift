@@ -108,12 +108,13 @@ struct VoiceOverlay: View {
                             .font(.system(size: 24, weight: .light))
                             .foregroundStyle(DeckColor.inkMuted)
                     } else {
-                        Text(recognizer.transcript)
-                            .font(.system(size: 22, weight: .regular))
+                        // Show live cleaned version
+                        Text(recognizer.cleanedTranscript.isEmpty ? recognizer.transcript : recognizer.cleanedTranscript)
+                            .font(.system(size: 20, weight: .regular))
                             .foregroundStyle(DeckColor.ink)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(8)
-                            .padding(.horizontal, 40)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(12)
+                            .padding(.horizontal, 30)
                     }
 
                     Spacer()
@@ -135,8 +136,8 @@ struct VoiceOverlay: View {
                             .background(DeckColor.mint, in: Capsule())
                         }
                         .buttonStyle(.plain)
-                        .opacity(recognizer.transcript.isEmpty ? 0.4 : 1)
-                        .disabled(recognizer.transcript.isEmpty)
+                        .opacity(recognizer.sendableText.isEmpty ? 0.4 : 1)
+                        .disabled(recognizer.sendableText.isEmpty)
 
                         Button {
                             recognizer.stop()

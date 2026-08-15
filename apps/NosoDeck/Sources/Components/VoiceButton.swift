@@ -199,53 +199,41 @@ final class SpeechRecognizer: ObservableObject {
         return text
     }
 
-    /// Detects sentence breaks and pointer keywords, formats as bullet list.
+    /// Detects explicit pointer keywords and formats as bullet list.
+    /// Only splits on strong signals — numbered markers and explicit list words.
     private static func bulletize(_ text: String) -> String {
-        // Split on sentence-ending punctuation and pointer keywords
-        let pointerPatterns = [
-            "\\. ",                          // Period + space
-            "(?i)\\b(?:first|firstly)\\b[,:]?\\s*",
-            "(?i)\\b(?:second|secondly)\\b[,:]?\\s*",
-            "(?i)\\b(?:third|thirdly)\\b[,:]?\\s*",
-            "(?i)\\b(?:fourth|fourthly)\\b[,:]?\\s*",
-            "(?i)\\b(?:next|then|also|additionally|finally|lastly)\\b[,:]?\\s*",
-            "(?i)\\b(?:another thing|one more thing|on top of that)\\b[,:]?\\s*",
-            "(?i)\\bnumber (?:one|two|three|four|five|six|seven|eight)\\b[,:]?\\s*",
-        ]
+        // Only split on EXPLICIT pointer markers, not periods or "and"
+        let splitPattern = "(?i)(?:^|(?<=\\. ))(?:(?:first(?:ly)?|second(?:ly)?|third(?:ly)?|fourth(?:ly)?|number (?:one|two|three|four|five|six|seven|eight))[,:]?\\s*)"
 
-        var segments: [String] = [text]
-        for pattern in pointerPatterns {
-            var newSegments: [String] = []
-            for segment in segments {
-                if let regex = try? NSRegularExpression(pattern: pattern) {
-                    let parts = regex.stringByReplacingMatches(
-                        in: segment,
-                        range: NSRange(segment.startIndex..., in: segment),
-                        withTemplate: "\n@@SPLIT@@"
-                    ).components(separatedBy: "\n@@SPLIT@@")
-                    newSegments.append(contentsOf: parts)
-                } else {
-                    newSegments.append(segment)
-                }
-            }
-            segments = newSegments
+        guard let regex = try? NSRegularExpression(pattern: splitPattern) else { return text }
+
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+
+        // Need at least 2 pointer markers to activate bullet mode
+        guard matches.count >= 2 else { return text }
+
+        // Split at each match position
+        var points: [String] = []
+        var lastEnd = text.startIndex
+
+        for match in matches {
+            guard let range = Range(match.range, in: text) else { continue }
+            // Text before this marker
+            let before = String(text[lastEnd..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !before.isEmpty { points.append(before) }
+            lastEnd = range.upperBound
         }
+        // Text after last marker
+        let remaining = String(text[lastEnd...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        if !remaining.isEmpty { points.append(remaining) }
 
-        // Clean up segments
-        let points = segments
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        // Only bulletize if there are 2+ distinct points
         guard points.count >= 2 else { return text }
 
         return points.map { point in
             var p = point
-            // Capitalize first letter
             if let first = p.first, first.isLowercase {
                 p = first.uppercased() + p.dropFirst()
             }
-            // Remove trailing period (bullets don't need them)
             if p.hasSuffix(".") { p = String(p.dropLast()) }
             return "• \(p)"
         }.joined(separator: "\n")
@@ -277,7 +265,10 @@ final class SpeechRecognizer: ObservableObject {
         recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
             DispatchQueue.main.async {
                 if let result {
-                    self?.transcript = result.bestTranscription.formattedString
+                    let raw = result.bestTranscription.formattedString
+                    self?.transcript = raw
+                    // Live cleanup preview
+                    self?.cleanedTranscript = Self.cleanup(raw)
                 }
                 if error != nil || (result?.isFinal ?? false) {
                     self?.stop()
