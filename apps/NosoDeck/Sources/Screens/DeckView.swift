@@ -14,7 +14,7 @@ struct DeckView: View {
     @StateObject private var voiceRecognizer = SpeechRecognizer()
     @State private var showEmojiOverlay = false
     @State private var showRecents = false
-    @State private var selectedTab = 0 // 0 = Deck, 1 = Settings
+    @State private var selectedTab = 0 // 0 = Deck, 1 = Settings, 2 = triggers recents
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
 
@@ -44,7 +44,7 @@ struct DeckView: View {
                             }
                         } label: {
                             Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                                .font(.system(size: 16))
+                                .font(.system(size: 24))
                                 .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
                                 .frame(width: iconSize * 0.5, height: iconSize * 0.5)
                                 .background(
@@ -107,70 +107,10 @@ struct DeckView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
-            // App Time Travel overlay — swipe up (landscape) to show
-            .overlay {
-                if showRecents {
-                    ZStack {
-                        Color.black.opacity(0.85)
-                            .onTapGesture { showRecents = false }
-
-                        VStack(spacing: 12) {
-                            Text("RECENT APPS")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundStyle(DeckColor.inkMuted)
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: -16) {
-                                    ForEach(Array(model.macState.recents.reversed().enumerated()), id: \.element) { index, bundleID in
-                                        Button {
-                                            model.activateRecent(bundleID)
-                                            showRecents = false
-                                        } label: {
-                                            let iconSize: CGFloat = landscapeH / 2 * 0.8 * 0.8
-                                            if let icon = model.icon(forBundleID: bundleID) {
-                                                icon
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: iconSize, height: iconSize)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                                    .shadow(color: .black.opacity(0.6), radius: 6, y: 3)
-                                            } else {
-                                                // Show app name initial as fallback
-                                                let name = model.name(forBundleID: bundleID)
-                                                Text(String(name.prefix(1)).uppercased())
-                                                    .font(.system(size: 24, weight: .bold))
-                                                    .foregroundStyle(DeckColor.inkMuted)
-                                                    .frame(width: iconSize, height: iconSize)
-                                                    .background(Color(hex: 0x2A2A2A))
-                                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                                    .shadow(color: .black.opacity(0.6), radius: 6, y: 3)
-                                            }
-                                        }
-                                        .buttonStyle(.plain)
-                                        .zIndex(Double(index))
-                                    }
-                                }
-                                .padding(.horizontal, 30)
-                            }
-
-                            Text("Tap app to switch, or tap anywhere to close")
-                                .font(.system(size: 10))
-                                .foregroundStyle(DeckColor.inkFaint)
-                        }
-                    }
-                    .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.25), value: showRecents)
-            // Swipe up in landscape (= swipe left on phone) to show recents
             .gesture(
                 DragGesture(minimumDistance: 40)
                     .onEnded { value in
-                        // In landscape: up = negative Y
-                        if value.translation.height < -50 && abs(value.translation.height) > abs(value.translation.width) {
-                            showRecents = true
-                        }
-                        // Down = show emoji
+                        // Swipe down in landscape → show emoji
                         if value.translation.height > 50 && abs(value.translation.height) > abs(value.translation.width) {
                             showEmojiOverlay = true
                         }
@@ -183,23 +123,45 @@ struct DeckView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            deckContent
-                .background(DeckColor.chassis.ignoresSafeArea())
-                .tabItem {
-                    Image(systemName: "square.grid.2x2")
-                    Text("Deck")
+            Group {
+                if showRecents {
+                    recentsPage
+                        .background(DeckColor.chassis.ignoresSafeArea())
+                } else {
+                    deckContent
+                        .background(DeckColor.chassis.ignoresSafeArea())
                 }
-                .tag(0)
+            }
+            .tabItem {
+                Image(systemName: showRecents ? "clock.arrow.circlepath" : "square.grid.2x2")
+                Text(showRecents ? "History" : "Deck")
+            }
+            .tag(0)
 
-            // Settings tab — normal portrait
             SettingsView(model: model)
                 .tabItem {
                     Image(systemName: "gearshape")
                     Text("Settings")
                 }
                 .tag(1)
+
+            // History tab — tapping toggles recents view
+            Color.clear
+                .tabItem {
+                    Image(systemName: "clock.arrow.circlepath")
+                    Text("History")
+                }
+                .tag(2)
         }
-        .accentColor(DeckColor.mint)
+        .tint(DeckColor.mint)
+        .onChange(of: selectedTab) { _, newValue in
+            if newValue == 2 {
+                showRecents.toggle()
+                selectedTab = 0
+            } else if newValue == 1 {
+                showRecents = false
+            }
+        }
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }
@@ -455,6 +417,77 @@ struct DeckView: View {
         isAddingTile = true
     }
 
+
+    /// App Time Travel — full page with recent apps in containers.
+    private var recentsPage: some View {
+        GeometryReader { geo in
+            let portraitW = geo.size.width
+            let portraitH = geo.size.height
+            let landscapeW = portraitH
+            let landscapeH = portraitW
+            let iconSize = landscapeH / 2 * 0.7
+
+            VStack(spacing: 8) {
+                Text("RECENT APPS")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(DeckColor.inkMuted)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Array(model.macState.recents.enumerated()), id: \.element) { index, bundleID in
+                            let isFocused = index == 0 // Most recent = focused
+                            let size = isFocused ? iconSize * 1.15 : iconSize
+
+                            Button {
+                                model.activateRecent(bundleID)
+                            } label: {
+                                Group {
+                                    if let icon = model.icon(forBundleID: bundleID) {
+                                        icon.resizable().aspectRatio(contentMode: .fit)
+                                            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
+                                    } else {
+                                        let name = model.name(forBundleID: bundleID)
+                                        Text(String(name.prefix(1)).uppercased())
+                                            .font(.system(size: size * 0.35, weight: .bold))
+                                            .foregroundStyle(DeckColor.inkMuted)
+                                            .frame(width: size, height: size)
+                                            .background(Color(hex: 0x2A2A2A))
+                                            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
+                                    }
+                                }
+                                .frame(width: size, height: size)
+                                .padding(1.5)
+                                .background(Color.white.opacity(isFocused ? 0.12 : 0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: size * 0.22 + 1.5, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: size * 0.22 + 1.5, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                                }
+                                .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                            }
+                            .buttonStyle(TileButtonStyle())
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+
+                // Back hint
+                Button { showRecents = false } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.system(size: 11))
+                        Text("Back to Deck")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(DeckColor.inkMuted)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(width: landscapeW, height: landscapeH)
+            .rotationEffect(.degrees(-90))
+            .frame(width: portraitW, height: portraitH)
+        }
+    }
 
     private var paywallBinding: Binding<Bool> {
         Binding(
