@@ -17,49 +17,29 @@ struct DeckView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
 
-    var body: some View {
-        // Render landscape content rotated inside portrait frame.
-        // The phone stays portrait but the deck looks landscape.
+    /// The deck grid rotated to landscape inside the portrait tab.
+    private var deckContent: some View {
         GeometryReader { geo in
             let portraitW = geo.size.width
             let portraitH = geo.size.height
-            // Swap dimensions: landscape content uses portrait height as width
             let landscapeW = portraitH
             let landscapeH = portraitW
 
-            TabView(selection: $selectedTab) {
-                // Deck tab
-                VStack(spacing: 4) {
-                    pages
-                        .frame(maxWidth: .infinity)
-                    .opacity(model.session.state.deckOpacity)
-                    .disabled(!model.session.acceptsActions && !model.isEditing)
-                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+            VStack(spacing: 4) {
+                pages
+                    .frame(maxWidth: .infinity)
+                .opacity(model.session.state.deckOpacity)
+                .disabled(!model.session.acceptsActions && !model.isEditing)
+                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
-                    Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-                    bottomBar
-                }
-                .padding(.vertical, DeckSpace.s)
-                .padding(.horizontal, DeckSpace.m)
-                .tabItem {
-                    Image(systemName: "square.grid.2x2")
-                    Text("Deck")
-                }
-                .tag(0)
-
-                // Settings tab
-                SettingsView(model: model)
-                    .tabItem {
-                        Image(systemName: "gearshape")
-                        Text("Settings")
-                    }
-                    .tag(1)
+                bottomBar
             }
-            .accentColor(DeckColor.mint)
+            .padding(.vertical, DeckSpace.s)
+            .padding(.horizontal, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
-            // Voice overlay inside rotated frame so it's landscape
             .overlay {
                 VoiceOverlay(recognizer: voiceRecognizer) {
                     let text = voiceRecognizer.sendableText
@@ -68,13 +48,11 @@ struct DeckView: View {
                 }
                 .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
             }
-            // Emoji overlay inside rotated frame
             .overlay {
                 if showEmojiOverlay {
                     ZStack {
                         Color.black.opacity(0.7)
                             .onTapGesture { showEmojiOverlay = false }
-
                         VStack(spacing: 16) {
                             EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
                                 model.send(emoji: emoji)
@@ -92,7 +70,27 @@ struct DeckView: View {
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
         }
-        .ignoresSafeArea(.container, edges: .bottom)
+    }
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            // Deck tab — content rotated to landscape
+            deckContent
+                .tabItem {
+                    Image(systemName: "square.grid.2x2")
+                    Text("Deck")
+                }
+                .tag(0)
+
+            // Settings tab — normal portrait
+            SettingsView(model: model)
+                .tabItem {
+                    Image(systemName: "gearshape")
+                    Text("Settings")
+                }
+                .tag(1)
+        }
+        .accentColor(DeckColor.mint)
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }
