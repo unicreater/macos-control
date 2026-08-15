@@ -25,8 +25,43 @@ struct DeckView: View {
             let landscapeW = portraitH
             let landscapeH = portraitW
 
-            HStack(spacing: 8) {
-                // Grid + page dots — aligned top
+            HStack(spacing: 6) {
+                // Mic button — LEFT in landscape = phone BOTTOM after -90° rotation
+                // Half the height of an app icon
+                GeometryReader { cellGeo in
+                    let iconSize = min(cellGeo.size.width, cellGeo.size.height / 2) * 0.8
+                    VStack {
+                        Spacer()
+                        Button {
+                            if voiceRecognizer.isRecording {
+                                voiceRecognizer.stop()
+                                let text = voiceRecognizer.sendableText
+                                if !text.isEmpty { model.sendVoiceText(text) }
+                                voiceRecognizer.clear()
+                            } else {
+                                voiceRecognizer.start()
+                            }
+                        } label: {
+                            Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                                .frame(width: iconSize * 0.5, height: iconSize * 0.5)
+                                .background(
+                                    voiceRecognizer.isRecording ? DeckColor.redBackground : Color.white.opacity(0.05),
+                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                )
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                    }
+                }
+                .frame(width: 44)
+
+                // Grid + recents + page dots
                 VStack(spacing: 4) {
                     pages
                         .frame(maxWidth: .infinity)
@@ -36,42 +71,17 @@ struct DeckView: View {
 
                     Spacer(minLength: 0)
 
+                    // App Time Travel — recent apps row
+                    if !model.macState.recents.isEmpty {
+                        recentsRow
+                    }
+
                     bottomBar
                 }
-
-                // Mic button — right side of landscape = bottom of phone
-                VStack {
-                    Spacer()
-                    Button {
-                        if voiceRecognizer.isRecording {
-                            voiceRecognizer.stop()
-                            let text = voiceRecognizer.sendableText
-                            if !text.isEmpty { model.sendVoiceText(text) }
-                            voiceRecognizer.clear()
-                        } else {
-                            voiceRecognizer.start()
-                        }
-                    } label: {
-                        Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                voiceRecognizer.isRecording ? DeckColor.redBackground : Color.white.opacity(0.05),
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            )
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                }
-                .frame(width: 50)
             }
-            .padding(.vertical, DeckSpace.xs)
-            .padding(.horizontal, DeckSpace.s)
+            .padding(.vertical, DeckSpace.s)
+            .padding(.leading, DeckSpace.xs)
+            .padding(.trailing, DeckSpace.l)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             .overlay {
@@ -219,7 +229,6 @@ struct DeckView: View {
                         .frame(width: 7, height: 7)
                         .onTapGesture { model.setPage(index) }
                 }
-                // AI Sessions dot — colored mint
                 if hasAISessions {
                     Circle()
                         .fill(model.currentPage == aiPageTag ? DeckColor.mint : DeckColor.mint.opacity(0.3))
@@ -390,6 +399,36 @@ struct DeckView: View {
         isAddingTile = true
     }
 
+
+    /// App Time Travel — horizontal row of stacked recent apps, latest on right.
+    private var recentsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: -12) { // Negative spacing for stacked overlap
+                ForEach(Array(model.macState.recents.reversed().enumerated()), id: \.element) { index, bundleID in
+                    Button {
+                        model.activateRecent(bundleID)
+                    } label: {
+                        if let icon = model.icon(forBundleID: bundleID) {
+                            icon
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 36, height: 36)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
+                        } else {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(hex: 0x2A2A2A))
+                                .frame(width: 36, height: 36)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .zIndex(Double(index)) // Later items on top
+                }
+            }
+            .padding(.horizontal, 8)
+        }
+        .frame(height: 40)
+    }
 
     private var paywallBinding: Binding<Bool> {
         Binding(
