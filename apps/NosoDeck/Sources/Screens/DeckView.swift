@@ -183,8 +183,8 @@ struct DeckView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Deck tab — content rotated to landscape
             deckContent
+                .background(DeckColor.chassis.ignoresSafeArea())
                 .tabItem {
                     Image(systemName: "square.grid.2x2")
                     Text("Deck")
