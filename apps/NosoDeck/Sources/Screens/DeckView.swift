@@ -25,19 +25,53 @@ struct DeckView: View {
             let landscapeW = portraitH
             let landscapeH = portraitW
 
-            VStack(spacing: 4) {
-                pages
-                    .frame(maxWidth: .infinity)
-                .opacity(model.session.state.deckOpacity)
-                .disabled(!model.session.acceptsActions && !model.isEditing)
-                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+            HStack(spacing: 8) {
+                // Grid + page dots — aligned top
+                VStack(spacing: 4) {
+                    pages
+                        .frame(maxWidth: .infinity)
+                    .opacity(model.session.state.deckOpacity)
+                    .disabled(!model.session.acceptsActions && !model.isEditing)
+                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                bottomBar
+                    bottomBar
+                }
+
+                // Mic button — right side of landscape = bottom of phone
+                VStack {
+                    Spacer()
+                    Button {
+                        if voiceRecognizer.isRecording {
+                            voiceRecognizer.stop()
+                            let text = voiceRecognizer.sendableText
+                            if !text.isEmpty { model.sendVoiceText(text) }
+                            voiceRecognizer.clear()
+                        } else {
+                            voiceRecognizer.start()
+                        }
+                    } label: {
+                        Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                voiceRecognizer.isRecording ? DeckColor.redBackground : Color.white.opacity(0.05),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .frame(width: 50)
             }
-            .padding(.vertical, DeckSpace.s)
-            .padding(.horizontal, DeckSpace.m)
+            .padding(.vertical, DeckSpace.xs)
+            .padding(.horizontal, DeckSpace.s)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             .overlay {

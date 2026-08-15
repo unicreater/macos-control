@@ -28,7 +28,7 @@ enum DeckGrid {
     // Keep the old constants for backward compat
     static let columns = 4
     static let rows = 2
-    static let gutter: CGFloat = 12
+    static let gutter: CGFloat = 6
     static let topPadding: CGFloat = 16
     static let bottomPadding: CGFloat = 14
     static let recentsColumnWidth: CGFloat = 92
