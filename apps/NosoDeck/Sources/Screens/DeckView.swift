@@ -433,52 +433,59 @@ struct DeckView: View {
     }
 
 
-    /// App Time Travel — stacked recent apps, most recent on right (= phone top).
+    /// App Time Travel — scrollable stacked recent apps.
     private var recentsPage: some View {
         GeometryReader { geo in
             let portraitW = geo.size.width
             let portraitH = geo.size.height
             let landscapeW = portraitH
             let landscapeH = portraitW
-            let iconSize = landscapeH * 0.55
+            let baseSize = landscapeH * 0.38
+            let focusedSize = baseSize * 1.15
 
-            HStack(spacing: -iconSize * 0.35) {
-                // Oldest first (left/bottom), most recent last (right/top)
-                ForEach(Array(model.macState.recents.reversed().enumerated()), id: \.element) { index, bundleID in
-                    let total = model.macState.recents.count
-                    let isMostRecent = index == total - 1
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: -baseSize * 0.25) {
+                    let recents = model.macState.recents.reversed() as [String]
+                    let total = recents.count
+                    let midIndex = total / 2
 
-                    Button {
-                        model.activateRecent(bundleID)
-                    } label: {
-                        Group {
-                            if let icon = model.icon(forBundleID: bundleID) {
-                                icon.resizable().aspectRatio(contentMode: .fit)
-                                    .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.22, style: .continuous))
-                            } else {
-                                let name = model.name(forBundleID: bundleID)
-                                Text(String(name.prefix(1)).uppercased())
-                                    .font(.system(size: iconSize * 0.3, weight: .bold))
-                                    .foregroundStyle(DeckColor.ink)
-                                    .frame(width: iconSize, height: iconSize)
-                                    .background(Color(hex: 0x2A2A2A))
-                                    .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.22, style: .continuous))
+                    ForEach(Array(recents.enumerated()), id: \.element) { index, bundleID in
+                        let isFocused = index == midIndex
+                        let size = isFocused ? focusedSize : baseSize
+                        let radius = size * 0.22
+
+                        Button {
+                            model.activateRecent(bundleID)
+                        } label: {
+                            Group {
+                                if let icon = model.icon(forBundleID: bundleID) {
+                                    icon.resizable().aspectRatio(contentMode: .fit)
+                                        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+                                } else {
+                                    let name = model.name(forBundleID: bundleID)
+                                    Text(String(name.prefix(1)).uppercased())
+                                        .font(.system(size: size * 0.3, weight: .bold))
+                                        .foregroundStyle(DeckColor.ink)
+                                        .frame(width: size, height: size)
+                                        .background(Color(hex: 0x2A2A2A))
+                                        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+                                }
                             }
+                            .frame(width: size, height: size)
+                            .padding(1.5)
+                            .background(Color.white.opacity(isFocused ? 0.15 : 0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(isFocused ? 0.2 : 0.1), lineWidth: 1)
+                            }
+                            .shadow(color: .black.opacity(0.5), radius: 6, y: 3)
                         }
-                        .frame(width: isMostRecent ? iconSize * 1.1 : iconSize,
-                               height: isMostRecent ? iconSize * 1.1 : iconSize)
-                        .padding(1.5)
-                        .background(Color.white.opacity(isMostRecent ? 0.1 : 0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.22 + 1.5, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: iconSize * 0.22 + 1.5, style: .continuous)
-                                .strokeBorder(Color.white.opacity(isMostRecent ? 0.15 : 0.08), lineWidth: 1)
-                        }
-                        .shadow(color: .black.opacity(0.6), radius: 8, y: 4)
+                        .buttonStyle(TileButtonStyle())
+                        .zIndex(Double(index))
                     }
-                    .buttonStyle(TileButtonStyle())
-                    .zIndex(Double(index)) // Most recent on top of stack
                 }
+                .padding(.horizontal, 30)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(width: landscapeW, height: landscapeH)
