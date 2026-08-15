@@ -26,6 +26,10 @@ struct DeckView: View {
             let landscapeH = portraitW
 
             HStack(spacing: 0) {
+                // Sidebar on LEFT = phone BOTTOM after -90° rotation
+                utilitySidebar
+                    .frame(width: 60)
+
                 VStack(spacing: 0) {
                     topBar
                         .padding(.bottom, 8)
@@ -39,14 +43,10 @@ struct DeckView: View {
                     bottomBar
                         .padding(.top, DeckSpace.s)
                 }
-
-                // Utility sidebar (right side = bottom after rotation)
-                utilitySidebar
-                    .frame(width: 60)
             }
             .padding(.vertical, DeckSpace.s)
-            .padding(.leading, DeckSpace.m)
-            .padding(.trailing, DeckSpace.s)
+            .padding(.leading, DeckSpace.s)
+            .padding(.trailing, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             .rotationEffect(.degrees(-90))
