@@ -199,6 +199,9 @@ final class SpeechRecognizer: ObservableObject {
         return text
     }
 
+    /// Set from AppModel. "bullet" for • or "number" for 1. 2. 3.
+    static var bulletStyle = "bullet"
+
     /// Splits on explicit numbered markers: first/second/third etc.
     private static func bulletize(_ text: String) -> String {
         let splitPattern = "(?i)(?:(?:first(?:ly)?|second(?:ly)?|third(?:ly)?|fourth(?:ly)?|number (?:one|two|three|four|five|six|seven|eight))[,:]?\\s*)"
@@ -221,13 +224,17 @@ final class SpeechRecognizer: ObservableObject {
 
         guard points.count >= 2 else { return text }
 
-        return points.map { p in
+        return points.enumerated().map { (i, p) in
             var point = p
             if let first = point.first, first.isLowercase {
                 point = first.uppercased() + point.dropFirst()
             }
             if point.hasSuffix(".") { point = String(point.dropLast()) }
-            return "• \(point)"
+            if bulletStyle == "number" {
+                return "\(i + 1). \(point)"
+            } else {
+                return "• \(point)"
+            }
         }.joined(separator: "\n")
     }
 

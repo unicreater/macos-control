@@ -81,6 +81,7 @@ final class AppModel {
         let defaults = UserDefaults.standard
         self.keepsScreenAwake = (defaults.object(forKey: Self.keepAwakeKey) as? Bool) ?? true
         self.isEmojiStripEnabled = (defaults.object(forKey: Self.emojiStripKey) as? Bool) ?? true
+        self.bulletStyle = (defaults.string(forKey: Self.bulletStyleKey)) ?? "bullet"
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
@@ -310,6 +311,15 @@ final class AppModel {
 
     fileprivate static let keepAwakeKey = "com.noso.nosodeck.keepAwake"
     fileprivate static let emojiStripKey = "com.noso.nosodeck.emojiStrip"
+    fileprivate static let bulletStyleKey = "com.noso.nosodeck.bulletStyle"
+
+    /// "bullet" for • or "number" for 1. 2. 3.
+    private(set) var bulletStyle: String = "bullet"
+
+    func setBulletStyle(_ style: String) {
+        bulletStyle = style
+        UserDefaults.standard.set(style, forKey: Self.bulletStyleKey)
+    }
 
     func presentPaywall(reason: String? = nil) {
         paywallReason = reason

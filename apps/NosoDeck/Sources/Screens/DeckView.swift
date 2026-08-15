@@ -13,31 +13,15 @@ struct DeckView: View {
     @State private var isAddingTile = false
     @StateObject private var voiceRecognizer = SpeechRecognizer()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-
-    private var isPortrait: Bool { verticalSizeClass == .regular }
+    // Always 4×2 landscape layout in portrait frame
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
                 .padding(.bottom, 14)
 
-            HStack(spacing: DeckGrid.recentsColumnGap) {
-                // Recents column only in landscape — no room in portrait.
-                if !isPortrait {
-                    RecentsColumn(
-                        bundleIDs: model.visibleRecents,
-                        isUnlocked: model.entitlement.unlocksRecentsColumn,
-                        iconProvider: { model.icon(forBundleID: $0) },
-                        nameProvider: { model.name(forBundleID: $0) },
-                        onActivate: { model.activateRecent($0) },
-                        onUpgrade: { model.presentPaywall(reason: "The recents column is part of Premium.") }
-                    )
-                }
-
-                pages
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            pages
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .opacity(model.session.state.deckOpacity)
             .disabled(!model.session.acceptsActions && !model.isEditing)
@@ -72,7 +56,10 @@ struct DeckView: View {
             PaywallView(store: model.entitlements, reason: model.paywallReason)
         }
         .task { await model.entitlements.start() }
-        .onAppear { voiceRecognizer.warmUp() }
+        .onAppear {
+            voiceRecognizer.warmUp()
+            SpeechRecognizer.bulletStyle = model.bulletStyle
+        }
         .confirmationDialog(
             "Unpair \(model.connectedMacName ?? "this Mac")?",
             isPresented: $isConfirmingUnpair,
@@ -274,14 +261,12 @@ struct DeckView: View {
 
     private func grid(pageIndex: Int) -> some View {
         let page = model.deck.pages[pageIndex]
-        let cols = DeckGrid.columns(isPortrait: isPortrait)
-        let rows = DeckGrid.rows(isPortrait: isPortrait)
 
         return VStack(spacing: DeckGrid.gutter) {
-            ForEach(0..<rows, id: \.self) { row in
+            ForEach(0..<DeckGrid.rows, id: \.self) { row in
                 HStack(spacing: DeckGrid.gutter) {
-                    ForEach(0..<cols, id: \.self) { column in
-                        let slot = row * cols + column
+                    ForEach(0..<DeckGrid.columns, id: \.self) { column in
+                        let slot = row * DeckGrid.columns + column
                         cell(page: page, pageIndex: pageIndex, slot: slot)
                     }
                 }

@@ -48,11 +48,9 @@ targets:
         CFBundleDisplayName: NosoDeck
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # Support both landscape and portrait like ChocLift.
+        # Portrait only — landscape content in portrait frame (like ChocLift).
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UIRequiresFullScreen: true
         UILaunchScreen: {}
         # Dark-appearance only in v1; light mode is not yet designed.

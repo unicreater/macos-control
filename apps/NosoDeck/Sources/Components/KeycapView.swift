@@ -23,29 +23,27 @@ struct KeycapView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private let iconRadius: CGFloat = 22
+
     var body: some View {
         Button {
             onTap()
         } label: {
-            content
+            iconView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    LinearGradient(
-                        colors: activity == .frontmost
-                            ? [Color(hex: 0x2A2A2A), Color(hex: 0x1E1E1E)]
-                            : [Color(hex: 0x1E1E1E), Color(hex: 0x161616)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(4)
+                .background(Color(hex: 0x1A1A1A).opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 4, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: iconRadius + 4, style: .continuous)
                         .strokeBorder(
-                            activity == .frontmost ? DeckColor.mint.opacity(0.3) : Color(hex: 0x2A2A2A),
-                            lineWidth: 1
+                            activity == .frontmost
+                                ? DeckColor.mint.opacity(0.5)
+                                : Color.white.opacity(0.08),
+                            lineWidth: activity == .frontmost ? 2 : 1
                         )
                 }
+                .shadow(color: .black.opacity(0.5), radius: 8, y: 4)
                 .overlay(alignment: .topTrailing) { runningLED }
                 .overlay(alignment: .topLeading) { removeBadge }
         }
@@ -59,47 +57,23 @@ struct KeycapView: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    // MARK: - Content
-
-    private var content: some View {
-        VStack(spacing: 4) {
-            iconView
-                .frame(width: 72, height: 72)
-                .overlay {
-                    if activity == .frontmost {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(DeckColor.mint, lineWidth: 2)
-                            .shadow(color: DeckColor.mint.opacity(0.4), radius: 8)
-                            .frame(width: 76, height: 76)
-                    }
-                }
-            Text(tile.label)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(legendColor)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .textCase(.uppercase)
-        }
-    }
-
     @ViewBuilder
     private var iconView: some View {
         if isDragging {
             Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
-                .font(.system(size: 24))
+                .font(.system(size: 32))
                 .foregroundStyle(DeckColor.mint)
         } else if let emoji = tile.emoji, !emoji.isEmpty {
             Text(emoji)
-                .font(.system(size: 38))
+                .font(.system(size: 52))
         } else if case .website(let url) = tile.target {
-            // Website tile: show favicon
             AsyncImage(url: faviconURL(for: url)) { phase in
                 if let image = phase.image {
                     image.resizable().aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
                 } else {
                     Image(systemName: "globe")
-                        .font(.system(size: 28))
+                        .font(.system(size: 36))
                         .foregroundStyle(DeckColor.inkMuted)
                 }
             }
@@ -107,9 +81,9 @@ struct KeycapView: View {
             icon
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
         } else {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: iconRadius, style: .continuous)
                 .fill(Color(hex: 0x2A2A2A))
         }
     }
@@ -190,19 +164,16 @@ struct EmptySlotView: View {
 
     var body: some View {
         Button(action: onTap) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color(hex: 0x2A2A2A), style: StrokeStyle(lineWidth: 1.5, dash: [8, 6]))
+            Image(systemName: "plus")
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(Color(hex: 0x3A3A3A))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(hex: 0x141414), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(4)
+                .background(Color(hex: 0x141414).opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                 .overlay {
-                    VStack(spacing: 6) {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 24, weight: .light))
-                            .foregroundStyle(Color(hex: 0x3A3A3A))
-                        Text("ADD")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Color(hex: 0x3A3A3A))
-                    }
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.05), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
                 }
         }
         .buttonStyle(TileButtonStyle())
