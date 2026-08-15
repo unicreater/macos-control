@@ -48,9 +48,10 @@ targets:
         CFBundleDisplayName: NosoDeck
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # Portrait only — landscape content in portrait frame (like ChocLift).
+        # Landscape only — phone sits sideways on desk (like ChocLift).
         UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UIRequiresFullScreen: true
         UILaunchScreen: {}
         # Dark-appearance only in v1; light mode is not yet designed.

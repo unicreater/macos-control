@@ -20,14 +20,8 @@ struct DeckView: View {
             topBar
                 .padding(.bottom, 14)
 
-            GeometryReader { geo in
-                let tileWidth = (geo.size.width - DeckGrid.gutter * 3) / 4
-                let gridHeight = tileWidth * 2 + DeckGrid.gutter
-
-                pages
-                    .frame(width: geo.size.width, height: gridHeight)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            pages
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             .opacity(model.session.state.deckOpacity)
             .disabled(!model.session.acceptsActions && !model.isEditing)
             .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
