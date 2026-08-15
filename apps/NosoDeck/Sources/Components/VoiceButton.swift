@@ -189,6 +189,12 @@ final class SpeechRecognizer: ObservableObject {
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        // Bias recognition toward product/tech terms it might not know
+        request.contextualStrings = [
+            "NosoDeck", "Noso Deck", "ChocLift",
+            "Warp", "SwiftUI", "Xcode", "macOS",
+            "Bonjour", "Claude", "ChatGPT"
+        ]
 
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
