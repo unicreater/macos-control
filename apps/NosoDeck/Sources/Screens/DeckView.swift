@@ -27,10 +27,10 @@ struct DeckView: View {
             let landscapeH = portraitW
 
             HStack(spacing: 6) {
-                // Mic button — LEFT in landscape = phone BOTTOM after -90° rotation
-                // Half the height of an app icon
+                // Mic tile — same width as app tiles but half height
                 GeometryReader { cellGeo in
-                    let iconSize = min(cellGeo.size.width, cellGeo.size.height / 2) * 0.8
+                    let tileW = (cellGeo.size.width - DeckGrid.gutter * 3) / 4
+                    let tileH = tileW * 0.5
                     VStack {
                         Spacer()
                         Button {
@@ -44,23 +44,25 @@ struct DeckView: View {
                             }
                         } label: {
                             Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                                .font(.system(size: 24))
+                                .font(.system(size: 22))
                                 .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                                .frame(width: iconSize * 0.5, height: iconSize * 0.5)
-                                .background(
-                                    voiceRecognizer.isRecording ? DeckColor.redBackground : Color.white.opacity(0.05),
-                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                )
+                                .frame(width: tileW, height: tileH)
+                                .background(Color.white.opacity(voiceRecognizer.isRecording ? 0.12 : 0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: tileH * 0.35, style: .continuous))
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: tileH * 0.35, style: .continuous)
+                                        .strokeBorder(
+                                            voiceRecognizer.isRecording ? DeckColor.red.opacity(0.4) : Color.white.opacity(0.1),
+                                            lineWidth: 1
+                                        )
                                 }
+                                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(TileButtonStyle())
                         Spacer()
                     }
                 }
-                .frame(width: 44)
+                .frame(width: 50)
 
                 // Grid + recents + page dots
                 VStack(spacing: 4) {
@@ -122,44 +124,57 @@ struct DeckView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Group {
-                if showRecents {
-                    recentsPage
-                        .background(DeckColor.chassis.ignoresSafeArea())
-                } else {
-                    deckContent
-                        .background(DeckColor.chassis.ignoresSafeArea())
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                Group {
+                    if showRecents {
+                        recentsPage
+                            .background(DeckColor.chassis.ignoresSafeArea())
+                    } else {
+                        deckContent
+                            .background(DeckColor.chassis.ignoresSafeArea())
+                    }
                 }
-            }
-            .tabItem {
-                Image(systemName: showRecents ? "clock.arrow.circlepath" : "square.grid.2x2")
-                Text(showRecents ? "History" : "Deck")
-            }
-            .tag(0)
-
-            SettingsView(model: model)
                 .tabItem {
-                    Image(systemName: "gearshape")
-                    Text("Settings")
+                    Image(systemName: "square.grid.2x2")
+                    Text("Deck")
                 }
-                .tag(1)
+                .tag(0)
 
-            // History tab — tapping toggles recents view
-            Color.clear
-                .tabItem {
-                    Image(systemName: "clock.arrow.circlepath")
-                    Text("History")
+                SettingsView(model: model)
+                    .tabItem {
+                        Image(systemName: "gearshape")
+                        Text("Settings")
+                    }
+                    .tag(1)
+            }
+            .tint(DeckColor.mint)
+            .onChange(of: selectedTab) { _, newValue in
+                if newValue != 0 { showRecents = false }
+            }
+
+            // Floating History button — separated from tab bar, bottom-trailing
+            HStack {
+                Spacer()
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if showRecents {
+                        showRecents = false
+                    } else {
+                        showRecents = true
+                        selectedTab = 0
+                    }
+                } label: {
+                    Image(systemName: showRecents ? "square.grid.2x2" : "clock.arrow.circlepath")
+                        .font(.system(size: 18))
+                        .foregroundStyle(showRecents ? DeckColor.mint : DeckColor.inkMuted)
+                        .frame(width: 48, height: 48)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                 }
-                .tag(2)
-        }
-        .tint(DeckColor.mint)
-        .onChange(of: selectedTab) { _, newValue in
-            if newValue == 2 {
-                showRecents.toggle()
-                selectedTab = 0
-            } else if newValue == 1 {
-                showRecents = false
+                .buttonStyle(.plain)
+                .padding(.trailing, 16)
+                .padding(.bottom, 58) // Above the tab bar
             }
         }
         .background {
