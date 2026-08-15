@@ -25,21 +25,27 @@ struct DeckView: View {
             let landscapeW = portraitH
             let landscapeH = portraitW
 
-            VStack(spacing: 0) {
-                topBar
-                    .padding(.bottom, 10)
+            HStack(spacing: 0) {
+                // Utility sidebar (voice, settings)
+                utilitySidebar
+                    .frame(width: 50)
 
-                pages
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(model.session.state.deckOpacity)
-                .disabled(!model.session.acceptsActions && !model.isEditing)
-                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+                VStack(spacing: 0) {
+                    topBar
+                        .padding(.bottom, 8)
 
-                bottomBar
-                    .padding(.top, DeckSpace.s)
+                    pages
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(model.session.state.deckOpacity)
+                    .disabled(!model.session.acceptsActions && !model.isEditing)
+                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+
+                    bottomBar
+                        .padding(.top, DeckSpace.s)
+                }
             }
-            .padding(.vertical, DeckSpace.m)
-            .padding(.horizontal, DeckSpace.xl)
+            .padding(.vertical, DeckSpace.s)
+            .padding(.horizontal, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             .rotationEffect(.degrees(-90))
@@ -125,19 +131,6 @@ struct DeckView: View {
                     }
                 }
 
-                Button { model.openSettings() } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 15))
-                        .foregroundStyle(DeckColor.inkMuted)
-                        .frame(width: 44, height: 44)
-                        .background(Color(hex: 0x1C1C1C), in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
-                                .strokeBorder(Color(hex: 0x2C2C2C), lineWidth: 1)
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Settings")
             }
         }
     }
@@ -287,14 +280,7 @@ struct DeckView: View {
 
     @ViewBuilder
     private func cell(page: Page, pageIndex: Int, slot: Int) -> some View {
-        if slot == page.tiles.count && pageIndex == 0 && !model.isEditing {
-            VoiceTile(
-                isEnabled: model.session.acceptsActions,
-                recognizer: voiceRecognizer
-            ) { text in
-                model.sendVoiceText(text)
-            }
-        } else if slot < page.tiles.count {
+        if slot < page.tiles.count {
             let tile = page.tiles[slot]
             let keycap = KeycapView(
                 tile: tile,
@@ -345,6 +331,51 @@ struct DeckView: View {
     private func openAddTile(page: Int) {
         model.setPage(page)
         isAddingTile = true
+    }
+
+    /// Utility sidebar — small icons for voice, settings, connection.
+    private var utilitySidebar: some View {
+        VStack(spacing: 12) {
+            // Connection indicator
+            Circle()
+                .fill(model.session.state.isLive ? DeckColor.mint : DeckColor.red)
+                .frame(width: 8, height: 8)
+
+            Spacer()
+
+            // Voice mic button
+            Button {
+                if voiceRecognizer.isRecording {
+                    voiceRecognizer.stop()
+                    let text = voiceRecognizer.sendableText
+                    if !text.isEmpty { model.sendVoiceText(text) }
+                    voiceRecognizer.clear()
+                } else {
+                    voiceRecognizer.start()
+                }
+            } label: {
+                Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        voiceRecognizer.isRecording ? DeckColor.redBackground : Color(hex: 0x1C1C1C),
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
+            }
+            .buttonStyle(.plain)
+
+            // Settings
+            Button { model.openSettings() } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 16))
+                    .foregroundStyle(DeckColor.inkMuted)
+                    .frame(width: 40, height: 40)
+                    .background(Color(hex: 0x1C1C1C), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 8)
     }
 
     private var paywallBinding: Binding<Bool> {

@@ -103,17 +103,20 @@ struct VoiceOverlay: View {
                             .foregroundStyle(DeckColor.red)
                     }
 
+                    // Waveform visualizer
+                    AudioWaveform(levels: recognizer.audioLevels, isRecording: recognizer.isRecording)
+                        .padding(.horizontal, 20)
+
                     if recognizer.transcript.isEmpty {
                         Text("Speak now...")
-                            .font(.system(size: 24, weight: .light))
+                            .font(.system(size: 20, weight: .light))
                             .foregroundStyle(DeckColor.inkMuted)
                     } else {
-                        // Show live cleaned version
                         Text(recognizer.cleanedTranscript.isEmpty ? recognizer.transcript : recognizer.cleanedTranscript)
-                            .font(.system(size: 20, weight: .regular))
+                            .font(.system(size: 18, weight: .regular))
                             .foregroundStyle(DeckColor.ink)
                             .multilineTextAlignment(.leading)
-                            .lineLimit(12)
+                            .lineLimit(8)
                             .padding(.horizontal, 30)
                     }
 

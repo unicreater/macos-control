@@ -79,6 +79,7 @@ final class SpeechRecognizer: ObservableObject {
     @Published var transcript = ""
     @Published var cleanedTranscript = ""
     @Published var isRecording = false
+    @Published var audioLevels: [CGFloat] = Array(repeating: 0, count: 40)
 
     private var audioEngine: AVAudioEngine?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -130,6 +131,32 @@ final class SpeechRecognizer: ObservableObject {
     func clear() {
         transcript = ""
         cleanedTranscript = ""
+        audioLevels = Array(repeating: 0, count: 40)
+    }
+
+    /// Extracts RMS audio levels from the buffer for waveform display.
+    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard let channelData = buffer.floatChannelData?[0] else { return }
+        let frameCount = Int(buffer.frameLength)
+        let bandCount = 40
+        let framesPerBand = max(frameCount / bandCount, 1)
+
+        var levels = [CGFloat](repeating: 0, count: bandCount)
+        for band in 0..<bandCount {
+            let start = band * framesPerBand
+            let end = min(start + framesPerBand, frameCount)
+            var sum: Float = 0
+            for i in start..<end {
+                sum += channelData[i] * channelData[i]
+            }
+            let rms = sqrt(sum / Float(max(end - start, 1)))
+            // Map RMS to 0...1 range (typical speech is 0.01-0.3)
+            levels[band] = CGFloat(min(rms * 5, 1))
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.audioLevels = levels
+        }
     }
 
     /// Cleans up raw speech transcript:
@@ -257,8 +284,10 @@ final class SpeechRecognizer: ObservableObject {
         let inputNode = engine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             request.append(buffer)
+            // Extract audio levels for waveform
+            self?.processAudioBuffer(buffer)
         }
 
         recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in

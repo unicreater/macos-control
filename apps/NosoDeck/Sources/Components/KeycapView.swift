@@ -23,7 +23,7 @@ struct KeycapView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let iconRadius: CGFloat = 22
+    private let iconRadius: CGFloat = 28
 
     var body: some View {
         Button {
