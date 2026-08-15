@@ -30,18 +30,39 @@ struct DeckView: View {
                 utilitySidebar
                     .frame(width: 60)
 
-                VStack(spacing: 4) {
-                    topBar
+                // Emoji column + grid side by side so they align at the same top
+                HStack(alignment: .top, spacing: 6) {
+                    // Emoji strip as a vertical column (= phone top edge after rotation)
+                    if model.isEmojiStripEnabled {
+                        VStack(spacing: 4) {
+                            EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
+                                model.send(emoji: emoji)
+                            }
+                            .rotationEffect(.degrees(90))
+                            .fixedSize()
+                        }
+                        .frame(width: 36)
+                    }
 
-                    pages
-                        .frame(maxWidth: .infinity)
-                    .opacity(model.session.state.deckOpacity)
-                    .disabled(!model.session.acceptsActions && !model.isEditing)
-                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+                    // Grid + bottom bar
+                    VStack(spacing: 4) {
+                        // Connection status
+                        ConnectionBanner(
+                            state: model.session.state,
+                            macName: model.connectedMacName ?? "Mac",
+                            onRetry: { model.beginDiscovery() }
+                        )
 
-                    Spacer(minLength: 0)
+                        pages
+                            .frame(maxWidth: .infinity)
+                        .opacity(model.session.state.deckOpacity)
+                        .disabled(!model.session.acceptsActions && !model.isEditing)
+                        .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
-                    bottomBar
+                        Spacer(minLength: 0)
+
+                        bottomBar
+                    }
                 }
             }
             .padding(.vertical, DeckSpace.s)
