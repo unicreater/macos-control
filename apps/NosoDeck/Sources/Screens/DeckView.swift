@@ -418,71 +418,54 @@ struct DeckView: View {
     }
 
 
-    /// App Time Travel — full page with recent apps in containers.
+    /// App Time Travel — stacked recent apps, most recent on right (= phone top).
     private var recentsPage: some View {
         GeometryReader { geo in
             let portraitW = geo.size.width
             let portraitH = geo.size.height
             let landscapeW = portraitH
             let landscapeH = portraitW
-            let iconSize = landscapeH / 2 * 0.7
+            let iconSize = landscapeH * 0.55
 
-            VStack(spacing: 8) {
-                Text("RECENT APPS")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(DeckColor.inkMuted)
+            HStack(spacing: -iconSize * 0.35) {
+                // Oldest first (left/bottom), most recent last (right/top)
+                ForEach(Array(model.macState.recents.reversed().enumerated()), id: \.element) { index, bundleID in
+                    let total = model.macState.recents.count
+                    let isMostRecent = index == total - 1
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(Array(model.macState.recents.enumerated()), id: \.element) { index, bundleID in
-                            let isFocused = index == 0 // Most recent = focused
-                            let size = isFocused ? iconSize * 1.15 : iconSize
-
-                            Button {
-                                model.activateRecent(bundleID)
-                            } label: {
-                                Group {
-                                    if let icon = model.icon(forBundleID: bundleID) {
-                                        icon.resizable().aspectRatio(contentMode: .fit)
-                                            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
-                                    } else {
-                                        let name = model.name(forBundleID: bundleID)
-                                        Text(String(name.prefix(1)).uppercased())
-                                            .font(.system(size: size * 0.35, weight: .bold))
-                                            .foregroundStyle(DeckColor.inkMuted)
-                                            .frame(width: size, height: size)
-                                            .background(Color(hex: 0x2A2A2A))
-                                            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
-                                    }
-                                }
-                                .frame(width: size, height: size)
-                                .padding(1.5)
-                                .background(Color.white.opacity(isFocused ? 0.12 : 0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: size * 0.22 + 1.5, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: size * 0.22 + 1.5, style: .continuous)
-                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                                }
-                                .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                    Button {
+                        model.activateRecent(bundleID)
+                    } label: {
+                        Group {
+                            if let icon = model.icon(forBundleID: bundleID) {
+                                icon.resizable().aspectRatio(contentMode: .fit)
+                                    .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.22, style: .continuous))
+                            } else {
+                                let name = model.name(forBundleID: bundleID)
+                                Text(String(name.prefix(1)).uppercased())
+                                    .font(.system(size: iconSize * 0.3, weight: .bold))
+                                    .foregroundStyle(DeckColor.ink)
+                                    .frame(width: iconSize, height: iconSize)
+                                    .background(Color(hex: 0x2A2A2A))
+                                    .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.22, style: .continuous))
                             }
-                            .buttonStyle(TileButtonStyle())
                         }
+                        .frame(width: isMostRecent ? iconSize * 1.1 : iconSize,
+                               height: isMostRecent ? iconSize * 1.1 : iconSize)
+                        .padding(1.5)
+                        .background(Color.white.opacity(isMostRecent ? 0.1 : 0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.22 + 1.5, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: iconSize * 0.22 + 1.5, style: .continuous)
+                                .strokeBorder(Color.white.opacity(isMostRecent ? 0.15 : 0.08), lineWidth: 1)
+                        }
+                        .shadow(color: .black.opacity(0.6), radius: 8, y: 4)
                     }
-                    .padding(.horizontal, 20)
+                    .buttonStyle(TileButtonStyle())
+                    .zIndex(Double(index)) // Most recent on top of stack
                 }
-
-                // Back hint
-                Button { showRecents = false } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "square.grid.2x2")
-                            .font(.system(size: 11))
-                        Text("Back to Deck")
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .foregroundStyle(DeckColor.inkMuted)
-                }
-                .buttonStyle(.plain)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(width: landscapeW, height: landscapeH)
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
