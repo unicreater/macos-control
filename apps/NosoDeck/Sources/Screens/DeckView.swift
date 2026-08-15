@@ -27,32 +27,36 @@ struct DeckView: View {
             let landscapeW = portraitH
             let landscapeH = portraitW
 
-            HStack(spacing: 0) {
-                // Tab bar on LEFT = phone BOTTOM after -90° rotation
-                tabBar(cellHeight: landscapeH / 2)
-                    .frame(width: 54)
+            TabView(selection: $selectedTab) {
+                // Deck tab
+                VStack(spacing: 4) {
+                    pages
+                        .frame(maxWidth: .infinity)
+                    .opacity(model.session.state.deckOpacity)
+                    .disabled(!model.session.acceptsActions && !model.isEditing)
+                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
-                // Content area
-                if selectedTab == 0 {
-                    VStack(spacing: 4) {
-                        pages
-                            .frame(maxWidth: .infinity)
-                        .opacity(model.session.state.deckOpacity)
-                        .disabled(!model.session.acceptsActions && !model.isEditing)
-                        .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+                    Spacer(minLength: 0)
 
-                        Spacer(minLength: 0)
-
-                        bottomBar
-                    }
-                } else {
-                    SettingsView(model: model)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    bottomBar
                 }
+                .padding(.vertical, DeckSpace.s)
+                .padding(.horizontal, DeckSpace.m)
+                .tabItem {
+                    Image(systemName: "square.grid.2x2")
+                    Text("Deck")
+                }
+                .tag(0)
+
+                // Settings tab
+                SettingsView(model: model)
+                    .tabItem {
+                        Image(systemName: "gearshape")
+                        Text("Settings")
+                    }
+                    .tag(1)
             }
-            .padding(.vertical, DeckSpace.s)
-            .padding(.leading, DeckSpace.xs)
-            .padding(.trailing, DeckSpace.m)
+            .accentColor(DeckColor.mint)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             // Voice overlay inside rotated frame so it's landscape
@@ -354,68 +358,6 @@ struct DeckView: View {
         isAddingTile = true
     }
 
-    /// Custom tab bar — Deck, Settings tabs + mic button (50% icon height).
-    private func tabBar(cellHeight: CGFloat) -> some View {
-        VStack(spacing: 12) {
-            // Mic button — 50% of app icon height
-            Button {
-                if voiceRecognizer.isRecording {
-                    voiceRecognizer.stop()
-                    let text = voiceRecognizer.sendableText
-                    if !text.isEmpty { model.sendVoiceText(text) }
-                    voiceRecognizer.clear()
-                } else {
-                    voiceRecognizer.start()
-                }
-            } label: {
-                Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                    .frame(width: 44, height: cellHeight * 0.4)
-                    .background(
-                        voiceRecognizer.isRecording ? DeckColor.redBackground : Color.white.opacity(0.05),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(
-                                voiceRecognizer.isRecording ? DeckColor.red.opacity(0.4) : Color.white.opacity(0.08),
-                                lineWidth: 1
-                            )
-                    }
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            // Deck tab
-            Button { selectedTab = 0 } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "square.grid.2x2")
-                        .font(.system(size: 18))
-                    Text("Deck")
-                        .font(.system(size: 9, weight: .medium))
-                }
-                .foregroundStyle(selectedTab == 0 ? DeckColor.ink : DeckColor.inkFaint)
-                .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-
-            // Settings tab
-            Button { selectedTab = 1 } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 18))
-                    Text("Settings")
-                        .font(.system(size: 9, weight: .medium))
-                }
-                .foregroundStyle(selectedTab == 1 ? DeckColor.ink : DeckColor.inkFaint)
-                .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, 6)
-    }
 
     private var paywallBinding: Binding<Bool> {
         Binding(
