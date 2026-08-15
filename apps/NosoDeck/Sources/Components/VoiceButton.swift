@@ -193,7 +193,42 @@ final class SpeechRecognizer: ObservableObject {
             text = result
         }
 
+        // Convert to bullet points if explicit markers found
+        text = bulletize(text)
+
         return text
+    }
+
+    /// Splits on explicit numbered markers: first/second/third etc.
+    private static func bulletize(_ text: String) -> String {
+        let splitPattern = "(?i)(?:(?:first(?:ly)?|second(?:ly)?|third(?:ly)?|fourth(?:ly)?|number (?:one|two|three|four|five|six|seven|eight))[,:]?\\s*)"
+
+        guard let regex = try? NSRegularExpression(pattern: splitPattern) else { return text }
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        guard matches.count >= 2 else { return text }
+
+        var points: [String] = []
+        var lastEnd = text.startIndex
+
+        for match in matches {
+            guard let range = Range(match.range, in: text) else { continue }
+            let before = String(text[lastEnd..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !before.isEmpty { points.append(before) }
+            lastEnd = range.upperBound
+        }
+        let remaining = String(text[lastEnd...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        if !remaining.isEmpty { points.append(remaining) }
+
+        guard points.count >= 2 else { return text }
+
+        return points.map { p in
+            var point = p
+            if let first = point.first, first.isLowercase {
+                point = first.uppercased() + point.dropFirst()
+            }
+            if point.hasSuffix(".") { point = String(point.dropLast()) }
+            return "• \(point)"
+        }.joined(separator: "\n")
     }
 
     private func beginRecording() {
