@@ -72,6 +72,7 @@ struct DeckView: View {
             PaywallView(store: model.entitlements, reason: model.paywallReason)
         }
         .task { await model.entitlements.start() }
+        .onAppear { voiceRecognizer.warmUp() }
         .confirmationDialog(
             "Unpair \(model.connectedMacName ?? "this Mac")?",
             isPresented: $isConfirmingUnpair,

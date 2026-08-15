@@ -87,13 +87,28 @@ final class SpeechRecognizer: ObservableObject {
     /// The cleaned-up version ready to send.
     var sendableText: String { cleanedTranscript.isEmpty ? transcript : cleanedTranscript }
 
+    private var authStatus: SFSpeechRecognizerAuthorizationStatus?
+
+    /// Call on deck load to pre-authorize and avoid cold start lag on first tap.
+    func warmUp() {
+        SFSpeechRecognizer.requestAuthorization { [weak self] status in
+            DispatchQueue.main.async { self?.authStatus = status }
+        }
+    }
+
     func start() {
         guard !isRecording else { return }
 
-        SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            DispatchQueue.main.async {
-                guard status == .authorized else { return }
-                self?.beginRecording()
+        if let status = authStatus {
+            guard status == .authorized else { return }
+            beginRecording()
+        } else {
+            SFSpeechRecognizer.requestAuthorization { [weak self] status in
+                DispatchQueue.main.async {
+                    self?.authStatus = status
+                    guard status == .authorized else { return }
+                    self?.beginRecording()
+                }
             }
         }
     }
