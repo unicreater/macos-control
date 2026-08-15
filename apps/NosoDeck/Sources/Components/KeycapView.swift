@@ -30,10 +30,9 @@ struct KeycapView: View {
             onTap()
         } label: {
             iconView
-                .scaleEffect(0.9)
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(1)
+                .padding(1.5)
                 .background(
                     activity == .frontmost
                         ? Color.white.opacity(0.12)
