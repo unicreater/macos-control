@@ -31,26 +31,20 @@ struct KeycapView: View {
         } label: {
             iconView
                 .aspectRatio(1, contentMode: .fit)
+                .padding(8) // Icon is ~90% of container
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(3)
-                .background(Color(hex: 0x1A1A1A).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: iconRadius + 3, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: iconRadius + 3, style: .continuous)
-                        .strokeBorder(
-                            activity == .frontmost
-                                ? DeckColor.mint.opacity(0.5)
-                                : Color.white.opacity(0.08),
-                            lineWidth: activity == .frontmost ? 2 : 1
-                        )
-                }
-                .shadow(color: .black.opacity(0.5), radius: 8, y: 4)
-                .overlay(alignment: .topTrailing) { runningLED }
+                .background(
+                    activity == .frontmost
+                        ? Color(hex: 0x3A3A3A) // Darker for active
+                        : Color(hex: 0x2A2A2A)  // Light warm grey
+                )
+                .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
                 .overlay(alignment: .topLeading) { removeBadge }
         }
         .buttonStyle(TileButtonStyle())
         .aspectRatio(1, contentMode: .fit)
         .scaleEffect(isDragging ? 1.04 : 1)
+        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
         .rotationEffect(.degrees(rotation))
         .animation(reduceMotion ? nil : DeckMotion.stateChange, value: activity)
         .accessibilityElement(children: .ignore)
@@ -96,22 +90,6 @@ struct KeycapView: View {
         return URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=128")
     }
 
-    /// Running is a mint LED, 8pt, top-right, with a glow.
-    @ViewBuilder
-    private var runningLED: some View {
-        if activity == .running || activity == .frontmost {
-            ZStack {
-                Circle()
-                    .fill(DeckColor.mint.opacity(0.2))
-                    .frame(width: 16, height: 16)
-                Circle()
-                    .fill(DeckColor.mint)
-                    .frame(width: 8, height: 8)
-                    .shadow(color: DeckColor.mint, radius: 4)
-            }
-            .padding(2)
-        }
-    }
 
     @ViewBuilder
     private var removeBadge: some View {
