@@ -26,46 +26,7 @@ struct DeckView: View {
             let landscapeW = portraitH
             let landscapeH = portraitW
 
-            HStack(spacing: 6) {
-                // Mic tile — same width as app tiles but half height
-                GeometryReader { cellGeo in
-                    let tileW = (cellGeo.size.width - DeckGrid.gutter * 3) / 4
-                    let tileH = tileW * 0.5
-                    VStack {
-                        Spacer()
-                        Button {
-                            if voiceRecognizer.isRecording {
-                                voiceRecognizer.stop()
-                                let text = voiceRecognizer.sendableText
-                                if !text.isEmpty { model.sendVoiceText(text) }
-                                voiceRecognizer.clear()
-                            } else {
-                                voiceRecognizer.start()
-                            }
-                        } label: {
-                            Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                                .font(.system(size: 22))
-                                .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                                .frame(width: tileW, height: tileH)
-                                .background(Color.white.opacity(voiceRecognizer.isRecording ? 0.12 : 0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: tileH * 0.35, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: tileH * 0.35, style: .continuous)
-                                        .strokeBorder(
-                                            voiceRecognizer.isRecording ? DeckColor.red.opacity(0.4) : Color.white.opacity(0.1),
-                                            lineWidth: 1
-                                        )
-                                }
-                                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
-                        }
-                        .buttonStyle(TileButtonStyle())
-                        Spacer()
-                    }
-                }
-                .frame(width: 50)
-
-                // Grid + recents + page dots
-                VStack(spacing: 4) {
+            VStack(spacing: 4) {
                     pages
                         .frame(maxWidth: .infinity)
                     .opacity(model.session.state.deckOpacity)
@@ -76,10 +37,8 @@ struct DeckView: View {
 
                     bottomBar
                 }
-            }
             .padding(.vertical, DeckSpace.s)
-            .padding(.leading, DeckSpace.xs)
-            .padding(.trailing, DeckSpace.l)
+            .padding(.horizontal, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             .overlay {
@@ -153,9 +112,32 @@ struct DeckView: View {
                 if newValue != 0 { showRecents = false }
             }
 
-            // Floating History button — separated from tab bar, bottom-trailing
-            HStack {
+            // Floating buttons — bottom-trailing, above tab bar
+            HStack(spacing: 12) {
                 Spacer()
+
+                // Mic button
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if voiceRecognizer.isRecording {
+                        voiceRecognizer.stop()
+                        let text = voiceRecognizer.sendableText
+                        if !text.isEmpty { model.sendVoiceText(text) }
+                        voiceRecognizer.clear()
+                    } else {
+                        voiceRecognizer.start()
+                    }
+                } label: {
+                    Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                        .frame(width: 44, height: 44)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                }
+                .buttonStyle(.plain)
+
+                // History toggle
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if showRecents {
@@ -168,14 +150,14 @@ struct DeckView: View {
                     Image(systemName: showRecents ? "square.grid.2x2" : "clock.arrow.circlepath")
                         .font(.system(size: 18))
                         .foregroundStyle(showRecents ? DeckColor.mint : DeckColor.inkMuted)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                         .background(.ultraThinMaterial, in: Circle())
                         .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, 16)
-                .padding(.bottom, 58) // Above the tab bar
             }
+            .padding(.trailing, 16)
+            .padding(.bottom, 58)
         }
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
@@ -454,36 +436,8 @@ struct DeckView: View {
                         let size = isFocused ? focusedSize : baseSize
                         let radius = size * 0.22
 
-                        Button {
-                            model.activateRecent(bundleID)
-                        } label: {
-                            Group {
-                                if let icon = model.icon(forBundleID: bundleID) {
-                                    icon.resizable().aspectRatio(contentMode: .fit)
-                                        .renderingMode(.original)
-                                        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-                                } else {
-                                    let name = model.name(forBundleID: bundleID)
-                                    Text(String(name.prefix(1)).uppercased())
-                                        .font(.system(size: size * 0.3, weight: .bold))
-                                        .foregroundStyle(DeckColor.ink)
-                                        .frame(width: size, height: size)
-                                        .background(Color(hex: 0x2A2A2A))
-                                        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-                                }
-                            }
-                            .frame(width: size, height: size)
-                            .padding(1.5)
-                            .background(Color.white.opacity(isFocused ? 0.12 : 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(isFocused ? 0.15 : 0.1), lineWidth: 1)
-                            }
-                            .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
-                        }
-                        .buttonStyle(TileButtonStyle())
-                        .zIndex(Double(index))
+                        recentTile(bundleID: bundleID, size: size, isFocused: isFocused)
+                            .zIndex(Double(index))
                     }
                 }
                 .padding(.horizontal, 30)
@@ -492,6 +446,41 @@ struct DeckView: View {
             .frame(width: landscapeW, height: landscapeH)
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
+        }
+    }
+
+    private func recentTile(bundleID: String, size: CGFloat, isFocused: Bool) -> some View {
+        let radius = size * 0.22
+        return Button {
+            model.activateRecent(bundleID)
+        } label: {
+            recentIcon(bundleID: bundleID, size: size, radius: radius)
+                .padding(1.5)
+                .background(Color.white.opacity(isFocused ? 0.12 : 0.05))
+                .clipShape(RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous)
+                        .strokeBorder(Color.white.opacity(isFocused ? 0.15 : 0.1), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+        }
+        .buttonStyle(TileButtonStyle())
+    }
+
+    @ViewBuilder
+    private func recentIcon(bundleID: String, size: CGFloat, radius: CGFloat) -> some View {
+        if let icon = model.icon(forBundleID: bundleID) {
+            icon.renderingMode(.original)
+                .resizable().aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+        } else {
+            Text(String(model.name(forBundleID: bundleID).prefix(1)).uppercased())
+                .font(.system(size: size * 0.3, weight: .bold))
+                .foregroundStyle(DeckColor.ink)
+                .frame(width: size, height: size)
+                .background(Color(hex: 0x2A2A2A))
+                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         }
     }
 
