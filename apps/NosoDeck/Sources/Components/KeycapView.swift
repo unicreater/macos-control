@@ -151,20 +151,23 @@ struct EmptySlotView: View {
 
     var body: some View {
         Button(action: onTap) {
-            Image(systemName: "plus")
-                .font(.system(size: 28, weight: .light))
-                .foregroundStyle(Color(hex: 0x3A3A3A))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(4)
-                .background(Color(hex: 0x141414).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.05), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
-                }
+            GeometryReader { geo in
+                let size = min(geo.size.width, geo.size.height) * 0.8
+                Image(systemName: "plus")
+                    .font(.system(size: 28, weight: .light))
+                    .foregroundStyle(Color(hex: 0x3A3A3A))
+                    .frame(width: size, height: size)
+                    .background(Color(hex: 0x141414).opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.05), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .aspectRatio(1, contentMode: .fit)
         }
         .buttonStyle(TileButtonStyle())
-        .aspectRatio(1, contentMode: .fit)
         .accessibilityLabel("Add tile")
     }
 }

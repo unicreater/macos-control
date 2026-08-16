@@ -107,6 +107,17 @@ final class AppModel {
         }
     }
 
+    #if DEBUG
+    /// Minimal init for SwiftUI previews — no networking, no Bonjour.
+    static func preview(tiles: [Tile] = [], macState: MacState = .unknown) -> AppModel {
+        let m = AppModel()
+        m.deck = Deck(pages: [Page(tiles: tiles)])
+        m.macState = macState
+        m.route = .deck
+        return m
+    }
+    #endif
+
     var connectedMacName: String? { pairing.device?.name }
 
     /// The Mac being talked to, refreshed from the live browse results so a reconnect
@@ -478,6 +489,14 @@ final class AppModel {
         Task {
             try? await Task.sleep(for: .seconds(3))
             self.requestMissingIcons()
+        }
+    }
+
+    /// Request icons for every app in the catalog (used by AddTileView).
+    func requestAllIcons() {
+        for entry in catalog {
+            guard icons.shouldRequest(hash: entry.iconHash), let hash = entry.iconHash else { continue }
+            client.send(.iconRequest(IconRequest(hash: hash)))
         }
     }
 

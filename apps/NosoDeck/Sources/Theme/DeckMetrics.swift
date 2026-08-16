@@ -7,6 +7,8 @@ enum DeckSpace {
     static let m: CGFloat = 12
     static let l: CGFloat = 16
     static let xl: CGFloat = 24
+    static let xxl: CGFloat = 32
+    static let xxxl: CGFloat = 40
     /// The landscape safe-area inset. Nothing interactive sits inside it.
     static let safeInset: CGFloat = 34
 }
@@ -28,7 +30,7 @@ enum DeckGrid {
     // Keep the old constants for backward compat
     static let columns = 4
     static let rows = 2
-    static let gutter: CGFloat = 6
+    static let gutter: CGFloat = 2
     static let topPadding: CGFloat = 16
     static let bottomPadding: CGFloat = 14
     static let recentsColumnWidth: CGFloat = 92

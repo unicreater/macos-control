@@ -13,8 +13,7 @@ struct DeckView: View {
     @State private var isAddingTile = false
     @StateObject private var voiceRecognizer = SpeechRecognizer()
     @State private var showEmojiOverlay = false
-    @State private var showRecents = false
-    @State private var selectedTab = 0 // 0 = Deck, 1 = Settings, 2 = triggers recents
+    @State var selectedTab = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
 
@@ -29,7 +28,7 @@ struct DeckView: View {
             VStack(spacing: 4) {
                     pages
                         .frame(maxWidth: .infinity)
-                    .opacity(model.session.state.deckOpacity)
+//                    .opacity(model.session.state.deckOpacity)
                     .disabled(!model.session.acceptsActions && !model.isEditing)
                     .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
@@ -37,8 +36,8 @@ struct DeckView: View {
 
                     bottomBar
                 }
-            .padding(.vertical, DeckSpace.s)
-            .padding(.leading, DeckSpace.l) // Extra space on LEFT = phone BOTTOM (floating buttons)
+            .padding(.vertical, DeckSpace.xl)
+            .padding(.leading, DeckSpace.xxxl) // Extra space on LEFT = phone BOTTOM (floating buttons)
             .padding(.trailing, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
@@ -69,55 +68,7 @@ struct DeckView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
-            .gesture(
-                DragGesture(minimumDistance: 40)
-                    .onEnded { value in
-                        // Swipe down in landscape → show emoji
-                        if value.translation.height > 50 && abs(value.translation.height) > abs(value.translation.width) {
-                            showEmojiOverlay = true
-                        }
-                    }
-            )
-            .rotationEffect(.degrees(-90))
-            .frame(width: portraitW, height: portraitH)
-        }
-    }
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
-                Group {
-                    if showRecents {
-                        recentsPage
-                            .background(DeckColor.chassis.ignoresSafeArea())
-                    } else {
-                        deckContent
-                            .background(DeckColor.chassis.ignoresSafeArea())
-                    }
-                }
-                .tabItem {
-                    Image(systemName: "square.grid.2x2")
-                    Text("Deck")
-                }
-                .tag(0)
-
-                SettingsView(model: model)
-                    .tabItem {
-                        Image(systemName: "gearshape")
-                        Text("Settings")
-                    }
-                    .tag(1)
-            }
-            .tint(DeckColor.mint)
-            .onChange(of: selectedTab) { _, newValue in
-                if newValue != 0 { showRecents = false }
-            }
-
-            // Floating buttons — bottom-trailing, above tab bar
-            HStack(spacing: 12) {
-                Spacer()
-
-                // Mic button
+            .overlay(alignment: .bottomTrailing) {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if voiceRecognizer.isRecording {
@@ -137,35 +88,50 @@ struct DeckView: View {
                         .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                 }
                 .buttonStyle(.plain)
-
-                // History toggle
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if showRecents {
-                        showRecents = false
-                    } else {
-                        showRecents = true
-                        selectedTab = 0
-                    }
-                } label: {
-                    Image(systemName: showRecents ? "square.grid.2x2" : "clock.arrow.circlepath")
-                        .font(.system(size: 18))
-                        .foregroundStyle(showRecents ? DeckColor.mint : DeckColor.inkMuted)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
-                }
-                .buttonStyle(.plain)
+                .padding(.trailing, 16)
+                .padding(.bottom, 12)
             }
-            .padding(.trailing, 16)
-            .padding(.bottom, 58)
+            .gesture(
+                DragGesture(minimumDistance: 40)
+                    .onEnded { value in
+                        // Swipe down in landscape → show emoji
+                        if value.translation.height > 50 && abs(value.translation.height) > abs(value.translation.width) {
+                            showEmojiOverlay = true
+                        }
+                    }
+            )
+            .rotationEffect(.degrees(-90))
+            .frame(width: portraitW, height: portraitH)
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                Tab("Deck", systemImage: "square.grid.2x2", value: 0) {
+                    deckContent
+                        .background(DeckColor.chassis.ignoresSafeArea())
+                }
+
+                Tab("Settings", systemImage: "gearshape", value: 1) {
+                    landscapeRotated {
+                        SettingsView(model: model)
+                    }
+                }
+
+                Tab("History", systemImage: "clock.arrow.circlepath", value: 2, role: .search) {
+                    HistoryView(model: model)
+                        .toolbarBackground(.hidden, for: .tabBar)
+                        .scrollContentBackground(.hidden)
+                }
+            }
+            .tint(DeckColor.mint)
         }
         .background {
             WindowGestureInstaller(onAction: { model.sendGesture($0) })
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
-                .rotationEffect(.degrees(-90))
         }
         .sheet(isPresented: paywallBinding) {
             PaywallView(store: model.entitlements, reason: model.paywallReason)
@@ -329,8 +295,11 @@ struct DeckView: View {
     private var pages: some View {
         TabView(selection: pageBinding) {
             ForEach(0..<model.pageCount, id: \.self) { pageIndex in
-                grid(pageIndex: pageIndex)
-                    .tag(pageIndex)
+                VStack {
+                    grid(pageIndex: pageIndex)
+                    Spacer(minLength: 0)
+                }
+                .tag(pageIndex)
             }
             if hasAISessions {
                 AISessionsView(
@@ -417,50 +386,6 @@ struct DeckView: View {
     }
 
 
-    /// App Time Travel — scrollable stacked recent apps.
-    private var recentsPage: some View {
-        GeometryReader { geo in
-            let portraitW = geo.size.width
-            let portraitH = geo.size.height
-            let landscapeW = portraitH
-            let landscapeH = portraitW
-            let baseSize = landscapeH * 0.38
-            let focusedSize = baseSize * 1.15
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: -baseSize * 0.25) {
-                    let recents = model.macState.recents.reversed() as [String]
-                    let total = recents.count
-                    let midIndex = total / 2
-
-                    ForEach(Array(recents.enumerated()), id: \.element) { index, bundleID in
-                        let isFocused = index == midIndex
-                        let size = isFocused ? focusedSize : baseSize
-                        let radius = size * 0.22
-
-                        let tile = Tile(target: .app(bundleID: bundleID), label: model.name(forBundleID: bundleID))
-                        KeycapView(
-                            tile: tile,
-                            activity: model.macState.tileState(for: tile.target),
-                            icon: model.icon(forBundleID: bundleID),
-                            onTap: {
-                                model.activateRecent(bundleID)
-                            }
-                        )
-                        .frame(width: isFocused ? focusedSize : baseSize,
-                               height: isFocused ? focusedSize : baseSize)
-                        .zIndex(Double(index))
-                    }
-                }
-                .padding(.horizontal, 30)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .frame(width: landscapeW, height: landscapeH)
-            .rotationEffect(.degrees(-90))
-            .frame(width: portraitW, height: portraitH)
-        }
-    }
-
     private var paywallBinding: Binding<Bool> {
         Binding(
             get: { model.isShowingPaywall },
@@ -475,4 +400,34 @@ struct DeckView: View {
         )
     }
 
+    private func landscapeRotated<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
+        GeometryReader { geo in
+            let portraitW = geo.size.width
+            let portraitH = geo.size.height
+            let landscapeW = portraitH
+            let landscapeH = portraitW
+
+            content()
+                .frame(width: landscapeW, height: landscapeH)
+                .background(DeckColor.chassis)
+                .rotationEffect(.degrees(-90))
+                .frame(width: portraitW, height: portraitH)
+        }
+    }
+
 }
+
+#if DEBUG
+#Preview("Deck Grid") {
+    let model = AppModel.preview(tiles: [
+        Tile(target: .app(bundleID: "com.apple.Safari"), label: "Safari", emoji: "🧭"),
+        Tile(target: .app(bundleID: "com.apple.Music"), label: "Music", emoji: "🎵"),
+        Tile(target: .app(bundleID: "com.apple.Notes"), label: "Notes", emoji: "📝"),
+        Tile(target: .shortcut(name: "Focus"), label: "Focus", emoji: "🎯"),
+        Tile(target: .app(bundleID: "com.apple.Xcode"), label: "Xcode", emoji: "🔨"),
+    ])
+    DeckView(model: model)
+        .preferredColorScheme(.dark)
+}
+
+#endif
