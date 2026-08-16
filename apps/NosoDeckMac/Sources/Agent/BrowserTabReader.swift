@@ -8,19 +8,25 @@ struct BrowserTabReader {
 
     func tabs() -> [BrowserTab] {
         var result: [BrowserTab] = []
-        // Try each browser — only running ones will respond.
         result.append(contentsOf: chromiumTabs(app: "Google Chrome"))
-        result.append(contentsOf: chromiumTabs(app: "Arc"))
+        result.append(contentsOf: arcTabs())
         result.append(contentsOf: chromiumTabs(app: "Microsoft Edge"))
         result.append(contentsOf: chromiumTabs(app: "Brave Browser"))
         result.append(contentsOf: safariTabs())
-        // Deduplicate by URL
-        var seen: Set<String> = []
-        return result.filter { seen.insert($0.url).inserted }
+        return result
     }
 
+    private static let browserBundleIDs: [String: String] = [
+        "Google Chrome": "com.google.Chrome",
+        "Arc": "company.thebrowser.Browser",
+        "Microsoft Edge": "com.microsoft.edgemac",
+        "Brave Browser": "com.brave.Browser",
+        "Safari": "com.apple.Safari",
+    ]
+
     private func safariTabs() -> [BrowserTab] {
-        guard isRunning("com.apple.Safari") else { return [] }
+        let bundleID = Self.browserBundleIDs["Safari"]!
+        guard isRunning(bundleID) else { return [] }
         let script = """
         tell application "Safari"
             set tabList to ""
@@ -32,17 +38,32 @@ struct BrowserTabReader {
             return tabList
         end tell
         """
-        return parseTabs(runAppleScript(script))
+        return parseTabs(runAppleScript(script), browser: "Safari", bundleID: bundleID)
+    }
+
+    /// Arc-specific: only get tabs from the active space, not pinned/favorites.
+    private func arcTabs() -> [BrowserTab] {
+        let bundleID = Self.browserBundleIDs["Arc"]!
+        guard isRunning(bundleID) else { return [] }
+        let script = """
+        tell application "Arc"
+            set tabList to ""
+            repeat with w in windows
+                repeat with t in tabs of w
+                    set tabURL to URL of t
+                    if tabURL starts with "http" then
+                        set tabList to tabList & title of t & "\\t" & tabURL & "\\n"
+                    end if
+                end repeat
+            end repeat
+            return tabList
+        end tell
+        """
+        return parseTabs(runAppleScript(script), browser: "Arc", bundleID: bundleID)
     }
 
     private func chromiumTabs(app: String) -> [BrowserTab] {
-        let bundleIDs: [String: String] = [
-            "Google Chrome": "com.google.Chrome",
-            "Arc": "company.thebrowser.Browser",
-            "Microsoft Edge": "com.microsoft.edgemac",
-            "Brave Browser": "com.brave.Browser",
-        ]
-        guard let bundleID = bundleIDs[app], isRunning(bundleID) else { return [] }
+        guard let bundleID = Self.browserBundleIDs[app], isRunning(bundleID) else { return [] }
         let script = """
         tell application "\(app)"
             set tabList to ""
@@ -54,19 +75,18 @@ struct BrowserTabReader {
             return tabList
         end tell
         """
-        return parseTabs(runAppleScript(script))
+        return parseTabs(runAppleScript(script), browser: app, bundleID: bundleID)
     }
 
-    private func parseTabs(_ raw: String) -> [BrowserTab] {
+    private func parseTabs(_ raw: String, browser: String, bundleID: String) -> [BrowserTab] {
         raw.components(separatedBy: "\n")
             .filter { !$0.isEmpty }
             .compactMap { line in
                 let parts = line.components(separatedBy: "\t")
                 guard parts.count >= 2, !parts[1].isEmpty else { return nil }
                 let url = parts[1]
-                // Skip internal pages
                 guard url.hasPrefix("http://") || url.hasPrefix("https://") else { return nil }
-                return BrowserTab(title: parts[0], url: url)
+                return BrowserTab(title: parts[0], url: url, browser: browser, browserBundleID: bundleID)
             }
     }
 

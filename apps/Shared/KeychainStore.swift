@@ -58,7 +58,8 @@ struct KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecUseDataProtectionKeychain as String: true
         ]
         query[kSecReturnData as String] = false
 
@@ -74,7 +75,8 @@ struct KeychainStore {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account
+            kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: true
         ]
     }
 }

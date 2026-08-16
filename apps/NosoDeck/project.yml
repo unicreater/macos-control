@@ -6,7 +6,7 @@ options:
   bundleIdPrefix: com.noso.nosodeck
   createIntermediateGroups: true
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
 
 packages:
   DeckKit:

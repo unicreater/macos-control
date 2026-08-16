@@ -98,6 +98,16 @@ struct SettingsView: View {
                             }
                     }
                     .buttonStyle(.plain)
+                } else {
+                    Button { model.beginDiscovery() } label: {
+                        Text("Pair Mac")
+                            .deckFont(.legend)
+                            .foregroundStyle(DeckColor.onMint)
+                            .padding(.horizontal, DeckSpace.m)
+                            .frame(height: 36)
+                            .background(DeckColor.mint, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

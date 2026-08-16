@@ -26,6 +26,8 @@ struct DeckView: View {
             let landscapeH = portraitW
 
             VStack(spacing: 4) {
+                    topBar
+
                     pages
                         .frame(maxWidth: .infinity)
 //                    .opacity(model.session.state.deckOpacity)
@@ -40,7 +42,7 @@ struct DeckView: View {
             .padding(.leading, DeckSpace.xxxl) // Extra space on LEFT = phone BOTTOM (floating buttons)
             .padding(.trailing, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
-            .background(DeckColor.chassis)
+            .background(DeckColor.chassis.ignoresSafeArea())
             .overlay {
                 VoiceOverlay(recognizer: voiceRecognizer) {
                     let text = voiceRecognizer.sendableText
@@ -311,7 +313,7 @@ struct DeckView: View {
                 )
                 .tag(aiPageTag)
             }
-        }
+        }   
         .tabViewStyle(.page(indexDisplayMode: .never))
     }
 
@@ -409,7 +411,7 @@ struct DeckView: View {
 
             content()
                 .frame(width: landscapeW, height: landscapeH)
-                .background(DeckColor.chassis)
+                .background(DeckColor.chassis.ignoresSafeArea())
                 .rotationEffect(.degrees(-90))
                 .frame(width: portraitW, height: portraitH)
         }

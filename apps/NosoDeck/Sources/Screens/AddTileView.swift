@@ -16,6 +16,7 @@ struct AddTileView: View {
     @State private var label = ""
     @State private var emoji = "⚡️"
     @State private var hasAcceptedAutomationPrompt = false
+    @State private var disabledBrowsers: Set<String> = []
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -292,32 +293,145 @@ struct AddTileView: View {
 
     // MARK: - Website
 
-    private var websiteTab: some View {
-        VStack(alignment: .leading, spacing: DeckSpace.m) {
-            TextField("https://example.com", text: $urlText)
-                .textFieldStyle(.plain)
-                .deckFont(.body)
-                .foregroundStyle(DeckColor.ink)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .padding(.horizontal, DeckSpace.m)
-                .frame(height: 38)
-                .background(Color(hex: 0x141414), in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
-                        .strokeBorder(isURLValid ? DeckColor.strokeSubtle : DeckColor.red, lineWidth: isURLValid ? 1 : 2)
-                }
+    /// Browsers present in the current tab list, in stable order.
+    private var activeBrowsers: [String] {
+        var seen: Set<String> = []
+        return model.browserTabs.compactMap { tab in
+            guard !tab.browser.isEmpty else { return nil }
+            return seen.insert(tab.browser).inserted ? tab.browser : nil
+        }
+    }
 
-            if !isURLValid && !urlText.isEmpty {
-                Text("Needs a valid http(s) address")
-                    .deckFont(.bodySmall)
-                    .foregroundStyle(DeckColor.redInk)
+    /// Tabs filtered by enabled browsers.
+    private var visibleTabs: [BrowserTab] {
+        model.browserTabs.filter { !disabledBrowsers.contains($0.browser) }
+    }
+
+    private var websiteTab: some View {
+        HStack(alignment: .top, spacing: 0) {
+            // Left: browser sidebar
+            if !model.browserTabs.isEmpty {
+                browserSidebar
             }
 
-            emojiPicker
+            // Right: tabs list or loader
+            if model.browserTabs.isEmpty {
+                VStack(spacing: DeckSpace.m) {
+                    Spacer()
+                    ProgressView()
+                        .tint(DeckColor.inkMuted)
+                    Text("Loading tabs from your Mac…")
+                        .deckFont(.bodySmall)
+                        .foregroundStyle(DeckColor.inkMuted)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            } else if visibleTabs.isEmpty {
+                emptyState("All browsers hidden — tap one to show its tabs")
+                    .frame(maxWidth: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 7) {
+                        ForEach(visibleTabs, id: \.url) { tab in
+                            browserTabRow(tab)
+                        }
+                    }
+                    .padding(.bottom, 72)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
+        }
+    }
+
+    /// The bundleID for the first tab of a given browser name.
+    private func bundleID(for browser: String) -> String? {
+        model.browserTabs.first { $0.browser == browser }?.browserBundleID
+    }
+
+    /// Real app icon for a browser, falling back to SF Symbol.
+    @ViewBuilder
+    private func browserIconView(_ bundleID: String?, size: CGFloat) -> some View {
+        if let bundleID, let icon = model.icon(forBundleID: bundleID) {
+            icon.resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
+        } else {
+            Image(systemName: "globe")
+                .font(.system(size: size * 0.5))
+                .foregroundStyle(DeckColor.inkMuted)
+                .frame(width: size, height: size)
+        }
+    }
+
+    /// Left sidebar: vertical strip of browser icons. Tap to toggle that browser's tabs.
+    private var browserSidebar: some View {
+        VStack(spacing: DeckSpace.s) {
+            ForEach(activeBrowsers, id: \.self) { browser in
+                let isEnabled = !disabledBrowsers.contains(browser)
+                let bid = bundleID(for: browser)
+                Button {
+                    if isEnabled {
+                        disabledBrowsers.insert(browser)
+                    } else {
+                        disabledBrowsers.remove(browser)
+                    }
+                } label: {
+                    browserIconView(bid, size: 32)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            isEnabled ? DeckColor.surfaceRaised : .clear,
+                            in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                                .strokeBorder(isEnabled ? DeckColor.mint : Color(hex: 0x2C2C2C), lineWidth: 1)
+                        }
+                        .opacity(isEnabled ? 1 : 0.4)
+                }
+                .buttonStyle(.plain)
+            }
             Spacer(minLength: 0)
         }
+        .padding(.trailing, DeckSpace.s)
+    }
+
+    private func browserTabRow(_ tab: BrowserTab) -> some View {
+        let isSelected = urlText == tab.url
+        return Button {
+            urlText = tab.url
+            if label.isEmpty || label == "Tile" {
+                label = tab.title
+            }
+        } label: {
+            HStack(spacing: DeckSpace.s) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(tab.title)
+                        .deckFont(.body)
+                        .foregroundStyle(DeckColor.ink)
+                        .lineLimit(1)
+                    Text(tab.url)
+                        .deckFont(.meta)
+                        .foregroundStyle(DeckColor.inkMuted)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: DeckSpace.xs)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12))
+                        .foregroundStyle(DeckColor.mint)
+                }
+                browserIconView(tab.browserBundleID.isEmpty ? nil : tab.browserBundleID, size: 20)
+            }
+            .padding(.horizontal, DeckSpace.m)
+            .frame(minHeight: 46)
+            .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                    .strokeBorder(isSelected ? DeckColor.mint : .clear, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var emojiPicker: some View {
@@ -350,6 +464,9 @@ struct AddTileView: View {
         label = ""
         if kind == .shortcut && !model.shortcuts.isEmpty {
             hasAcceptedAutomationPrompt = true
+        }
+        if kind == .website {
+            model.requestBrowserTabs()
         }
     }
 

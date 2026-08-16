@@ -151,10 +151,16 @@ public struct ShortcutList: Codable, Hashable, Sendable {
 public struct BrowserTab: Codable, Hashable, Sendable {
     public var title: String
     public var url: String
+    /// Which browser this tab belongs to (e.g. "Safari", "Arc", "Google Chrome").
+    public var browser: String
+    /// The browser's bundle ID for icon lookup.
+    public var browserBundleID: String
 
-    public init(title: String, url: String) {
+    public init(title: String, url: String, browser: String = "", browserBundleID: String = "") {
         self.title = title
         self.url = url
+        self.browser = browser
+        self.browserBundleID = browserBundleID
     }
 }
 
