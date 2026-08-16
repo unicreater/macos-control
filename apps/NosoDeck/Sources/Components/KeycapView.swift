@@ -135,12 +135,11 @@ struct KeycapView: View {
     }
 }
 
-/// Press feedback — subtle scale + brightness shift. Spring physics for natural feel.
+/// Press feedback — scale only, no brightness change.
 struct TileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .brightness(configuration.isPressed ? -0.05 : 0)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

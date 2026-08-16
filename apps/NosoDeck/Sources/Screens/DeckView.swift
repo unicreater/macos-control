@@ -38,7 +38,8 @@ struct DeckView: View {
                     bottomBar
                 }
             .padding(.vertical, DeckSpace.s)
-            .padding(.horizontal, DeckSpace.m)
+            .padding(.leading, DeckSpace.l) // Extra space on LEFT = phone BOTTOM (floating buttons)
+            .padding(.trailing, DeckSpace.m)
             .frame(width: landscapeW, height: landscapeH)
             .background(DeckColor.chassis)
             .overlay {
@@ -164,6 +165,7 @@ struct DeckView: View {
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
+                .rotationEffect(.degrees(-90))
         }
         .sheet(isPresented: paywallBinding) {
             PaywallView(store: model.entitlements, reason: model.paywallReason)
