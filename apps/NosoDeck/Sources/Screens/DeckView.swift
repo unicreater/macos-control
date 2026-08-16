@@ -438,8 +438,18 @@ struct DeckView: View {
                         let size = isFocused ? focusedSize : baseSize
                         let radius = size * 0.22
 
-                        recentTile(bundleID: bundleID, size: size, isFocused: isFocused)
-                            .zIndex(Double(index))
+                        let tile = Tile(target: .app(bundleID: bundleID), label: model.name(forBundleID: bundleID))
+                        KeycapView(
+                            tile: tile,
+                            activity: model.macState.tileState(for: tile.target),
+                            icon: model.icon(forBundleID: bundleID),
+                            onTap: {
+                                model.activateRecent(bundleID)
+                            }
+                        )
+                        .frame(width: isFocused ? focusedSize : baseSize,
+                               height: isFocused ? focusedSize : baseSize)
+                        .zIndex(Double(index))
                     }
                 }
                 .padding(.horizontal, 30)
@@ -448,41 +458,6 @@ struct DeckView: View {
             .frame(width: landscapeW, height: landscapeH)
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
-        }
-    }
-
-    private func recentTile(bundleID: String, size: CGFloat, isFocused: Bool) -> some View {
-        let radius = size * 0.22
-        return Button {
-            model.activateRecent(bundleID)
-        } label: {
-            recentIcon(bundleID: bundleID, size: size, radius: radius)
-                .padding(1.5)
-                .background(Color.white.opacity(isFocused ? 0.12 : 0.05))
-                .clipShape(RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous)
-                        .strokeBorder(Color.white.opacity(isFocused ? 0.15 : 0.1), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
-        }
-        .buttonStyle(TileButtonStyle())
-    }
-
-    @ViewBuilder
-    private func recentIcon(bundleID: String, size: CGFloat, radius: CGFloat) -> some View {
-        if let icon = model.icon(forBundleID: bundleID) {
-            icon.renderingMode(.original)
-                .resizable().aspectRatio(contentMode: .fit)
-                .frame(width: size, height: size)
-                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-        } else {
-            Text(String(model.name(forBundleID: bundleID).prefix(1)).uppercased())
-                .font(.system(size: size * 0.3, weight: .bold))
-                .foregroundStyle(DeckColor.ink)
-                .frame(width: size, height: size)
-                .background(Color(hex: 0x2A2A2A))
-                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         }
     }
 
