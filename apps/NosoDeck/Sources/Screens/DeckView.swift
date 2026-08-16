@@ -460,6 +460,7 @@ struct DeckView: View {
                             Group {
                                 if let icon = model.icon(forBundleID: bundleID) {
                                     icon.resizable().aspectRatio(contentMode: .fit)
+                                        .renderingMode(.original)
                                         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
                                 } else {
                                     let name = model.name(forBundleID: bundleID)
@@ -473,13 +474,13 @@ struct DeckView: View {
                             }
                             .frame(width: size, height: size)
                             .padding(1.5)
-                            .background(Color(hex: isFocused ? 0x3A3A3A : 0x2A2A2A))
+                            .background(Color.white.opacity(isFocused ? 0.12 : 0.05))
                             .clipShape(RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: radius + 1.5, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(isFocused ? 0.2 : 0.1), lineWidth: 1)
+                                    .strokeBorder(Color.white.opacity(isFocused ? 0.15 : 0.1), lineWidth: 1)
                             }
-                            .shadow(color: .black.opacity(0.5), radius: 6, y: 3)
+                            .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                         }
                         .buttonStyle(TileButtonStyle())
                         .zIndex(Double(index))

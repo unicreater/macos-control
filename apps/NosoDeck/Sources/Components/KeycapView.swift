@@ -82,6 +82,7 @@ struct KeycapView: View {
             }
         } else if let icon {
             icon
+                .renderingMode(.original)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
