@@ -13,6 +13,7 @@ struct DeckView: View {
     @State private var isAddingTile = false
     @StateObject private var voiceRecognizer = SpeechRecognizer()
     @State private var showEmojiOverlay = false
+    @State private var showRadialMenu = false
     @State var selectedTab = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
@@ -132,6 +133,18 @@ struct DeckView: View {
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
+        }
+        .overlay {
+            if showRadialMenu {
+                RadialMenuView(
+                    onAction: { action in
+                        model.sendGesture(action)
+                    },
+                    onDismiss: { showRadialMenu = false }
+                )
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.15), value: showRadialMenu)
+            }
         }
         .sheet(isPresented: paywallBinding) {
             PaywallView(store: model.entitlements, reason: model.paywallReason)
@@ -352,7 +365,15 @@ struct DeckView: View {
                 icon: model.icon(for: tile),
                 // A long press flips edit mode while the finger is still down, so by
                 // the time it lifts this guard is what stops the tap from also firing.
-                onTap: { if !model.isEditing { model.activate(tile) } },
+                onTap: {
+                    if !model.isEditing {
+                        if model.activity(for: tile) == .frontmost {
+                            showRadialMenu = true
+                        } else {
+                            model.activate(tile)
+                        }
+                    }
+                },
                 onRemove: { model.removeTile(id: tile.id) },
                 onQuit: { if !model.isEditing { model.quit(tile) } }
             )

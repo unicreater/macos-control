@@ -155,12 +155,15 @@ public struct BrowserTab: Codable, Hashable, Sendable {
     public var browser: String
     /// The browser's bundle ID for icon lookup.
     public var browserBundleID: String
+    /// The folder/space name (Arc spaces, Safari tab groups).
+    public var folder: String?
 
-    public init(title: String, url: String, browser: String = "", browserBundleID: String = "") {
+    public init(title: String, url: String, browser: String = "", browserBundleID: String = "", folder: String? = nil) {
         self.title = title
         self.url = url
         self.browser = browser
         self.browserBundleID = browserBundleID
+        self.folder = folder
     }
 }
 
@@ -187,6 +190,27 @@ public enum ActionKind: String, Codable, Sendable, CaseIterable {
     /// Clipboard gestures
     case copyClipboard
     case pasteClipboard
+    // MARK: - Radial menu actions
+    /// Media controls
+    case mediaPlayPause
+    case mediaNextTrack
+    case mediaPreviousTrack
+    /// Seek ±5 seconds (video players, YouTube)
+    case seekForward
+    case seekBackward
+    /// Volume
+    case volumeUp
+    case volumeDown
+    case volumeMute
+    /// Navigation
+    case goBack
+    case goForward
+    case refreshPage
+    case closeTab
+    case newTab
+    /// Scroll
+    case scrollUp
+    case scrollDown
 }
 
 public struct ActionRequest: Codable, Hashable, Sendable {

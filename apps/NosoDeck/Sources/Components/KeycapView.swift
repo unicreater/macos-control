@@ -94,8 +94,8 @@ struct KeycapView: View {
 
     private func faviconURL(for urlString: String) -> URL? {
         guard let url = URL(string: urlString), let host = url.host else { return nil }
-        // Google's favicon service — reliable and fast
-        return URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=128")
+        // icon.horse provides high-res favicons (apple-touch-icon when available)
+        return URL(string: "https://icon.horse/icon/\(host)")
     }
 
 

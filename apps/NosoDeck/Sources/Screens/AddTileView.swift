@@ -580,7 +580,7 @@ struct AddTileView: View {
             model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces), emoji: emoji))
         case .website:
             guard let target else { return }
-            model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces), emoji: emoji))
+            model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))
         }
         dismiss()
     }

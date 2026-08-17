@@ -31,6 +31,37 @@ struct ActionExecutor {
             return sendKeyCombo(key: 0x08, modifiers: .maskCommand) // Cmd+C
         case .pasteClipboard:
             return sendKeyCombo(key: 0x09, modifiers: .maskCommand) // Cmd+V
+        // MARK: - Radial menu actions
+        case .mediaPlayPause:
+            return sendMediaKey(NX_KEYTYPE_PLAY)
+        case .mediaNextTrack:
+            return sendMediaKey(NX_KEYTYPE_NEXT)
+        case .mediaPreviousTrack:
+            return sendMediaKey(NX_KEYTYPE_PREVIOUS)
+        case .seekForward:
+            return sendKeyCombo(key: 0x7C, modifiers: []) // Right arrow
+        case .seekBackward:
+            return sendKeyCombo(key: 0x7B, modifiers: []) // Left arrow
+        case .volumeUp:
+            return sendMediaKey(NX_KEYTYPE_SOUND_UP)
+        case .volumeDown:
+            return sendMediaKey(NX_KEYTYPE_SOUND_DOWN)
+        case .volumeMute:
+            return sendMediaKey(NX_KEYTYPE_MUTE)
+        case .goBack:
+            return sendKeyCombo(key: 0x21, modifiers: .maskCommand) // Cmd+[
+        case .goForward:
+            return sendKeyCombo(key: 0x1E, modifiers: .maskCommand) // Cmd+]
+        case .refreshPage:
+            return sendKeyCombo(key: 0x0F, modifiers: .maskCommand) // Cmd+R
+        case .closeTab:
+            return sendKeyCombo(key: 0x0D, modifiers: .maskCommand) // Cmd+W
+        case .newTab:
+            return sendKeyCombo(key: 0x11, modifiers: .maskCommand) // Cmd+T
+        case .scrollUp:
+            return sendScroll(deltaY: 5)
+        case .scrollDown:
+            return sendScroll(deltaY: -5)
         }
     }
 
@@ -201,6 +232,38 @@ struct ActionExecutor {
             s?.executeAndReturnError(&err)
         }
         return true
+    }
+
+    /// Sends a media key event (play/pause, next, previous, volume).
+    private func sendMediaKey(_ keyType: Int32) -> Result<Void, ActionFailure> {
+        func doKeyPress(down: Bool) {
+            let flags: UInt32 = down ? 0x0A00 : 0x0B00 // NX key down / up
+            let data = (UInt32(keyType) << 16) | flags
+            let event = NSEvent.otherEvent(
+                with: .systemDefined,
+                location: .zero,
+                modifierFlags: NSEvent.ModifierFlags(rawValue: UInt(flags)),
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: 0,
+                context: nil,
+                subtype: 8, // NX_SUBTYPE_AUX_CONTROL_BUTTONS
+                data1: Int(data),
+                data2: -1
+            )
+            event?.cgEvent?.post(tap: .cghidEventTap)
+        }
+        doKeyPress(down: true)
+        doKeyPress(down: false)
+        return .success(())
+    }
+
+    /// Sends a scroll wheel event.
+    private func sendScroll(deltaY: Int32) -> Result<Void, ActionFailure> {
+        guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 1, wheel1: deltaY, wheel2: 0, wheel3: 0) else {
+            return .failure(.systemError("Could not create scroll event"))
+        }
+        event.post(tap: .cghidEventTap)
+        return .success(())
     }
 
     /// Sends a keyboard shortcut via CGEvent.
