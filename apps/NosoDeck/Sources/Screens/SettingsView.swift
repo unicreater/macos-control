@@ -1,18 +1,57 @@
 import DeckKit
 import SwiftUI
 
-/// S7 — Settings. Fits on one screen: **no scrolling in landscape**.
+/// S7 — Settings.
 ///
-/// Every permission toggle carries a one-line explainer of exactly what breaks without
-/// it, which is the same contract the pre-prompt cards keep (FR-24).
+/// Portrait: single-column scrollable. Landscape: two-column side-by-side.
+/// No header/back arrow — it's a tab, not a pushed screen.
 struct SettingsView: View {
     let model: AppModel
 
     @State private var isConfirmingUnpair = false
 
+    private var isPortrait: Bool { !model.isLandscapeLayout }
+
     var body: some View {
+        ScrollView {
+            if isPortrait {
+                portraitLayout
+            } else {
+                landscapeLayout
+            }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(DeckColor.chassis)
+        .confirmationDialog(
+            "Unpair \(model.connectedMacName ?? "this Mac")?",
+            isPresented: $isConfirmingUnpair,
+            titleVisibility: .visible
+        ) {
+            Button("Unpair", role: .destructive) { model.unpairCurrentMac() }
+            Button("Keep paired", role: .cancel) {}
+        } message: {
+            Text("Your deck layout stays on this iPhone. You'll need a new PIN to reconnect.")
+        }
+    }
+
+    // MARK: - Layouts
+
+    private var portraitLayout: some View {
+        VStack(spacing: DeckSpace.l) {
+            versionLabel
+            deviceCard
+            premiumCard
+            deckCard
+            rowList
+        }
+        .padding(.horizontal, DeckSpace.l)
+        .padding(.vertical, DeckSpace.l)
+    }
+
+    private var landscapeLayout: some View {
         VStack(alignment: .leading, spacing: DeckSpace.l) {
-            header
+            versionLabel
 
             HStack(alignment: .top, spacing: DeckSpace.l) {
                 VStack(spacing: DeckSpace.l) {
@@ -29,36 +68,16 @@ struct SettingsView: View {
         }
         .padding(.vertical, DeckSpace.l)
         .padding(.horizontal, DeckSpace.safeInset)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(DeckColor.chassis)
-        .confirmationDialog(
-            "Unpair \(model.connectedMacName ?? "this Mac")?",
-            isPresented: $isConfirmingUnpair,
-            titleVisibility: .visible
-        ) {
-            Button("Unpair", role: .destructive) { model.unpairCurrentMac() }
-            Button("Keep paired", role: .cancel) {}
-        } message: {
-            Text("Your deck layout stays on this iPhone. You'll need a new PIN to reconnect.")
-        }
     }
 
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DeckSpace.m) {
-            Button { model.closeSettings() } label: {
-                Image(systemName: "chevron.left")
-                    .foregroundStyle(DeckColor.inkSecondary)
-                    .frame(width: 36, height: 36)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Back to the deck")
+    // MARK: - Cards
 
+    private var versionLabel: some View {
+        HStack {
             Text("Settings")
                 .deckFont(.title)
                 .foregroundStyle(DeckColor.ink)
-
             Spacer()
-
             Text("v\(AppInfo.versionString)")
                 .deckFont(.meta)
                 .foregroundStyle(DeckColor.inkFaint)
@@ -132,8 +151,8 @@ struct SettingsView: View {
                 Divider().overlay(DeckColor.strokeSubtle)
 
                 toggle(
-                    title: "Keep this iPhone awake while connected",
-                    explainer: "Off = the screen dims on its usual schedule and the deck sleeps with it.",
+                    title: "Keep screen awake while connected",
+                    explainer: "Off = screen dims on its usual schedule.",
                     isOn: Binding(
                         get: { model.keepsScreenAwake },
                         set: { model.setKeepsScreenAwake($0) }
@@ -144,7 +163,7 @@ struct SettingsView: View {
 
                 toggle(
                     title: "Landscape layout",
-                    explainer: "On = 4×2 rotated landscape. Off = 2×4 upright portrait. Same 8 tiles either way.",
+                    explainer: "On = 4×2 rotated. Off = 2×4 upright portrait.",
                     isOn: Binding(
                         get: { model.isLandscapeLayout },
                         set: { model.setLandscapeLayout($0) }

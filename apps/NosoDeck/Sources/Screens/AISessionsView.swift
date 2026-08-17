@@ -7,6 +7,7 @@ struct AISessionsView: View {
     let sessions: [AppSessionInfo]
     let iconProvider: (String) -> Image?
     let onActivate: (String, Int?) -> Void // (bundleID, windowID?)
+    var isPortrait = false
 
     private var allSessions: [(info: AppSessionInfo, session: AppSession)] {
         sessions.flatMap { info in
@@ -66,14 +67,17 @@ struct AISessionsView: View {
         }
     }
 
+    private var gridRows: Int { DeckGrid.rows(isPortrait: isPortrait) }
+    private var gridColumns: Int { DeckGrid.columns(isPortrait: isPortrait) }
+
     private var sessionGrid: some View {
         let items = Array(allSessions.prefix(8))
 
         return VStack(spacing: DeckGrid.gutter) {
-            ForEach(0..<DeckGrid.rows, id: \.self) { row in
+            ForEach(0..<gridRows, id: \.self) { row in
                 HStack(spacing: DeckGrid.gutter) {
-                    ForEach(0..<DeckGrid.columns, id: \.self) { column in
-                        let index = row * DeckGrid.columns + column
+                    ForEach(0..<gridColumns, id: \.self) { column in
+                        let index = row * gridColumns + column
                         if index < items.count {
                             sessionTile(items[index].info, items[index].session)
                         } else {

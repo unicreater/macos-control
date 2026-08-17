@@ -333,7 +333,8 @@ struct DeckView: View {
                     iconProvider: { model.icon(forBundleID: $0) },
                     onActivate: { bundleID, windowID in
                         model.activateSession(bundleID: bundleID, windowID: windowID)
-                    }
+                    },
+                    isPortrait: !model.isLandscapeLayout
                 )
                 .tag(aiPageTag)
             }
