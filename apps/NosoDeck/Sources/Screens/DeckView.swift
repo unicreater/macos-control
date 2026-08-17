@@ -110,6 +110,18 @@ struct DeckView: View {
                 Tab("Deck", systemImage: "square.grid.2x2", value: 0) {
                     deckContent
                         .background(DeckColor.chassis.ignoresSafeArea())
+                        .overlay {
+                            if showRadialMenu {
+                                RadialMenuView(
+                                    onAction: { action in
+                                        model.sendGesture(action)
+                                    },
+                                    onDismiss: { showRadialMenu = false }
+                                )
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.15), value: showRadialMenu)
+                            }
+                        }
                 }
 
                 Tab("Settings", systemImage: "gearshape", value: 1) {
@@ -136,18 +148,6 @@ struct DeckView: View {
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
-        }
-        .overlay {
-            if showRadialMenu {
-                RadialMenuView(
-                    onAction: { action in
-                        model.sendGesture(action)
-                    },
-                    onDismiss: { showRadialMenu = false }
-                )
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.15), value: showRadialMenu)
-            }
         }
         .sheet(isPresented: paywallBinding) {
             PaywallView(store: model.entitlements, reason: model.paywallReason)
@@ -369,12 +369,14 @@ struct DeckView: View {
     private func cell(page: Page, pageIndex: Int, slot: Int) -> some View {
         if slot < page.tiles.count {
             let tile = page.tiles[slot]
+            let shortcutName: String? = { if case .shortcut(let name) = tile.target { return name } else { return nil } }()
             let keycap = KeycapView(
                 tile: tile,
                 activity: model.activity(for: tile),
                 isEditing: model.isEditing,
                 editIndex: slot,
                 icon: model.icon(for: tile),
+                shortcutColor: shortcutName.flatMap { model.shortcutColor(for: $0) },
                 // A long press flips edit mode while the finger is still down, so by
                 // the time it lifts this guard is what stops the tap from also firing.
                 onTap: {
