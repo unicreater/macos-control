@@ -10,7 +10,7 @@ struct AddTileView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tab: TileKind = .app
     @State private var query = ""
-    @State private var selectedApp: AppCatalogEntry?
+    @State private var selectedApps: Set<String> = [] // bundleIDs
     @State private var selectedShortcut: String?
     @State private var urlText = ""
     @State private var label = ""
@@ -29,7 +29,7 @@ struct AddTileView: View {
 
             // Floating Add button
             Button(action: add) {
-                Text("Add")
+                Text(tab == .app && selectedApps.count > 1 ? "Add \(selectedApps.count)" : "Add")
                     .deckFont(.body)
                     .foregroundStyle(DeckColor.onMint)
                     .padding(.horizontal, DeckSpace.xl)
@@ -66,16 +66,22 @@ struct AddTileView: View {
             KeycapView(
                 tile: previewTile,
                 activity: .idle,
-                icon: tab == .app ? model.icons.image(forHash: selectedApp?.iconHash) : nil
+                icon: tab == .app ? model.icons.image(forHash: selectedAppEntry?.iconHash) : nil
             )
             .frame(width: 56, height: 56)
             .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 2) {
-                TextField("Label", text: $label)
-                    .textFieldStyle(.plain)
-                    .deckFont(.body)
-                    .foregroundStyle(DeckColor.ink)
+                if tab == .app && selectedApps.count > 1 {
+                    Text("\(selectedApps.count) apps selected")
+                        .deckFont(.body)
+                        .foregroundStyle(DeckColor.ink)
+                } else {
+                    TextField("Label", text: $label)
+                        .textFieldStyle(.plain)
+                        .deckFont(.body)
+                        .foregroundStyle(DeckColor.ink)
+                }
 
                 if let slot = model.nextSlot {
                     Text(slot.humanReadable)
@@ -218,12 +224,18 @@ struct AddTileView: View {
     }
 
     private func appCell(_ entry: AppCatalogEntry) -> some View {
-        let isSelected = selectedApp?.bundleID == entry.bundleID
+        let isSelected = selectedApps.contains(entry.bundleID)
         let icon = model.icons.image(forHash: entry.iconHash)
 
         return Button {
-            selectedApp = entry
-            label = entry.name
+            if selectedApps.contains(entry.bundleID) {
+                selectedApps.remove(entry.bundleID)
+            } else {
+                selectedApps.insert(entry.bundleID)
+            }
+            if selectedApps.count == 1 {
+                label = selectedAppEntry?.name ?? entry.name
+            }
         } label: {
             VStack(spacing: 4) {
                 if let icon {
@@ -516,10 +528,16 @@ struct AddTileView: View {
 
     private var isURLValid: Bool { TileTarget.isValidWebsiteURL(urlText) }
 
+    /// First selected app entry (for preview icon and single-select label).
+    private var selectedAppEntry: AppCatalogEntry? {
+        guard let first = selectedApps.first else { return nil }
+        return model.catalog.first { $0.bundleID == first }
+    }
+
     private var target: TileTarget? {
         switch tab {
         case .app:
-            return selectedApp.map { .app(bundleID: $0.bundleID) }
+            return selectedAppEntry.map { .app(bundleID: $0.bundleID) }
         case .shortcut:
             return selectedShortcut.map { .shortcut(name: $0) }
         case .website:
@@ -536,18 +554,34 @@ struct AddTileView: View {
     }
 
     private var canAdd: Bool {
-        target != nil
-            && model.nextSlot != nil
-            && !label.trimmingCharacters(in: .whitespaces).isEmpty
+        switch tab {
+        case .app:
+            return !selectedApps.isEmpty && model.nextSlot != nil
+        case .shortcut:
+            return selectedShortcut != nil
+                && model.nextSlot != nil
+                && !label.trimmingCharacters(in: .whitespaces).isEmpty
+        case .website:
+            return isURLValid
+                && model.nextSlot != nil
+                && !label.trimmingCharacters(in: .whitespaces).isEmpty
+        }
     }
 
     private func add() {
-        guard let target else { return }
-        model.add(Tile(
-            target: target,
-            label: label.trimmingCharacters(in: .whitespaces),
-            emoji: tab == .app ? nil : emoji
-        ))
+        switch tab {
+        case .app:
+            for bundleID in selectedApps {
+                guard let entry = model.catalog.first(where: { $0.bundleID == bundleID }) else { continue }
+                model.add(Tile(target: .app(bundleID: bundleID), label: entry.name))
+            }
+        case .shortcut:
+            guard let target else { return }
+            model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces), emoji: emoji))
+        case .website:
+            guard let target else { return }
+            model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces), emoji: emoji))
+        }
         dismiss()
     }
 

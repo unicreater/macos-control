@@ -30,7 +30,7 @@ final class IconCache {
         if let cached = images[hash] { return cached }
 
         guard let data = try? Data(contentsOf: fileURL(for: hash)),
-              let uiImage = UIImage(data: data) else {
+              let uiImage = UIImage(data: data)?.retinaScaled() else {
             return nil
         }
         let image = Image(uiImage: uiImage)
@@ -39,7 +39,7 @@ final class IconCache {
     }
 
     func store(hash: String, png: Data) {
-        guard let uiImage = UIImage(data: png) else { return }
+        guard let uiImage = UIImage(data: png)?.retinaScaled() else { return }
         images[hash] = Image(uiImage: uiImage)
         requested.remove(hash)
         try? png.write(to: fileURL(for: hash), options: .atomic)
@@ -55,9 +55,15 @@ final class IconCache {
     }
 
     private func fileURL(for hash: String) -> URL {
-        // Hashes are hex from the agent; the filter keeps a hostile one from escaping
-        // the cache directory.
         let safe = hash.filter { $0.isHexDigit }
         return directory.appendingPathComponent("\(safe).png")
+    }
+}
+
+private extension UIImage {
+    func retinaScaled() -> UIImage {
+        let scale = UIScreen.main.scale
+        guard scale > 1, let cgImage else { return self }
+        return UIImage(cgImage: cgImage, scale: scale, orientation: imageOrientation)
     }
 }
