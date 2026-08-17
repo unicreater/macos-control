@@ -10,9 +10,7 @@ final class PINWindow {
     func show(pin: PairingPIN, macName: String, paired: Bool = false, onUnpair: (() -> Void)? = nil) {
         close()
 
-        let digits = pin.digits
-        let mid = digits.index(digits.startIndex, offsetBy: 3)
-        let spaced = "\(digits[..<mid])  \(digits[mid...])"
+        let spaced = pin.digits.map(String.init).joined(separator: "  ")
 
         guard let screen = NSScreen.main else { return }
         let width: CGFloat = 360

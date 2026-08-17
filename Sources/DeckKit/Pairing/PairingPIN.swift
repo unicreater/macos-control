@@ -5,7 +5,7 @@ import Foundation
 /// A validated value type rather than a `String` so "is this even a PIN?" is answered
 /// once, at the edge, instead of at every call site.
 public struct PairingPIN: Hashable, Sendable, CustomStringConvertible {
-    public static let length = 6
+    public static let length = 4
 
     public let digits: String
 

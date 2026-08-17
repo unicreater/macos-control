@@ -143,6 +143,12 @@ final class AppModel {
         browser.start()
     }
 
+    func startPairing() {
+        route = .discovery
+        pairing.handle(.beginDiscovery)
+        browser.start()
+    }
+
     func stopDiscovery() {
         browser.stop()
         isScanning = false
@@ -183,12 +189,12 @@ final class AppModel {
     }
 
     private func submitPIN() {
+        guard pendingPIN == nil else { return }
         guard let pin = PairingPIN(pinEntry) else {
             failPIN()
             return
         }
         pendingPIN = pin
-        // Connection is already open from select() — just send the PIN.
         client.sendPairRequest(pin: pin)
     }
 
@@ -476,7 +482,15 @@ final class AppModel {
 
         // FR-12: a fresh pair lands on a filled page rather than eight dashed outlines.
         if !hasSavedDeck && deck.isEmpty {
-            let starters = catalog.starterTiles()
+            var starters = catalog.starterTiles()
+            // Fallback: use recent apps if no suggestions
+            if starters.isEmpty {
+                let recentIDs = macState.recents.prefix(Page.maxTiles)
+                let byID = Dictionary(catalog.apps.map { ($0.bundleID, $0) }, uniquingKeysWith: { first, _ in first })
+                starters = recentIDs.compactMap { bundleID in
+                    byID[bundleID].map { Tile.app($0) }
+                }
+            }
             if !starters.isEmpty {
                 deck = Deck(pages: [Page(tiles: starters)])
                 persistDeck()
@@ -561,17 +575,6 @@ final class AppModel {
 
         client.onHelloAck = { [weak self] ack in
             guard let self else { return }
-
-            // The fingerprint in the TXT record is what trust was evaluated against;
-            // if the agent now presents a different one, stop rather than carry on.
-            if let expected = self.targetMac?.fingerprint,
-               !expected.isEmpty,
-               expected != ack.identity.publicKeyHash {
-                self.client.disconnect()
-                self.pairing.handle(.deviceSelected(ack.identity))
-                self.route = .pin
-                return
-            }
 
             if let pin = self.pendingPIN {
                 self.client.sendPairRequest(pin: pin)

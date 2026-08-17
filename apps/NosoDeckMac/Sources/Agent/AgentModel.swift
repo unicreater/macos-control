@@ -191,6 +191,7 @@ final class AgentModel {
     private func restartListener() {
         // The open pairing key lets any phone connect for the pairing flow.
         // Authentication happens at the application layer (PIN in pairRequest).
+        NSLog("[MacAgent] restartListener deviceID=%@ fingerprint=%@", identityStore.deviceID, identityStore.fingerprint)
         var keys = [PresharedKey(
             identity: DeckService.pairingKeyIdentity,
             key: DeckTransport.openPairingKey(deviceID: identityStore.deviceID)

@@ -26,8 +26,6 @@ struct DeckView: View {
             let landscapeH = portraitW
 
             VStack(spacing: 4) {
-                    topBar
-
                     pages
                         .frame(maxWidth: .infinity)
 //                    .opacity(model.session.state.deckOpacity)
@@ -258,6 +256,16 @@ struct DeckView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            Button { model.toggleEditing() } label: {
+                Text("Done")
+                    .deckFont(.legend)
+                    .foregroundStyle(DeckColor.onMint)
+                    .padding(.horizontal, DeckSpace.l)
+                    .frame(height: 32)
+                    .background(DeckColor.mint, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
+            }
+            .buttonStyle(.plain)
         }
         .confirmationDialog(
             "Delete page \(model.currentPage + 1)?",

@@ -99,7 +99,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                 } else {
-                    Button { model.beginDiscovery() } label: {
+                    Button { model.startPairing() } label: {
                         Text("Pair Mac")
                             .deckFont(.legend)
                             .foregroundStyle(DeckColor.onMint)

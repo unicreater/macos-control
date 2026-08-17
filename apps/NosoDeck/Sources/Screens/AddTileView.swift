@@ -17,6 +17,7 @@ struct AddTileView: View {
     @State private var emoji = "⚡️"
     @State private var hasAcceptedAutomationPrompt = false
     @State private var disabledBrowsers: Set<String> = []
+    @State private var sortByRecent = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -102,7 +103,10 @@ struct AddTileView: View {
 
             switch tab {
             case .app:
-                searchField(placeholder: "Search apps on your Mac")
+                HStack {
+                    searchField(placeholder: "Search apps on your Mac")
+                    sortToggle
+                }
                 appGrid
             case .shortcut:
                 shortcutTab
@@ -156,11 +160,43 @@ struct AddTileView: View {
 
     // MARK: - Apps: 3-column icon grid
 
+    private var sortToggle: some View {
+        Button {
+            sortByRecent.toggle()
+        } label: {
+            Image(systemName: sortByRecent ? "clock" : "textformat.abc")
+                .font(.system(size: 16))
+                .foregroundStyle(DeckColor.inkMuted)
+                .frame(width: 38, height: 38)
+                .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                        .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func sortedEntries(_ entries: [AppCatalogEntry]) -> [AppCatalogEntry] {
+        guard sortByRecent else { return entries }
+        let recents = model.macState.recents
+        return entries.sorted { lhs, rhs in
+            let lhsIdx = recents.firstIndex(of: lhs.bundleID)
+            let rhsIdx = recents.firstIndex(of: rhs.bundleID)
+            switch (lhsIdx, rhsIdx) {
+            case (.some(let l), .some(let r)): return l > r // more recent = later in array
+            case (.some, .none): return true
+            case (.none, .some): return false
+            case (.none, .none): return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+        }
+    }
+
     private let appColumns = Array(repeating: GridItem(.flexible(), spacing: DeckSpace.s), count: 3)
 
     @ViewBuilder
     private var appGrid: some View {
-        let entries = model.searchResults(for: query)
+        let entries = sortedEntries(model.searchResults(for: query))
 
         if entries.isEmpty {
             emptyState(

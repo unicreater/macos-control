@@ -65,6 +65,11 @@ enum DeckTransport {
                 dispatchData(Data(key.identity.utf8))
             )
         }
+        // PSK cipher suites
+        sec_protocol_options_append_tls_ciphersuite(
+            tlsOptions.securityProtocolOptions,
+            tls_ciphersuite_t(rawValue: 0x00A8)! // TLS_PSK_WITH_AES_128_GCM_SHA256
+        )
         sec_protocol_options_append_tls_ciphersuite(
             tlsOptions.securityProtocolOptions,
             tls_ciphersuite_t.AES_128_GCM_SHA256
