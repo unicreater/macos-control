@@ -666,14 +666,27 @@ final class AppModel {
         }
     }
 
+    private var lastConnectAttempt: Date?
+
     private func scheduleReconnect() {
         guard reconnectTask == nil else { return }
-        let delay = session.nextRetryDelay()
+        // Minimum 5s between reconnect attempts to prevent cycling
+        if let last = lastConnectAttempt, Date().timeIntervalSince(last) < 5 {
+            reconnectTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled, let self else { return }
+                self.reconnectTask = nil
+                self.scheduleReconnect()
+            }
+            return
+        }
+        let delay = max(session.nextRetryDelay(), 3)
 
         reconnectTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled, let self else { return }
             self.reconnectTask = nil
+            self.lastConnectAttempt = Date()
 
             guard let mac = self.targetMac,
                   let secret = self.identityStore.sessionSecret(forMacID: mac.deviceID) else {
@@ -694,14 +707,18 @@ final class AppModel {
                 self.permissions[.localNetwork] = .granted
             }
 
-            // A Mac reappearing while we are trying to reach it is the fastest possible
-            // reconnect trigger — faster than waiting out the backoff (FR-4).
+            // A Mac reappearing while we are trying to reach it — reconnect,
+            // but respect the cooldown to prevent cycling.
             if case .reconnecting = self.session.state,
                let mac = self.targetMac,
                let secret = self.identityStore.sessionSecret(forMacID: mac.deviceID) {
-                self.reconnectTask?.cancel()
-                self.reconnectTask = nil
-                self.client.connect(to: mac, credential: .trusted(secret))
+                let tooSoon = self.lastConnectAttempt.map { Date().timeIntervalSince($0) < 5 } ?? false
+                if !tooSoon {
+                    self.reconnectTask?.cancel()
+                    self.reconnectTask = nil
+                    self.lastConnectAttempt = Date()
+                    self.client.connect(to: mac, credential: .trusted(secret))
+                }
                 return
             }
 

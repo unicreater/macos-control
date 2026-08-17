@@ -22,6 +22,8 @@ final class DeckClient {
     private var keepaliveTask: Task<Void, Never>?
     private var pingSentAt: Date?
     private var pendingPairRequestID: UUID?
+    private var hasReachedReady = false
+    private var connectedSince: Date?
 
     /// The Mac this client is currently talking to, if any.
     private(set) var mac: DiscoveredMac?
@@ -85,6 +87,8 @@ final class DeckClient {
         keepaliveTask = nil
         pingSentAt = nil
         pendingPairRequestID = nil
+        hasReachedReady = false
+        connectedSince = nil
         connection?.cancel()
         connection = nil
         mac = nil
@@ -118,14 +122,16 @@ final class DeckClient {
     private func handle(_ state: NWConnection.State) {
         switch state {
         case .ready:
-            // The TLS handshake succeeded, which already proves the credential. The
-            // hello exchange is about capabilities and identity, not authentication.
+            hasReachedReady = true
+            connectedSince = Date()
             connection?.send(Envelope(message: .hello(identityStore.hello())))
 
         case .waiting:
-            // Network.framework would hold this connection open indefinitely waiting
-            // for the path to improve. Tearing it down instead keeps retry policy in
-            // one place — ours — rather than having two layers back off independently.
+            if hasReachedReady {
+                // Connection was working — let Network.framework recover the path
+                // rather than tearing down and cycling.
+                break
+            }
             teardownAndReportFailure()
 
         case .failed, .cancelled:
