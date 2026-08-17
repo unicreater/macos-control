@@ -139,6 +139,17 @@ struct SettingsView: View {
                         set: { model.setKeepsScreenAwake($0) }
                     )
                 )
+
+                Divider().overlay(DeckColor.strokeSubtle)
+
+                toggle(
+                    title: "Landscape layout",
+                    explainer: "On = 4×2 rotated landscape. Off = 2×4 upright portrait. Same 8 tiles either way.",
+                    isOn: Binding(
+                        get: { model.isLandscapeLayout },
+                        set: { model.setLandscapeLayout($0) }
+                    )
+                )
             }
         }
     }

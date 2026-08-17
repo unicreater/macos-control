@@ -82,6 +82,7 @@ final class AppModel {
         self.keepsScreenAwake = (defaults.object(forKey: Self.keepAwakeKey) as? Bool) ?? true
         self.isEmojiStripEnabled = (defaults.object(forKey: Self.emojiStripKey) as? Bool) ?? true
         self.bulletStyle = (defaults.string(forKey: Self.bulletStyleKey)) ?? "bullet"
+        self.isLandscapeLayout = (defaults.object(forKey: Self.layoutKey) as? Bool) ?? true
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
@@ -309,6 +310,7 @@ final class AppModel {
     /// connected. A deck that can't reach the Mac has no claim on the user's battery.
     private(set) var keepsScreenAwake = true
     private(set) var isEmojiStripEnabled = true
+    private(set) var isLandscapeLayout = true
 
     func setKeepsScreenAwake(_ enabled: Bool) {
         keepsScreenAwake = enabled
@@ -321,6 +323,11 @@ final class AppModel {
         UserDefaults.standard.set(enabled, forKey: Self.emojiStripKey)
     }
 
+    func setLandscapeLayout(_ enabled: Bool) {
+        isLandscapeLayout = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.layoutKey)
+    }
+
     func applyIdleTimer() {
         UIApplication.shared.isIdleTimerDisabled =
             keepsScreenAwake && route == .deck && session.state.isLive
@@ -329,6 +336,7 @@ final class AppModel {
     fileprivate static let keepAwakeKey = "com.noso.nosodeck.keepAwake"
     fileprivate static let emojiStripKey = "com.noso.nosodeck.emojiStrip"
     fileprivate static let bulletStyleKey = "com.noso.nosodeck.bulletStyle"
+    fileprivate static let layoutKey = "com.noso.nosodeck.landscapeLayout"
 
     /// "bullet" for • or "number" for 1. 2. 3.
     private(set) var bulletStyle: String = "bullet"

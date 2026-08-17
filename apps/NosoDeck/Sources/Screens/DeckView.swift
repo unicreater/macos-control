@@ -18,91 +18,89 @@ struct DeckView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
 
-    /// The deck grid rotated to landscape inside the portrait tab.
+    /// The deck grid — landscape-rotated or portrait, based on setting.
     private var deckContent: some View {
         GeometryReader { geo in
             let portraitW = geo.size.width
             let portraitH = geo.size.height
-            let landscapeW = portraitH
-            let landscapeH = portraitW
+            let isLandscape = model.isLandscapeLayout
+            let contentW = isLandscape ? portraitH : portraitW
+            let contentH = isLandscape ? portraitW : portraitH
 
-            VStack(spacing: 4) {
-                    pages
-                        .frame(maxWidth: .infinity)
-//                    .opacity(model.session.state.deckOpacity)
-                    .disabled(!model.session.acceptsActions && !model.isEditing)
-                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
-
-                    Spacer(minLength: 0)
-
-                    bottomBar
-                }
-            .padding(.vertical, DeckSpace.xl)
-            .padding(.leading, DeckSpace.xxxl) // Extra space on LEFT = phone BOTTOM (floating buttons)
-            .padding(.trailing, DeckSpace.m)
-            .frame(width: landscapeW, height: landscapeH)
-            .background(DeckColor.chassis.ignoresSafeArea())
-            .overlay {
-                VoiceOverlay(recognizer: voiceRecognizer) {
-                    let text = voiceRecognizer.sendableText
-                    if !text.isEmpty { model.sendVoiceText(text) }
-                    voiceRecognizer.clear()
-                }
-                .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
-            }
-            .overlay {
-                if showEmojiOverlay {
-                    ZStack {
-                        Color.black.opacity(0.7)
-                            .onTapGesture { showEmojiOverlay = false }
-                        VStack(spacing: 16) {
-                            EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
-                                model.send(emoji: emoji)
-                                showEmojiOverlay = false
-                            }
-                            Text("Tap emoji to send, or tap anywhere to close")
-                                .font(.system(size: 11))
-                                .foregroundStyle(DeckColor.inkFaint)
-                        }
-                    }
-                    .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
-            .overlay(alignment: .bottomTrailing) {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if voiceRecognizer.isRecording {
-                        voiceRecognizer.stop()
+            deckInner
+                .padding(.vertical, DeckSpace.xl)
+                .padding(.horizontal, isLandscape ? DeckSpace.m : DeckSpace.m)
+                .padding(.leading, isLandscape ? DeckSpace.xxxl - DeckSpace.m : 0)
+                .frame(width: contentW, height: contentH)
+                .background(DeckColor.chassis.ignoresSafeArea())
+                .overlay {
+                    VoiceOverlay(recognizer: voiceRecognizer) {
                         let text = voiceRecognizer.sendableText
                         if !text.isEmpty { model.sendVoiceText(text) }
                         voiceRecognizer.clear()
-                    } else {
-                        voiceRecognizer.start()
                     }
-                } label: {
-                    Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                    .animation(.easeInOut(duration: 0.2), value: voiceRecognizer.isRecording)
                 }
-                .buttonStyle(.plain)
-                .padding(.trailing, 16)
-                .padding(.bottom, 12)
-            }
-            .gesture(
-                DragGesture(minimumDistance: 40)
-                    .onEnded { value in
-                        // Swipe down in landscape → show emoji
-                        if value.translation.height > 50 && abs(value.translation.height) > abs(value.translation.width) {
-                            showEmojiOverlay = true
+                .overlay {
+                    if showEmojiOverlay {
+                        ZStack {
+                            Color.black.opacity(0.7)
+                                .onTapGesture { showEmojiOverlay = false }
+                            VStack(spacing: 16) {
+                                EmojiStrip(isEnabled: model.session.acceptsActions) { emoji in
+                                    model.send(emoji: emoji)
+                                    showEmojiOverlay = false
+                                }
+                                Text("Tap emoji to send, or tap anywhere to close")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(DeckColor.inkFaint)
+                            }
                         }
+                        .transition(.opacity)
                     }
-            )
-            .rotationEffect(.degrees(-90))
-            .frame(width: portraitW, height: portraitH)
+                }
+                .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
+                .overlay(alignment: .bottomTrailing) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        if voiceRecognizer.isRecording {
+                            voiceRecognizer.stop()
+                            let text = voiceRecognizer.sendableText
+                            if !text.isEmpty { model.sendVoiceText(text) }
+                            voiceRecognizer.clear()
+                        } else {
+                            voiceRecognizer.start()
+                        }
+                    } label: {
+                        Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
+                }
+                .if(isLandscape) { view in
+                    view
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: portraitW, height: portraitH)
+                }
+        }
+    }
+
+    private var deckInner: some View {
+        VStack(spacing: 4) {
+            pages
+                .frame(maxWidth: .infinity)
+                .disabled(!model.session.acceptsActions && !model.isEditing)
+                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+
+            Spacer(minLength: 0)
+
+            bottomBar
         }
     }
 
@@ -115,8 +113,13 @@ struct DeckView: View {
                 }
 
                 Tab("Settings", systemImage: "gearshape", value: 1) {
-                    landscapeRotated {
+                    if model.isLandscapeLayout {
+                        landscapeRotated {
+                            SettingsView(model: model)
+                        }
+                    } else {
                         SettingsView(model: model)
+                            .background(DeckColor.chassis.ignoresSafeArea())
                     }
                 }
 
@@ -338,14 +341,22 @@ struct DeckView: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
     }
 
+    private var gridRows: Int {
+        model.isLandscapeLayout ? DeckGrid.rows : DeckGrid.rows(isPortrait: true)
+    }
+
+    private var gridColumns: Int {
+        model.isLandscapeLayout ? DeckGrid.columns : DeckGrid.columns(isPortrait: true)
+    }
+
     private func grid(pageIndex: Int) -> some View {
         let page = model.deck.pages[pageIndex]
 
         return VStack(spacing: DeckGrid.gutter) {
-            ForEach(0..<DeckGrid.rows, id: \.self) { row in
+            ForEach(0..<gridRows, id: \.self) { row in
                 HStack(spacing: DeckGrid.gutter) {
-                    ForEach(0..<DeckGrid.columns, id: \.self) { column in
-                        let slot = row * DeckGrid.columns + column
+                    ForEach(0..<gridColumns, id: \.self) { column in
+                        let slot = row * gridColumns + column
                         cell(page: page, pageIndex: pageIndex, slot: slot)
                     }
                 }
@@ -446,6 +457,13 @@ struct DeckView: View {
         }
     }
 
+}
+
+private extension View {
+    @ViewBuilder
+    func `if`<Transform: View>(_ condition: Bool, transform: (Self) -> Transform) -> some View {
+        if condition { transform(self) } else { self }
+    }
 }
 
 #if DEBUG
