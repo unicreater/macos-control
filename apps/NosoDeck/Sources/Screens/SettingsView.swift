@@ -289,6 +289,20 @@ struct SettingsView: View {
     }
 }
 
+#if DEBUG
+#Preview("Settings - Portrait") {
+    let model = AppModel.preview()
+    model.setLandscapeLayout(false)
+    return SettingsView(model: model)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Settings - Landscape") {
+    SettingsView(model: .preview())
+        .preferredColorScheme(.dark)
+}
+#endif
+
 enum AppInfo {
     static var versionString: String {
         let info = Bundle.main.infoDictionary
