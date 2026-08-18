@@ -1,6 +1,15 @@
 import DeckKit
 import SwiftUI
 
+/// The tabs shown in the add-tile picker.
+private enum AddTileTab: String, CaseIterable {
+    case apps = "Apps"
+    case shortcuts = "Shortcuts"
+    case openTabs = "Open Tabs"
+    case popular = "Popular"
+    case keys = "Keys"
+}
+
 /// S6 — add a tile: apps, Shortcuts, or a website.
 ///
 /// Portrait layout: preview bar at the top, picker grid below, floating Add button.
@@ -8,7 +17,7 @@ struct AddTileView: View {
     let model: AppModel
 
     @Environment(\.dismiss) private var dismiss
-    @State private var tab: TileKind = .app
+    @State private var tab: AddTileTab = .apps
     @State private var query = ""
     @State private var selectedApps: Set<String> = [] // bundleIDs
     @State private var selectedShortcut: String?
@@ -31,7 +40,7 @@ struct AddTileView: View {
 
             // Floating Add button
             Button(action: add) {
-                Text(tab == .app && selectedApps.count > 1 ? "Add \(selectedApps.count)" : "Add")
+                Text(tab == .apps && selectedApps.count > 1 ? "Add \(selectedApps.count)" : "Add")
                     .deckFont(.body)
                     .foregroundStyle(DeckColor.onMint)
                     .padding(.horizontal, DeckSpace.xl)
@@ -68,13 +77,13 @@ struct AddTileView: View {
             KeycapView(
                 tile: previewTile,
                 activity: .idle,
-                icon: tab == .app ? model.icons.image(forHash: selectedAppEntry?.iconHash) : nil
+                icon: tab == .apps ? model.icons.image(forHash: selectedAppEntry?.iconHash) : nil
             )
             .frame(width: 56, height: 56)
             .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 2) {
-                if tab == .app && selectedApps.count > 1 {
+                if tab == .apps && selectedApps.count > 1 {
                     Text("\(selectedApps.count) apps selected")
                         .deckFont(.body)
                         .foregroundStyle(DeckColor.ink)
@@ -107,20 +116,22 @@ struct AddTileView: View {
 
     private var pickerContent: some View {
         VStack(spacing: DeckSpace.m) {
-            segmentedControl
+            tabPills
 
             switch tab {
-            case .app:
+            case .apps:
                 HStack {
                     searchField(placeholder: "Search apps on your Mac")
                     sortToggle
                 }
                 appGrid
-            case .shortcut:
+            case .shortcuts:
                 shortcutTab
-            case .website:
+            case .openTabs:
                 websiteTab
-            case .keyCombo:
+            case .popular:
+                popularSitesTab
+            case .keys:
                 keyComboTab
             }
         }
@@ -128,27 +139,31 @@ struct AddTileView: View {
         .padding(.top, DeckSpace.m)
     }
 
-    private var segmentedControl: some View {
-        HStack(spacing: 0) {
-            ForEach(TileKind.allCases, id: \.self) { kind in
-                Button { select(tab: kind) } label: {
-                    Text(title(for: kind))
-                        .deckFont(.legend)
-                        .foregroundStyle(tab == kind ? Color(hex: 0x111111) : DeckColor.inkMuted)
-                        .frame(maxWidth: .infinity, minHeight: 32)
-                        .background(
-                            tab == kind ? DeckColor.ink : .clear,
-                            in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
-                        )
+    private var tabPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DeckSpace.s) {
+                ForEach(AddTileTab.allCases, id: \.self) { t in
+                    Button { selectTab(t) } label: {
+                        Text(t.rawValue)
+                            .deckFont(.legend)
+                            .foregroundStyle(tab == t ? Color(hex: 0x111111) : DeckColor.inkMuted)
+                            .padding(.horizontal, DeckSpace.m)
+                            .frame(height: 32)
+                            .background(
+                                tab == t ? DeckColor.ink : DeckColor.surfaceRaised,
+                                in: Capsule()
+                            )
+                            .overlay {
+                                Capsule().strokeBorder(
+                                    tab == t ? .clear : DeckColor.strokeSubtle,
+                                    lineWidth: 1
+                                )
+                            }
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
-        }
-        .padding(4)
-        .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
+            .padding(.horizontal, 2)
         }
     }
 
@@ -555,6 +570,63 @@ struct AddTileView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Popular Sites
+
+    private let popularColumns = Array(repeating: GridItem(.flexible(), spacing: DeckSpace.s), count: 3)
+
+    private var popularSitesTab: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DeckSpace.l) {
+                ForEach(PopularSite.categories, id: \.self) { category in
+                    VStack(alignment: .leading, spacing: DeckSpace.s) {
+                        Text(category)
+                            .deckFont(.meta)
+                            .foregroundStyle(DeckColor.inkMuted)
+
+                        LazyVGrid(columns: popularColumns, spacing: DeckSpace.s) {
+                            ForEach(PopularSite.all.filter { $0.category == category }) { site in
+                                popularSiteCell(site)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.bottom, 72)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private func popularSiteCell(_ site: PopularSite) -> some View {
+        let isSelected = selectedPopularSite?.id == site.id
+        return Button {
+            selectedPopularSite = site
+            label = site.name
+            urlText = site.url
+        } label: {
+            VStack(spacing: 4) {
+                Text(site.emoji)
+                    .font(.system(size: 28))
+                    .frame(width: 48, height: 48)
+                    .background(
+                        isSelected ? DeckColor.mint.opacity(0.12) : Color(hex: 0x2C2C2C),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+
+                Text(site.name)
+                    .deckFont(.meta)
+                    .foregroundStyle(DeckColor.inkMuted)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DeckSpace.s)
+            .overlay {
+                RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                    .strokeBorder(isSelected ? DeckColor.mint : .clear, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Key Combos
 
     private var keyComboTab: some View {
@@ -651,24 +723,15 @@ struct AddTileView: View {
 
     // MARK: - Composition
 
-    private func select(tab kind: TileKind) {
-        tab = kind
+    private func selectTab(_ newTab: AddTileTab) {
+        tab = newTab
         query = ""
         label = ""
-        if kind == .shortcut {
+        if newTab == .shortcuts {
             model.requestShortcuts()
         }
-        if kind == .website {
+        if newTab == .openTabs {
             model.requestBrowserTabs()
-        }
-    }
-
-    private func title(for kind: TileKind) -> String {
-        switch kind {
-        case .app: return "Apps"
-        case .shortcut: return "Shortcuts"
-        case .website: return "Website"
-        case .keyCombo: return "Keys"
         }
     }
 
@@ -680,15 +743,19 @@ struct AddTileView: View {
         return model.catalog.first { $0.bundleID == first }
     }
 
+    @State private var selectedPopularSite: PopularSite?
+
     private var target: TileTarget? {
         switch tab {
-        case .app:
+        case .apps:
             return selectedAppEntry.map { .app(bundleID: $0.bundleID) }
-        case .shortcut:
+        case .shortcuts:
             return selectedShortcut.map { .shortcut(name: $0) }
-        case .website:
+        case .openTabs:
             return isURLValid ? .website(url: urlText.trimmingCharacters(in: .whitespaces)) : nil
-        case .keyCombo:
+        case .popular:
+            return selectedPopularSite.map { .website(url: $0.url) }
+        case .keys:
             return selectedKeyCombo.map { .keyCombo(combo: $0.combo) }
         }
     }
@@ -697,47 +764,48 @@ struct AddTileView: View {
         Tile(
             target: target ?? .app(bundleID: ""),
             label: label.isEmpty ? "Tile" : label,
-            emoji: tab == .app ? nil : emoji
+            emoji: tab == .apps ? nil : emoji
         )
     }
 
     private var canAdd: Bool {
         switch tab {
-        case .app:
+        case .apps:
             return !selectedApps.isEmpty && model.nextSlot != nil
-        case .shortcut:
+        case .shortcuts:
             return selectedShortcut != nil
                 && model.nextSlot != nil
                 && !label.trimmingCharacters(in: .whitespaces).isEmpty
-        case .website:
+        case .openTabs:
             return isURLValid
                 && model.nextSlot != nil
                 && !label.trimmingCharacters(in: .whitespaces).isEmpty
-        case .keyCombo:
+        case .popular:
+            return selectedPopularSite != nil && model.nextSlot != nil
+        case .keys:
             return selectedKeyCombo != nil && model.nextSlot != nil
         }
     }
 
     private func add() {
         switch tab {
-        case .app:
+        case .apps:
             for bundleID in selectedApps {
                 guard let entry = model.catalog.first(where: { $0.bundleID == bundleID }) else { continue }
                 model.add(Tile(target: .app(bundleID: bundleID), label: entry.name))
             }
-        case .shortcut:
+        case .shortcuts:
             guard let target else { return }
             model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))
-        case .website:
+        case .openTabs:
             guard let target else { return }
             model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))
-        case .keyCombo:
+        case .popular:
+            guard let site = selectedPopularSite else { return }
+            model.add(Tile(target: .website(url: site.url), label: site.name, emoji: site.emoji))
+        case .keys:
             guard let preset = selectedKeyCombo else { return }
-            model.add(Tile(
-                target: .keyCombo(combo: preset.combo),
-                label: preset.name,
-                emoji: nil
-            ))
+            model.add(Tile(target: .keyCombo(combo: preset.combo), label: preset.name))
         }
         dismiss()
     }
@@ -750,4 +818,74 @@ struct AddTileView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, DeckSpace.l)
     }
+}
+
+// MARK: - Popular Sites
+
+struct PopularSite: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let url: String
+    let emoji: String
+    let category: String
+
+    init(_ name: String, url: String, emoji: String, category: String) {
+        self.id = url
+        self.name = name
+        self.url = url
+        self.emoji = emoji
+        self.category = category
+    }
+
+    static let categories: [String] = ["Social", "Video", "Work", "Dev", "News", "Other"]
+
+    static let all: [PopularSite] = [
+        // Social
+        PopularSite("YouTube", url: "https://youtube.com", emoji: "▶️", category: "Social"),
+        PopularSite("X / Twitter", url: "https://x.com", emoji: "𝕏", category: "Social"),
+        PopularSite("LinkedIn", url: "https://linkedin.com", emoji: "💼", category: "Social"),
+        PopularSite("Instagram", url: "https://instagram.com", emoji: "📸", category: "Social"),
+        PopularSite("Reddit", url: "https://reddit.com", emoji: "🤖", category: "Social"),
+        PopularSite("TikTok", url: "https://tiktok.com", emoji: "🎵", category: "Social"),
+        PopularSite("Facebook", url: "https://facebook.com", emoji: "👤", category: "Social"),
+        PopularSite("Threads", url: "https://threads.net", emoji: "🧵", category: "Social"),
+        PopularSite("WhatsApp", url: "https://web.whatsapp.com", emoji: "💬", category: "Social"),
+
+        // Video
+        PopularSite("Netflix", url: "https://netflix.com", emoji: "🎬", category: "Video"),
+        PopularSite("Disney+", url: "https://disneyplus.com", emoji: "🏰", category: "Video"),
+        PopularSite("Twitch", url: "https://twitch.tv", emoji: "🎮", category: "Video"),
+        PopularSite("Spotify", url: "https://open.spotify.com", emoji: "🎧", category: "Video"),
+
+        // Work
+        PopularSite("Gmail", url: "https://mail.google.com", emoji: "📧", category: "Work"),
+        PopularSite("Google Drive", url: "https://drive.google.com", emoji: "📁", category: "Work"),
+        PopularSite("Google Docs", url: "https://docs.google.com", emoji: "📝", category: "Work"),
+        PopularSite("Notion", url: "https://notion.so", emoji: "📓", category: "Work"),
+        PopularSite("Slack", url: "https://app.slack.com", emoji: "💬", category: "Work"),
+        PopularSite("Figma", url: "https://figma.com", emoji: "🎨", category: "Work"),
+        PopularSite("Canva", url: "https://canva.com", emoji: "🖼️", category: "Work"),
+        PopularSite("ChatGPT", url: "https://chat.openai.com", emoji: "🤖", category: "Work"),
+        PopularSite("Claude", url: "https://claude.ai", emoji: "🧠", category: "Work"),
+
+        // Dev
+        PopularSite("GitHub", url: "https://github.com", emoji: "🐙", category: "Dev"),
+        PopularSite("Stack Overflow", url: "https://stackoverflow.com", emoji: "📚", category: "Dev"),
+        PopularSite("Vercel", url: "https://vercel.com", emoji: "▲", category: "Dev"),
+        PopularSite("Supabase", url: "https://supabase.com", emoji: "⚡", category: "Dev"),
+        PopularSite("NPM", url: "https://npmjs.com", emoji: "📦", category: "Dev"),
+        PopularSite("Hacker News", url: "https://news.ycombinator.com", emoji: "🟧", category: "Dev"),
+
+        // News
+        PopularSite("BBC", url: "https://bbc.com", emoji: "📰", category: "News"),
+        PopularSite("CNN", url: "https://cnn.com", emoji: "📺", category: "News"),
+        PopularSite("The Verge", url: "https://theverge.com", emoji: "⚡", category: "News"),
+        PopularSite("TechCrunch", url: "https://techcrunch.com", emoji: "💻", category: "News"),
+
+        // Other
+        PopularSite("Amazon", url: "https://amazon.com", emoji: "📦", category: "Other"),
+        PopularSite("Google Maps", url: "https://maps.google.com", emoji: "🗺️", category: "Other"),
+        PopularSite("Wikipedia", url: "https://wikipedia.org", emoji: "📖", category: "Other"),
+        PopularSite("Pinterest", url: "https://pinterest.com", emoji: "📌", category: "Other"),
+    ]
 }
