@@ -371,8 +371,36 @@ final class AppModel {
         requestMissingIcons()
     }
 
+    /// The last removed tile and its original slot, for undo.
+    private(set) var lastRemovedTile: (tile: Tile, slot: DeckSlot)?
+    private var undoTimer: Task<Void, Never>?
+
     func removeTile(id: UUID) {
-        deck.removeTile(id: id)
+        let slot = deck.slot(ofTileID: id)
+        guard let removed = deck.removeTile(id: id) else { return }
+        persistDeck()
+        if let slot {
+            lastRemovedTile = (removed, slot)
+            undoTimer?.cancel()
+            undoTimer = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled else { return }
+                self.lastRemovedTile = nil
+            }
+        }
+    }
+
+    func undoRemoveTile() {
+        guard let (tile, slot) = lastRemovedTile else { return }
+        undoTimer?.cancel()
+        undoTimer = nil
+        lastRemovedTile = nil
+        // Re-insert at original slot if possible, otherwise append
+        if slot.pageIndex < deck.pageCount {
+            deck.insert(tile, at: slot)
+        } else {
+            _ = deck.add(tile)
+        }
         persistDeck()
     }
 

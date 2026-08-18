@@ -98,6 +98,12 @@ public struct Deck: Codable, Hashable, Sendable {
         return slot
     }
 
+    /// Re-inserts a tile at a specific slot (for undo).
+    public mutating func insert(_ tile: Tile, at slot: DeckSlot) {
+        guard pages.indices.contains(slot.pageIndex), !pages[slot.pageIndex].isFull else { return }
+        _ = pages[slot.pageIndex].insert(tile, at: slot.slotIndex)
+    }
+
     @discardableResult
     public mutating func removeTile(id: UUID) -> Tile? {
         for index in pages.indices {

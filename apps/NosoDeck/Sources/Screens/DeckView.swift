@@ -123,6 +123,14 @@ struct DeckView: View {
                                 .animation(.easeInOut(duration: 0.15), value: showRadialMenu)
                             }
                         }
+                        .overlay(alignment: .bottom) {
+                            if model.lastRemovedTile != nil {
+                                undoToast
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                                    .padding(.bottom, 80)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.2), value: model.lastRemovedTile != nil)
                 }
 
                 Tab("Settings", systemImage: "gearshape", value: 1) {
@@ -423,6 +431,35 @@ struct DeckView: View {
     private func openAddTile(page: Int) {
         model.setPage(page)
         isAddingTile = true
+    }
+
+    private var undoToast: some View {
+        HStack(spacing: DeckSpace.m) {
+            Text("Tile removed")
+                .deckFont(.body)
+                .foregroundStyle(DeckColor.ink)
+            Spacer()
+            Button {
+                model.undoRemoveTile()
+            } label: {
+                Text("Undo")
+                    .deckFont(.legend)
+                    .foregroundStyle(DeckColor.mint)
+                    .padding(.horizontal, DeckSpace.m)
+                    .frame(height: 32)
+                    .background(DeckColor.mint.opacity(0.15), in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, DeckSpace.l)
+        .padding(.vertical, DeckSpace.s)
+        .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
+                .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+        .padding(.horizontal, DeckSpace.xl)
     }
 
 
