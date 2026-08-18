@@ -47,7 +47,7 @@ struct RadialMenuView: View {
                 let cols = Array(repeating: GridItem(.fixed(66), spacing: 10), count: 3)
 
                 LazyVGrid(columns: cols, spacing: 10) {
-                    ForEach(actions, id: \.action) { item in
+                    ForEach(actions) { item in
                         actionButton(icon: item.icon, label: item.label, action: item.action)
                     }
                 }
@@ -148,13 +148,11 @@ struct RadialMenuView: View {
 
 // MARK: - App Categories
 
-struct ActionItem: Hashable {
+struct ActionItem: Identifiable {
+    let id = UUID()
     let icon: String
     let label: String
     let action: ActionKind
-
-    func hash(into hasher: inout Hasher) { hasher.combine(action) }
-    static func == (lhs: ActionItem, rhs: ActionItem) -> Bool { lhs.action == rhs.action }
 }
 
 enum AppCategory {
@@ -230,7 +228,7 @@ enum AppCategory {
                 ActionItem(icon: "speaker.slash", label: "Mute", action: .volumeMute),
                 ActionItem(icon: "goforward.5", label: "+5s", action: .seekForward),
                 ActionItem(icon: "speaker.minus", label: "Vol -", action: .volumeDown),
-                ActionItem(icon: "speaker.wave.2", label: "Vol", action: .volumeUp),
+                ActionItem(icon: "speaker.wave.2", label: "Vol", action: .volumeMute),
                 ActionItem(icon: "speaker.plus", label: "Vol +", action: .volumeUp),
             ]
         case .terminal:
