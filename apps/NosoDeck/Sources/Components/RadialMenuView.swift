@@ -1,93 +1,82 @@
 import DeckKit
 import SwiftUI
 
-/// A radial "painter palette" menu that fans out from a tile.
+/// Context-aware quick-actions menu for the frontmost app.
 ///
-/// Appears on second tap of a frontmost app tile. Each petal is an action
-/// the Mac can perform on the active app — media, navigation, scroll.
+/// Shows different actions based on the app type (browser, media, terminal, etc.).
+/// Supports both portrait and landscape rotation.
 struct RadialMenuView: View {
+    let frontmostBundleID: String?
+    let isLandscape: Bool
     let onAction: (ActionKind) -> Void
     let onDismiss: () -> Void
 
     @State private var scrollDragOffset: CGFloat = 0
     @State private var lastScrollTick: CGFloat = 0
 
-    private let items: [(icon: String, label: String, action: ActionKind)] = [
-        ("backward.fill", "Back", .goBack),
-        ("arrow.counterclockwise", "Refresh", .refreshPage),
-        ("forward.fill", "Forward", .goForward),
-        ("speaker.minus.fill", "Vol -", .volumeDown),
-        ("playpause.fill", "Play", .mediaPlayPause),
-        ("speaker.plus.fill", "Vol +", .volumeUp),
-    ]
-
-    // 3×2 grid layout
-    private let columns = Array(repeating: GridItem(.fixed(72), spacing: 12), count: 3)
+    private var appCategory: AppCategory {
+        guard let id = frontmostBundleID else { return .generic }
+        return AppCategory.from(bundleID: id)
+    }
 
     var body: some View {
         ZStack {
-            // Backdrop
             Color.black.opacity(0.7)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
 
-            HStack(spacing: DeckSpace.m) {
-                // Main actions panel
-                VStack(spacing: DeckSpace.l) {
-                    Text("Quick Actions")
+            menuContent
+        }
+    }
+
+    private var menuContent: some View {
+        HStack(spacing: DeckSpace.m) {
+            VStack(spacing: DeckSpace.m) {
+                // Category label
+                HStack(spacing: 6) {
+                    Image(systemName: appCategory.icon)
+                        .font(.system(size: 12))
+                        .foregroundStyle(DeckColor.mint)
+                    Text(appCategory.label)
                         .deckFont(.meta)
                         .foregroundStyle(DeckColor.inkMuted)
+                }
 
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(items, id: \.action) { item in
-                            actionButton(icon: item.icon, label: item.label, action: item.action)
+                // Context actions grid
+                let actions = appCategory.actions
+                let cols = Array(repeating: GridItem(.fixed(66), spacing: 10), count: 3)
+
+                LazyVGrid(columns: cols, spacing: 10) {
+                    ForEach(actions, id: \.action) { item in
+                        actionButton(icon: item.icon, label: item.label, action: item.action)
+                    }
+                }
+
+                Button { onDismiss() } label: {
+                    Text("Done")
+                        .deckFont(.body)
+                        .foregroundStyle(DeckColor.inkMuted)
+                        .frame(maxWidth: 100, minHeight: 36)
+                        .overlay {
+                            Capsule().strokeBorder(Color(hex: 0x3A3A3A), lineWidth: 1)
                         }
-                    }
-
-                    // Seek and media row
-                    HStack(spacing: 12) {
-                        actionPill(icon: "gobackward.5", label: "-5s", action: .seekBackward)
-                        actionPill(icon: "backward.end.fill", label: "Prev", action: .mediaPreviousTrack)
-                        actionPill(icon: "forward.end.fill", label: "Next", action: .mediaNextTrack)
-                        actionPill(icon: "goforward.5", label: "+5s", action: .seekForward)
-                    }
-
-                    // Extra actions
-                    HStack(spacing: 12) {
-                        actionPill(icon: "xmark", label: "Close", action: .closeTab)
-                        actionPill(icon: "plus", label: "New Tab", action: .newTab)
-                        actionPill(icon: "speaker.slash.fill", label: "Mute", action: .volumeMute)
-                    }
-
-                    Button { onDismiss() } label: {
-                        Text("Done")
-                            .deckFont(.body)
-                            .foregroundStyle(DeckColor.inkMuted)
-                            .frame(maxWidth: 120, minHeight: 40)
-                            .overlay {
-                                Capsule().strokeBorder(Color(hex: 0x3A3A3A), lineWidth: 1)
-                            }
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(DeckSpace.xl)
-                .background(DeckColor.chassis.opacity(0.95), in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
-                        .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
-                }
-
-                // Scroll track — press and slide
-                scrollTrack
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, DeckSpace.m)
+            .padding(DeckSpace.l)
+            .background(DeckColor.chassis.opacity(0.95), in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
+                    .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
+            }
+
+            scrollTrack
         }
+        .padding(.horizontal, DeckSpace.m)
     }
 
     // MARK: - Scroll track
 
-    /// A vertical drag strip: slide up to scroll up, slide down to scroll down.
-    /// Fires scroll events continuously as you drag.
     private var scrollTrack: some View {
         VStack(spacing: 4) {
             Image(systemName: "chevron.up")
@@ -96,17 +85,12 @@ struct RadialMenuView: View {
 
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(DeckColor.surfaceRaised)
-                .frame(width: 44)
+                .frame(width: 40)
                 .overlay {
-                    VStack(spacing: 6) {
-                        Spacer()
-                        // Thumb indicator
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(DeckColor.inkMuted)
-                            .frame(width: 20, height: 4)
-                            .offset(y: clampedThumbOffset)
-                        Spacer()
-                    }
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(DeckColor.inkMuted)
+                        .frame(width: 16, height: 4)
+                        .offset(y: min(max(scrollDragOffset * 0.3, -40), 40))
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -120,11 +104,7 @@ struct RadialMenuView: View {
                             let ticks = (scrollDragOffset / tickSize).rounded(.towardZero)
                             if ticks != lastScrollTick {
                                 lastScrollTick = ticks
-                                if scrollDragOffset < 0 {
-                                    onAction(.scrollUp)
-                                } else {
-                                    onAction(.scrollDown)
-                                }
+                                onAction(scrollDragOffset < 0 ? .scrollUp : .scrollDown)
                             }
                         }
                         .onEnded { _ in
@@ -140,10 +120,6 @@ struct RadialMenuView: View {
         .padding(.vertical, DeckSpace.l)
     }
 
-    private var clampedThumbOffset: CGFloat {
-        min(max(scrollDragOffset * 0.3, -40), 40)
-    }
-
     // MARK: - Buttons
 
     private func actionButton(icon: String, label: String, action: ActionKind) -> some View {
@@ -151,43 +127,133 @@ struct RadialMenuView: View {
             Haptics.tileTap()
             onAction(action)
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 Image(systemName: icon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 18))
                     .foregroundStyle(DeckColor.ink)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 46, height: 46)
                     .background(DeckColor.surfaceRaised, in: Circle())
                     .overlay {
                         Circle().strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
                     }
                 Text(label)
-                    .font(.system(size: 10))
+                    .font(.system(size: 9))
                     .foregroundStyle(DeckColor.inkMuted)
+                    .lineLimit(1)
             }
         }
         .buttonStyle(.plain)
     }
+}
 
-    private func actionPill(icon: String, label: String, action: ActionKind) -> some View {
-        Button {
-            Haptics.tileTap()
-            onAction(action)
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(DeckColor.ink)
-                Text(label)
-                    .font(.system(size: 9))
-                    .foregroundStyle(DeckColor.inkMuted)
-            }
-            .frame(width: 52, height: 44)
-            .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
-                    .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
-            }
+// MARK: - App Categories
+
+struct ActionItem: Hashable {
+    let icon: String
+    let label: String
+    let action: ActionKind
+
+    func hash(into hasher: inout Hasher) { hasher.combine(action) }
+    static func == (lhs: ActionItem, rhs: ActionItem) -> Bool { lhs.action == rhs.action }
+}
+
+enum AppCategory {
+    case browser
+    case media
+    case terminal
+    case generic
+
+    static func from(bundleID: String) -> AppCategory {
+        let id = bundleID.lowercased()
+
+        // Browsers
+        if id.contains("safari") || id.contains("chrome") || id.contains("firefox")
+            || id.contains("browser") || id.contains("edge") || id.contains("brave")
+            || id.contains("opera") || id.contains("vivaldi") || id.contains("arc") {
+            return .browser
         }
-        .buttonStyle(.plain)
+
+        // Media players
+        if id.contains("spotify") || id.contains("music") || id.contains("vlc")
+            || id.contains("iina") || id.contains("youtube") || id.contains("netflix")
+            || id.contains("tv") || id.contains("podcasts") || id.contains("plex") {
+            return .media
+        }
+
+        // Terminals
+        if id.contains("terminal") || id.contains("iterm") || id.contains("warp")
+            || id.contains("alacritty") || id.contains("kitty") || id.contains("hyper") {
+            return .terminal
+        }
+
+        return .generic
+    }
+
+    var icon: String {
+        switch self {
+        case .browser: return "globe"
+        case .media: return "music.note"
+        case .terminal: return "terminal"
+        case .generic: return "square.grid.2x2"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .browser: return "BROWSER"
+        case .media: return "MEDIA"
+        case .terminal: return "TERMINAL"
+        case .generic: return "QUICK ACTIONS"
+        }
+    }
+
+    var actions: [ActionItem] {
+        switch self {
+        case .browser:
+            return [
+                ActionItem(icon: "chevron.left", label: "Back", action: .goBack),
+                ActionItem(icon: "chevron.right", label: "Forward", action: .goForward),
+                ActionItem(icon: "arrow.clockwise", label: "Refresh", action: .refreshPage),
+                ActionItem(icon: "xmark", label: "Close", action: .closeTab),
+                ActionItem(icon: "plus", label: "New Tab", action: .newTab),
+                ActionItem(icon: "speaker.slash", label: "Mute", action: .volumeMute),
+                ActionItem(icon: "gobackward.5", label: "-5s", action: .seekBackward),
+                ActionItem(icon: "playpause", label: "Play", action: .mediaPlayPause),
+                ActionItem(icon: "goforward.5", label: "+5s", action: .seekForward),
+            ]
+        case .media:
+            return [
+                ActionItem(icon: "backward.end.fill", label: "Prev", action: .mediaPreviousTrack),
+                ActionItem(icon: "playpause.fill", label: "Play", action: .mediaPlayPause),
+                ActionItem(icon: "forward.end.fill", label: "Next", action: .mediaNextTrack),
+                ActionItem(icon: "gobackward.5", label: "-5s", action: .seekBackward),
+                ActionItem(icon: "speaker.slash", label: "Mute", action: .volumeMute),
+                ActionItem(icon: "goforward.5", label: "+5s", action: .seekForward),
+                ActionItem(icon: "speaker.minus", label: "Vol -", action: .volumeDown),
+                ActionItem(icon: "speaker.wave.2", label: "Vol", action: .volumeUp),
+                ActionItem(icon: "speaker.plus", label: "Vol +", action: .volumeUp),
+            ]
+        case .terminal:
+            return [
+                ActionItem(icon: "doc.on.doc", label: "Copy", action: .copyClipboard),
+                ActionItem(icon: "doc.on.clipboard", label: "Paste", action: .pasteClipboard),
+                ActionItem(icon: "xmark", label: "Close", action: .closeTab),
+                ActionItem(icon: "plus", label: "New Tab", action: .newTab),
+                ActionItem(icon: "speaker.minus", label: "Vol -", action: .volumeDown),
+                ActionItem(icon: "speaker.plus", label: "Vol +", action: .volumeUp),
+            ]
+        case .generic:
+            return [
+                ActionItem(icon: "chevron.left", label: "Back", action: .goBack),
+                ActionItem(icon: "chevron.right", label: "Forward", action: .goForward),
+                ActionItem(icon: "doc.on.doc", label: "Copy", action: .copyClipboard),
+                ActionItem(icon: "doc.on.clipboard", label: "Paste", action: .pasteClipboard),
+                ActionItem(icon: "playpause", label: "Play", action: .mediaPlayPause),
+                ActionItem(icon: "speaker.slash", label: "Mute", action: .volumeMute),
+                ActionItem(icon: "speaker.minus", label: "Vol -", action: .volumeDown),
+                ActionItem(icon: "xmark", label: "Close", action: .closeTab),
+                ActionItem(icon: "speaker.plus", label: "Vol +", action: .volumeUp),
+            ]
+        }
     }
 }

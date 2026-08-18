@@ -113,6 +113,8 @@ struct DeckView: View {
                         .overlay {
                             if showRadialMenu {
                                 RadialMenuView(
+                                    frontmostBundleID: model.macState.frontmost,
+                                    isLandscape: model.isLandscapeLayout,
                                     onAction: { action in
                                         model.sendGesture(action)
                                     },
