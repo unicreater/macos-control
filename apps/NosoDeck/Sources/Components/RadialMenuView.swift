@@ -20,17 +20,34 @@ struct RadialMenuView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-                .onTapGesture { onDismiss() }
+        GeometryReader { geo in
+            let portraitW = geo.size.width
+            let portraitH = geo.size.height
 
-            menuContent
+            ZStack {
+                // Backdrop — dismiss on tap
+                Color.black.opacity(0.7)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onDismiss() }
+
+                // Menu panel
+                menuContent
+            }
+            .frame(
+                width: isLandscape ? portraitH : portraitW,
+                height: isLandscape ? portraitW : portraitH
+            )
+            .if(isLandscape) { view in
+                view
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: portraitW, height: portraitH)
+            }
         }
+        .ignoresSafeArea()
     }
 
     private var menuContent: some View {
-        HStack(spacing: DeckSpace.m) {
+        HStack(spacing: DeckSpace.s) {
             VStack(spacing: DeckSpace.m) {
                 // Category label
                 HStack(spacing: 6) {
@@ -64,7 +81,7 @@ struct RadialMenuView: View {
                 .buttonStyle(.plain)
             }
             .padding(DeckSpace.l)
-            .background(DeckColor.chassis.opacity(0.95), in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
+            .background(DeckColor.chassis, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
                     .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
@@ -146,6 +163,15 @@ struct RadialMenuView: View {
     }
 }
 
+// MARK: - View extension
+
+private extension View {
+    @ViewBuilder
+    func `if`<Transform: View>(_ condition: Bool, transform: (Self) -> Transform) -> some View {
+        if condition { transform(self) } else { self }
+    }
+}
+
 // MARK: - App Categories
 
 struct ActionItem: Identifiable {
@@ -164,21 +190,18 @@ enum AppCategory {
     static func from(bundleID: String) -> AppCategory {
         let id = bundleID.lowercased()
 
-        // Browsers
         if id.contains("safari") || id.contains("chrome") || id.contains("firefox")
             || id.contains("browser") || id.contains("edge") || id.contains("brave")
             || id.contains("opera") || id.contains("vivaldi") || id.contains("arc") {
             return .browser
         }
 
-        // Media players
         if id.contains("spotify") || id.contains("music") || id.contains("vlc")
             || id.contains("iina") || id.contains("youtube") || id.contains("netflix")
             || id.contains("tv") || id.contains("podcasts") || id.contains("plex") {
             return .media
         }
 
-        // Terminals
         if id.contains("terminal") || id.contains("iterm") || id.contains("warp")
             || id.contains("alacritty") || id.contains("kitty") || id.contains("hyper") {
             return .terminal
