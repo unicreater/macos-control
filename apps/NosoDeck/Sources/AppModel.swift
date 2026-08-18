@@ -355,6 +355,7 @@ final class AppModel {
 
     func toggleEditing() {
         isEditing.toggle()
+        Haptics.editToggle()
     }
 
     func add(_ entry: AppCatalogEntry) {

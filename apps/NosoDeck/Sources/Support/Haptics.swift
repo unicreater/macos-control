@@ -1,32 +1,51 @@
 import UIKit
 
-/// Haptics, on exactly two events: a tile tap and pairing success (design handoff,
-/// "Interactions").
-///
-/// The restraint is the design. A deck that buzzes at everything stops meaning anything,
-/// so there is no API here for anything else.
+/// Distinct haptic patterns for different interaction types.
 @MainActor
 enum Haptics {
-    private static let impact = UIImpactFeedbackGenerator(style: .rigid)
+    private static let rigid = UIImpactFeedbackGenerator(style: .rigid)
+    private static let light = UIImpactFeedbackGenerator(style: .light)
+    private static let medium = UIImpactFeedbackGenerator(style: .medium)
+    private static let heavy = UIImpactFeedbackGenerator(style: .heavy)
+    private static let soft = UIImpactFeedbackGenerator(style: .soft)
     private static let notification = UINotificationFeedbackGenerator()
+    private static let selection = UISelectionFeedbackGenerator()
 
-    /// Call shortly before a tap is likely, so the engine is warm and the tap feels
-    /// immediate rather than late.
-    static func prepare() {
-        impact.prepare()
-    }
+    static func prepare() { rigid.prepare() }
 
-    /// A tile tap. Rigid, because the thing being pressed is meant to feel like a keycap.
-    static func tileTap() {
-        impact.impactOccurred()
-    }
+    /// Tile tap — rigid keycap feel.
+    static func tileTap() { rigid.impactOccurred() }
 
-    static func pairingSucceeded() {
-        notification.notificationOccurred(.success)
-    }
+    /// Media control (play/pause, next, prev) — medium.
+    static func mediaAction() { medium.impactOccurred() }
 
-    /// A wrong PIN. The design calls for an error haptic alongside the shake.
-    static func pairingFailed() {
-        notification.notificationOccurred(.error)
-    }
+    /// Navigation action (back, forward, refresh) — light.
+    static func navAction() { light.impactOccurred() }
+
+    /// Scroll tick — soft, repeatable.
+    static func scrollTick() { soft.impactOccurred(intensity: 0.4) }
+
+    /// Volume change — selection tap.
+    static func volumeTick() { selection.selectionChanged() }
+
+    /// Key combo fired — heavy, deliberate.
+    static func keyComboFired() { heavy.impactOccurred(intensity: 0.7) }
+
+    /// Tile added to deck.
+    static func tileAdded() { notification.notificationOccurred(.success) }
+
+    /// Tile removed (before undo window).
+    static func tileRemoved() { light.impactOccurred() }
+
+    /// Edit mode entered/exited.
+    static func editToggle() { selection.selectionChanged() }
+
+    /// Pairing succeeded.
+    static func pairingSucceeded() { notification.notificationOccurred(.success) }
+
+    /// Wrong PIN.
+    static func pairingFailed() { notification.notificationOccurred(.error) }
+
+    /// Generic warning.
+    static func warning() { notification.notificationOccurred(.warning) }
 }

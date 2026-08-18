@@ -121,6 +121,7 @@ struct RadialMenuView: View {
                             let ticks = (scrollDragOffset / tickSize).rounded(.towardZero)
                             if ticks != lastScrollTick {
                                 lastScrollTick = ticks
+                                Haptics.scrollTick()
                                 onAction(scrollDragOffset < 0 ? .scrollUp : .scrollDown)
                             }
                         }
@@ -137,11 +138,28 @@ struct RadialMenuView: View {
         .padding(.vertical, DeckSpace.l)
     }
 
+    private func haptic(for action: ActionKind) {
+        switch action {
+        case .mediaPlayPause, .mediaNextTrack, .mediaPreviousTrack:
+            Haptics.mediaAction()
+        case .goBack, .goForward, .refreshPage, .closeTab, .newTab:
+            Haptics.navAction()
+        case .volumeUp, .volumeDown, .volumeMute:
+            Haptics.volumeTick()
+        case .seekForward, .seekBackward:
+            Haptics.mediaAction()
+        case .keyCombo:
+            Haptics.keyComboFired()
+        default:
+            Haptics.tileTap()
+        }
+    }
+
     // MARK: - Buttons
 
     private func actionButton(icon: String, label: String, action: ActionKind) -> some View {
         Button {
-            Haptics.tileTap()
+            haptic(for: action)
             onAction(action)
         } label: {
             VStack(spacing: 3) {
