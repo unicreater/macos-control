@@ -13,16 +13,49 @@ struct SettingsView: View {
     private var isPortrait: Bool { !model.isLandscapeLayout }
 
     var body: some View {
+        if isPortrait {
+            portraitBody
+        } else {
+            landscapeBody
+        }
+    }
+
+    private var portraitBody: some View {
         ScrollView {
-            if isPortrait {
-                portraitLayout
-            } else {
-                landscapeLayout
-            }
+            portraitLayout
         }
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(DeckColor.chassis)
+        .confirmationDialog(
+            "Unpair \(model.connectedMacName ?? "this Mac")?",
+            isPresented: $isConfirmingUnpair,
+            titleVisibility: .visible
+        ) {
+            Button("Unpair", role: .destructive) { model.unpairCurrentMac() }
+            Button("Keep paired", role: .cancel) {}
+        } message: {
+            Text("Your deck layout stays on this iPhone. You'll need a new PIN to reconnect.")
+        }
+    }
+
+    private var landscapeBody: some View {
+        GeometryReader { geo in
+            let portraitW = geo.size.width
+            let portraitH = geo.size.height
+            let landscapeW = portraitH
+            let landscapeH = portraitW
+
+            ScrollView {
+                landscapeLayout
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(width: landscapeW, height: landscapeH)
+            .background(.clear)
+            .rotationEffect(.degrees(-90))
+            .frame(width: portraitW, height: portraitH)
+        }
+        .background(.clear)
         .confirmationDialog(
             "Unpair \(model.connectedMacName ?? "this Mac")?",
             isPresented: $isConfirmingUnpair,

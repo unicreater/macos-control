@@ -125,14 +125,8 @@ struct DeckView: View {
                 }
 
                 Tab("Settings", systemImage: "gearshape", value: 1) {
-                    if model.isLandscapeLayout {
-                        landscapeRotated {
-                            SettingsView(model: model)
-                        }
-                    } else {
-                        SettingsView(model: model)
-                            .background(DeckColor.chassis.ignoresSafeArea())
-                    }
+                    SettingsView(model: model)
+                        .background(DeckColor.chassis.ignoresSafeArea())
                 }
 
                 Tab("History", systemImage: "clock.arrow.circlepath", value: 2, role: .search) {
