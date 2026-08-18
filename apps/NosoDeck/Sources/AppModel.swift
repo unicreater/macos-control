@@ -84,6 +84,10 @@ final class AppModel {
         self.isEmojiStripEnabled = (defaults.object(forKey: Self.emojiStripKey) as? Bool) ?? true
         self.bulletStyle = (defaults.string(forKey: Self.bulletStyleKey)) ?? "bullet"
         self.isLandscapeLayout = (defaults.object(forKey: Self.layoutKey) as? Bool) ?? true
+        if let data = defaults.data(forKey: Self.gestureMappingKey),
+           let mapping = try? JSONDecoder().decode(GestureMapping.self, from: data) {
+            self.gestureMapping = mapping
+        }
 
         let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
@@ -309,6 +313,7 @@ final class AppModel {
     private(set) var keepsScreenAwake = true
     private(set) var isEmojiStripEnabled = true
     private(set) var isLandscapeLayout = true
+    private(set) var gestureMapping = GestureMapping.default
 
     func setKeepsScreenAwake(_ enabled: Bool) {
         keepsScreenAwake = enabled
@@ -326,6 +331,13 @@ final class AppModel {
         UserDefaults.standard.set(enabled, forKey: Self.layoutKey)
     }
 
+    func setGestureMapping(_ mapping: GestureMapping) {
+        gestureMapping = mapping
+        if let data = try? JSONEncoder().encode(mapping) {
+            UserDefaults.standard.set(data, forKey: Self.gestureMappingKey)
+        }
+    }
+
     func applyIdleTimer() {
         UIApplication.shared.isIdleTimerDisabled =
             keepsScreenAwake && route == .deck && session.state.isLive
@@ -335,6 +347,7 @@ final class AppModel {
     fileprivate static let emojiStripKey = "com.noso.nosodeck.emojiStrip"
     fileprivate static let bulletStyleKey = "com.noso.nosodeck.bulletStyle"
     fileprivate static let layoutKey = "com.noso.nosodeck.landscapeLayout"
+    fileprivate static let gestureMappingKey = "com.noso.nosodeck.gestureMapping"
 
     /// "bullet" for • or "number" for 1. 2. 3.
     private(set) var bulletStyle: String = "bullet"

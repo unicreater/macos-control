@@ -148,7 +148,7 @@ struct DeckView: View {
             .tint(DeckColor.mint)
         }
         .background {
-            WindowGestureInstaller(onAction: { model.sendGesture($0) })
+            WindowGestureInstaller(onAction: { model.sendGesture($0) }, mapping: model.gestureMapping)
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)

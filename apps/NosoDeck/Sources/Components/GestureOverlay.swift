@@ -6,6 +6,7 @@ import UIKit
 /// Works over tiles — 2+ finger gestures are intercepted while single taps pass through.
 struct WindowGestureInstaller: UIViewRepresentable {
     let onAction: (ActionKind) -> Void
+    var mapping: GestureMapping = .default
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
@@ -21,6 +22,7 @@ struct WindowGestureInstaller: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.onAction = onAction
+        context.coordinator.mapping = mapping
     }
 
     func makeCoordinator() -> GestureCoordinator { GestureCoordinator() }
@@ -28,6 +30,7 @@ struct WindowGestureInstaller: UIViewRepresentable {
 
 class GestureCoordinator: NSObject, UIGestureRecognizerDelegate {
     var onAction: ((ActionKind) -> Void)?
+    var mapping: GestureMapping = .default
     private var installed = false
     private weak var feedbackView: GestureFeedbackView?
 
@@ -74,18 +77,15 @@ class GestureCoordinator: NSObject, UIGestureRecognizerDelegate {
     }
 
     @objc func handleSwipe(_ gesture: UISwipeGestureRecognizer) {
+        let action: ActionKind
         switch gesture.direction {
-        case .up:
-            fire(.maximizeWindow, label: "MAXIMIZE", icon: "arrow.up.left.and.arrow.down.right")
-        case .down:
-            fire(.minimizeWindow, label: "MINIMIZE", icon: "arrow.down.right.and.arrow.up.left")
-        case .left:
-            fire(.copyClipboard, label: "COPY", icon: "doc.on.doc")
-        case .right:
-            fire(.pasteClipboard, label: "PASTE", icon: "doc.on.clipboard")
-        default:
-            break
+        case .up: action = mapping.swipeUp
+        case .down: action = mapping.swipeDown
+        case .left: action = mapping.swipeLeft
+        case .right: action = mapping.swipeRight
+        default: return
         }
+        fire(action, label: GestureMapping.label(for: action).uppercased(), icon: GestureMapping.icon(for: action))
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
@@ -94,14 +94,14 @@ class GestureCoordinator: NSObject, UIGestureRecognizerDelegate {
     }
 
     @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-        // 2-finger double-tap = copy
-        fire(.copyClipboard, label: "COPY", icon: "doc.on.doc")
+        let action = mapping.doubleTap
+        fire(action, label: GestureMapping.label(for: action).uppercased(), icon: GestureMapping.icon(for: action))
     }
 
     @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
-        // 2-finger long-press = paste
-        fire(.pasteClipboard, label: "PASTE", icon: "doc.on.clipboard")
+        let action = mapping.longPress
+        fire(action, label: GestureMapping.label(for: action).uppercased(), icon: GestureMapping.icon(for: action))
     }
 
     private func fire(_ action: ActionKind, label: String, icon: String) {

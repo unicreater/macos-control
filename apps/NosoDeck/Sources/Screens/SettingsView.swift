@@ -76,6 +76,7 @@ struct SettingsView: View {
             deviceCard
             themeCard
             deckCard
+            gestureCard
             rowList
         }
         .padding(.horizontal, DeckSpace.l)
@@ -305,6 +306,60 @@ struct SettingsView: View {
         .overlay {
             RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
                 .strokeBorder(DeckColor.ochre, lineWidth: 1)
+        }
+    }
+
+    private var gestureCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: DeckSpace.m) {
+                Text("Gestures")
+                    .deckFont(.meta)
+                    .foregroundStyle(DeckColor.inkMuted)
+
+                ForEach(Array(GestureMapping.slots.enumerated()), id: \.offset) { _, slot in
+                    let current = model.gestureMapping[keyPath: slot.key]
+                    HStack(spacing: DeckSpace.m) {
+                        Image(systemName: slot.icon)
+                            .font(.system(size: 14))
+                            .foregroundStyle(DeckColor.inkMuted)
+                            .frame(width: 28)
+
+                        Text(slot.label)
+                            .deckFont(.bodySmall)
+                            .foregroundStyle(DeckColor.ink)
+
+                        Spacer()
+
+                        Menu {
+                            ForEach(GestureMapping.availableActions, id: \.action) { option in
+                                Button {
+                                    var mapping = model.gestureMapping
+                                    mapping[keyPath: slot.key] = option.action
+                                    model.setGestureMapping(mapping)
+                                } label: {
+                                    Label(option.label, systemImage: GestureMapping.icon(for: option.action))
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(GestureMapping.label(for: current))
+                                    .deckFont(.meta)
+                                    .foregroundStyle(DeckColor.mint)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(DeckColor.inkFaint)
+                            }
+                            .padding(.horizontal, DeckSpace.s)
+                            .frame(height: 28)
+                            .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+                        }
+                    }
+
+                    if slot.label != GestureMapping.slots.last?.label {
+                        Divider().overlay(DeckColor.strokeSubtle)
+                    }
+                }
+            }
         }
     }
 
