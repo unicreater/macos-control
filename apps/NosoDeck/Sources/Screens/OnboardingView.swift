@@ -9,88 +9,90 @@ struct OnboardingView: View {
     @State private var step = 1
 
     var body: some View {
-        HStack(alignment: .center, spacing: 36) {
-            leftColumn
-            rightColumn
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("NosoDeck")
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .foregroundStyle(DeckColor.mint)
+                    .padding(.bottom, DeckSpace.m)
+
+                Text(step == 1 ? "Install NosoDeck\non your Mac" : "Pair this\niPhone")
+                    .font(.system(size: 38, weight: .bold, design: .serif))
+                    .foregroundStyle(DeckColor.ink)
+                    .padding(.bottom, DeckSpace.xl)
+
+                Text(step == 1
+                     ? "Same Wi-Fi, that's it — no account, no cable."
+                     : "We find your Mac on the local network and swap a PIN.")
+                    .deckFont(.body)
+                    .foregroundStyle(DeckColor.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 36)
+
+                if step == 1 {
+                    qrCard
+                        .padding(.bottom, 36)
+                } else {
+                    PrePromptCard(kind: .localNetwork) {
+                        model.beginDiscovery()
+                    }
+                    .padding(.bottom, 36)
+                }
+
+                VStack(spacing: DeckSpace.m) {
+                    primaryButton(step == 1 ? "Continue" : "Find my Mac") {
+                        if step == 1 {
+                            step = 2
+                        } else {
+                            model.beginDiscovery()
+                        }
+                    }
+
+                    if step == 1 {
+                        secondaryButton("Already installed") { step = 2 }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, DeckSpace.xl)
+
+                pageDots
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, DeckSpace.xl)
+            .padding(.top, 48)
+            .padding(.bottom, DeckSpace.l)
         }
-        .padding(.vertical, DeckSpace.xl)
-        .padding(.horizontal, DeckSpace.safeInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
     }
 
-    private var leftColumn: some View {
-        VStack(alignment: .leading, spacing: DeckSpace.l) {
-            Text("Step \(step) / 2")
-                .deckFont(.meta)
+    private var qrCard: some View {
+        VStack(spacing: DeckSpace.l) {
+            RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                .fill(.white)
+                .frame(width: 132, height: 132)
+                .overlay {
+                    Text("QR")
+                        .deckFont(.meta)
+                        .foregroundStyle(.black)
+                }
+            Text("nosodeck.app/mac")
+                .deckFont(.legend)
                 .foregroundStyle(DeckColor.inkMuted)
-
-            Text(step == 1 ? "Install NosoDeck on your Mac" : "Pair this iPhone")
-                .deckFont(.display)
-                .foregroundStyle(DeckColor.ink)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(step == 1
-                 ? "Same Wi-Fi, that's it — no account, no cable."
-                 : "We find your Mac on the local network and swap a 6-digit PIN.")
-                .deckFont(.body)
-                .foregroundStyle(DeckColor.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: DeckSpace.m) {
-                primaryButton(step == 1 ? "Continue" : "Find my Mac") {
-                    if step == 1 {
-                        step = 2
-                    } else {
-                        // Starting the browse is what raises the system prompt, which
-                        // is why it happens here and not a moment earlier (FR-24).
-                        model.beginDiscovery()
-                    }
-                }
-                if step == 1 {
-                    secondaryButton("Already installed") { step = 2 }
-                }
-            }
-
-            pageDots
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private var rightColumn: some View {
-        if step == 1 {
-            VStack(spacing: DeckSpace.l) {
-                // Placeholder for the real App Store link (design: Assets).
-                RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
-                    .fill(.white)
-                    .frame(width: 132, height: 132)
-                    .overlay {
-                        Text("QR")
-                            .deckFont(.meta)
-                            .foregroundStyle(.black)
-                    }
-                Text("nosodeck.app/mac")
-                    .deckFont(.legend)
-                    .foregroundStyle(DeckColor.inkMuted)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                LinearGradient(
-                    colors: [Color(hex: 0x1C1C1C), Color(hex: 0x151515)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ),
-                in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
-                    .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
-            }
-        } else {
-            PrePromptCard(kind: .localNetwork) {
-                model.beginDiscovery()
-            }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DeckSpace.xl)
+        .background(
+            LinearGradient(
+                colors: [Color(hex: 0x1C1C1C), Color(hex: 0x151515)],
+                startPoint: .top,
+                endPoint: .bottom
+            ),
+            in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
+                .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
         }
     }
 
@@ -108,11 +110,10 @@ struct OnboardingView: View {
     private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .deckFont(.legend)
-                .foregroundStyle(DeckColor.onOchre)
-                .padding(.horizontal, DeckSpace.xl)
-                .frame(minHeight: 48)
-                .background(DeckColor.ochre, in: RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous))
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(DeckColor.chassis)
+                .frame(maxWidth: 220, minHeight: 52)
+                .background(DeckColor.mint, in: Capsule())
         }
         .buttonStyle(.plain)
     }
@@ -121,13 +122,7 @@ struct OnboardingView: View {
         Button(action: action) {
             Text(title)
                 .deckFont(.body)
-                .foregroundStyle(Color(hex: 0x9A9A9A))
-                .padding(.horizontal, DeckSpace.l)
-                .frame(minHeight: 48)
-                .overlay {
-                    RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
-                        .strokeBorder(DeckColor.stroke, lineWidth: 1)
-                }
+                .foregroundStyle(DeckColor.inkMuted)
         }
         .buttonStyle(.plain)
     }

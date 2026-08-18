@@ -3,48 +3,70 @@ import SwiftUI
 
 /// S2 — choose your Mac.
 ///
-/// The empty state is never blank: while nothing has been found, the screen still says
-/// it is scanning and still lists the three things that are usually wrong.
+/// Portrait single-column layout. The empty state is never blank: while nothing has
+/// been found, the screen still says it is scanning and lists what's usually wrong.
 struct DiscoveryView: View {
     let model: AppModel
 
     var body: some View {
-        HStack(alignment: .top, spacing: 28) {
-            deviceList
-                .frame(maxWidth: .infinity, alignment: .leading)
-            helpCard
-                .frame(maxWidth: 300)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("NosoDeck")
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .foregroundStyle(DeckColor.mint)
+                    .padding(.bottom, DeckSpace.m)
+
+                Text("Choose\nyour Mac")
+                    .font(.system(size: 38, weight: .bold, design: .serif))
+                    .foregroundStyle(DeckColor.ink)
+                    .padding(.bottom, DeckSpace.xl)
+
+                // Scanning status
+                HStack(spacing: DeckSpace.s) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(DeckColor.inkMuted)
+                    Text(model.isScanning ? "Scanning your network…" : "Not scanning")
+                        .deckFont(.bodySmall)
+                        .foregroundStyle(DeckColor.inkMuted)
+                }
+                .padding(.bottom, DeckSpace.l)
+
+                // Device list
+                if model.discovered.isEmpty {
+                    emptyState
+                        .padding(.bottom, DeckSpace.xl)
+                } else {
+                    LazyVStack(spacing: DeckSpace.s) {
+                        ForEach(model.discovered) { mac in
+                            row(for: mac)
+                        }
+                    }
+                    .padding(.bottom, DeckSpace.xl)
+                }
+
+                // Help card
+                helpCard
+            }
+            .padding(.horizontal, DeckSpace.xl)
+            .padding(.top, 48)
+            .padding(.bottom, DeckSpace.l)
         }
-        .padding(.vertical, 20)
-        .padding(.horizontal, DeckSpace.safeInset)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DeckColor.chassis)
     }
 
-    private var deviceList: some View {
-        VStack(alignment: .leading, spacing: DeckSpace.m) {
-            Text("Choose your Mac")
-                .deckFont(.meta)
+    private var emptyState: some View {
+        VStack(spacing: DeckSpace.m) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(.system(size: 36))
+                .foregroundStyle(DeckColor.inkFaint)
+            Text("Looking for your Mac…")
+                .deckFont(.body)
                 .foregroundStyle(DeckColor.inkMuted)
-
-            ScrollView {
-                LazyVStack(spacing: DeckSpace.s) {
-                    ForEach(model.discovered) { mac in
-                        row(for: mac)
-                    }
-                }
-            }
-            .scrollBounceBehavior(.basedOnSize)
-
-            HStack(spacing: DeckSpace.s) {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(DeckColor.inkMuted)
-                Text(model.isScanning ? "Still scanning…" : "Not scanning")
-                    .deckFont(.meta)
-                    .foregroundStyle(DeckColor.inkMuted)
-            }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 
     private func row(for mac: DiscoveredMac) -> some View {
@@ -55,13 +77,10 @@ struct DiscoveryView: View {
             model.select(mac)
         } label: {
             HStack(spacing: DeckSpace.m) {
-                RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
-                    .fill(Color(hex: 0x2C2C2C))
-                    .frame(width: 34, height: 34)
-                    .overlay {
-                        Image(systemName: "desktopcomputer")
-                            .foregroundStyle(DeckColor.inkMuted)
-                    }
+                Image(systemName: "desktopcomputer")
+                    .foregroundStyle(DeckColor.inkMuted)
+                    .frame(width: 40, height: 40)
+                    .background(Color(hex: 0x2C2C2C), in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(mac.name)
@@ -93,27 +112,15 @@ struct DiscoveryView: View {
             }
             .padding(.horizontal, DeckSpace.m)
             .padding(.vertical, 14)
-            .frame(minHeight: 52)
-            .background(
-                LinearGradient(
-                    colors: [DeckColor.keycapTop, DeckColor.keycapBottom],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ),
-                in: RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
-            )
+            .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: DeckRadius.tile, style: .continuous)
-                    .strokeBorder(isPaired ? DeckColor.mint : DeckColor.stroke, lineWidth: 1)
+                    .strokeBorder(isPaired ? DeckColor.mint : DeckColor.strokeSubtle, lineWidth: 1)
             }
-            // Offline and incompatible rows are dimmed and inert rather than hidden —
-            // seeing the Mac and being told why it can't be used beats it vanishing.
             .opacity(isCompatible ? 1 : 0.45)
         }
         .buttonStyle(.plain)
         .disabled(!isCompatible)
-        .accessibilityLabel(mac.name)
-        .accessibilityValue(isPaired ? "Paired" : "Not paired")
     }
 
     private var helpCard: some View {
@@ -142,7 +149,7 @@ struct DiscoveryView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(DeckSpace.xl)
+        .padding(DeckSpace.l)
         .background(DeckColor.surface, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
