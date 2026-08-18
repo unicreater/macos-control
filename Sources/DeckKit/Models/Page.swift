@@ -43,6 +43,13 @@ public struct Page: Identifiable, Codable, Hashable, Sendable {
         return true
     }
 
+    /// Updates a tile's label and emoji in place.
+    public mutating func updateTile(id: UUID, label: String, emoji: String?) {
+        guard let index = tiles.firstIndex(where: { $0.id == id }) else { return }
+        tiles[index].label = label
+        tiles[index].emoji = emoji
+    }
+
     @discardableResult
     public mutating func remove(tileID: UUID) -> Tile? {
         guard let index = tiles.firstIndex(where: { $0.id == tileID }) else { return nil }

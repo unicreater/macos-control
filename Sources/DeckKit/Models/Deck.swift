@@ -133,9 +133,8 @@ public struct Deck: Codable, Hashable, Sendable {
     /// Updates a tile's label and emoji in place.
     public mutating func updateTile(id: UUID, label: String, emoji: String?) {
         for pageIndex in pages.indices {
-            if let tileIndex = pages[pageIndex].tiles.firstIndex(where: { $0.id == id }) {
-                pages[pageIndex].tiles[tileIndex].label = label
-                pages[pageIndex].tiles[tileIndex].emoji = emoji
+            if pages[pageIndex].tiles.contains(where: { $0.id == id }) {
+                pages[pageIndex].updateTile(id: id, label: label, emoji: emoji)
                 return
             }
         }
