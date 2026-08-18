@@ -172,14 +172,14 @@ struct EmptySlotView: View {
             GeometryReader { geo in
                 let size = min(geo.size.width, geo.size.height) * 0.8
                 Image(systemName: "plus")
-                    .font(.system(size: 28, weight: .light))
-                    .foregroundStyle(Color(hex: 0x3A3A3A))
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(Color.white.opacity(0.15))
                     .frame(width: size, height: size)
-                    .background(Color(hex: 0x141414).opacity(0.6))
+                    .background(Color.white.opacity(0.03))
                     .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.05), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
+                            .strokeBorder(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1.5, dash: [8, 6]))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
