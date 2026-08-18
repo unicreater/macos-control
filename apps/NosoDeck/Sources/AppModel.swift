@@ -529,12 +529,7 @@ final class AppModel {
     }
 
     func sendGesture(_ kind: ActionKind) {
-        print("[NosoDeck] sendGesture: \(kind) session=\(session.state) accepts=\(session.acceptsActions)")
-        guard session.acceptsActions else {
-            print("[NosoDeck] BLOCKED gesture — session not accepting")
-            return
-        }
-        print("[NosoDeck] SENDING gesture: \(kind)")
+        guard session.acceptsActions else { return }
         client.send(.action(ActionRequest(kind: kind, target: "")))
     }
 
