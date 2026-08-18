@@ -328,11 +328,19 @@ struct DeckView: View {
     /// Tag used for the AI Sessions page — sits after all deck pages.
     private var aiPageTag: Int { model.pageCount }
 
+    private var isDeckEmpty: Bool {
+        model.deck.pages.allSatisfy { $0.isEmpty }
+    }
+
     private var pages: some View {
         TabView(selection: pageBinding) {
             ForEach(0..<model.pageCount, id: \.self) { pageIndex in
                 VStack {
-                    grid(pageIndex: pageIndex)
+                    if isDeckEmpty && pageIndex == 0 {
+                        emptyDeckOnboarding
+                    } else {
+                        grid(pageIndex: pageIndex)
+                    }
                     Spacer(minLength: 0)
                 }
                 .tag(pageIndex)
@@ -433,6 +441,40 @@ struct DeckView: View {
         guard let raw = items.first, let id = UUID(uuidString: raw) else { return false }
         model.moveTile(id: id, to: slot)
         return true
+    }
+
+    private var emptyDeckOnboarding: some View {
+        VStack(spacing: DeckSpace.l) {
+            Spacer()
+
+            Image(systemName: "square.grid.2x2")
+                .font(.system(size: 44))
+                .foregroundStyle(DeckColor.inkFaint)
+
+            Text("Your deck is empty")
+                .font(.system(size: 20, weight: .semibold, design: .serif))
+                .foregroundStyle(DeckColor.ink)
+
+            Text("Add apps, shortcuts, websites,\nor keyboard combos to get started.")
+                .deckFont(.bodySmall)
+                .foregroundStyle(DeckColor.inkMuted)
+                .multilineTextAlignment(.center)
+
+            Button {
+                isAddingTile = true
+            } label: {
+                Text("Add your first tile")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DeckColor.chassis)
+                    .padding(.horizontal, DeckSpace.xl)
+                    .frame(height: 48)
+                    .background(DeckColor.mint, in: Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func openAddTile(page: Int) {
