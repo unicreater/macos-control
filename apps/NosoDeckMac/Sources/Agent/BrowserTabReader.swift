@@ -41,44 +41,27 @@ struct BrowserTabReader {
         return parseTabs(runAppleScript(script), browser: "Safari", bundleID: bundleID)
     }
 
-    /// Arc: iterate spaces to get folder names. Deduplicates by URL.
+    /// Arc: get tabs from active space of each window. Deduplicates by URL.
     private func arcTabs() -> [BrowserTab] {
         let bundleID = Self.browserBundleIDs["Arc"]!
         guard isRunning(bundleID) else { return [] }
-        // Only unpinned tabs — pinned tabs are bookmarks/folders, not active tabs
         let script = """
         tell application "Arc"
             set tabList to ""
             repeat with w in windows
                 try
-                    repeat with s in spaces of w
-                        set spaceName to title of s
-                        repeat with t in tabs of s
-                            set tabURL to URL of t
-                            set tabLoc to location of t
-                            if tabURL starts with "http" and tabLoc is not pinned then
-                                set tabList to tabList & spaceName & "\\t" & title of t & "\\t" & tabURL & "\\n"
-                            end if
-                        end repeat
+                    repeat with t in tabs of w
+                        set tabURL to URL of t
+                        if tabURL starts with "http" then
+                            set tabList to tabList & title of t & "\\t" & tabURL & "\\n"
+                        end if
                     end repeat
                 end try
             end repeat
             return tabList
         end tell
         """
-        let raw = runAppleScript(script)
-        var seen = Set<String>()
-        return raw.components(separatedBy: "\n")
-            .filter { !$0.isEmpty }
-            .compactMap { line in
-                let parts = line.components(separatedBy: "\t")
-                guard parts.count >= 3, !parts[2].isEmpty else { return nil }
-                let url = parts[2]
-                guard url.hasPrefix("http://") || url.hasPrefix("https://") else { return nil }
-                guard seen.insert(url).inserted else { return nil }
-                let folder = parts[0].isEmpty ? nil : parts[0]
-                return BrowserTab(title: parts[1], url: url, browser: "Arc", browserBundleID: bundleID, folder: folder)
-            }
+        return parseTabs(runAppleScript(script), browser: "Arc", bundleID: bundleID)
     }
 
     private func chromiumTabs(app: String) -> [BrowserTab] {
