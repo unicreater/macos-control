@@ -253,6 +253,8 @@ public struct ActionRequest: Codable, Hashable, Sendable {
             self.init(kind: .openURL, target: url)
         case .keyCombo(let combo):
             self.init(kind: .keyCombo, target: combo)
+        case .folder:
+            self.init(kind: .activateApp, target: "") // Folders don't send to Mac
         }
     }
 }

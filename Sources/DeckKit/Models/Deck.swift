@@ -27,12 +27,38 @@ public struct Deck: Codable, Hashable, Sendable {
     public static let maxPages = 8
 
     public private(set) var pages: [Page]
+    public var folders: [TileFolder] = []
 
     /// A deck always has at least one page and never more than `maxPages`; both ends
     /// are clamped here so decoding can't produce an unrenderable deck.
-    public init(pages: [Page] = [Page()]) {
+    public init(pages: [Page] = [Page()], folders: [TileFolder] = []) {
         let clamped = Array(pages.prefix(Deck.maxPages))
         self.pages = clamped.isEmpty ? [Page()] : clamped
+        self.folders = folders
+    }
+
+    public func folder(id: String) -> TileFolder? {
+        folders.first { $0.id.uuidString == id }
+    }
+
+    public mutating func addFolder(_ folder: TileFolder) {
+        folders.append(folder)
+    }
+
+    public mutating func updateFolder(id: UUID, name: String? = nil, tiles: [Tile]? = nil) {
+        guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
+        if let name { folders[index].name = name }
+        if let tiles { folders[index].tiles = tiles }
+    }
+
+    public mutating func removeFolder(id: UUID) {
+        folders.removeAll { $0.id == id }
+    }
+
+    public mutating func addTileToFolder(folderID: UUID, tile: Tile) {
+        guard let index = folders.firstIndex(where: { $0.id == folderID }),
+              !folders[index].isFull else { return }
+        folders[index].tiles.append(tile)
     }
 
     public var pageCount: Int { pages.count }

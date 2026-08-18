@@ -70,6 +70,10 @@ struct KeycapView: View {
         } else if let emoji = tile.emoji, !emoji.isEmpty {
             Text(emoji)
                 .font(.system(size: 52))
+        } else if case .folder = tile.target {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 32))
+                .foregroundStyle(DeckColor.ochre)
         } else if case .keyCombo(let combo) = tile.target {
             let preset = KeyComboPreset.all.first { $0.combo == combo }
             Image(systemName: preset?.icon ?? "command")

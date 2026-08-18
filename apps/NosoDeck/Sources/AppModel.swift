@@ -385,6 +385,41 @@ final class AppModel {
         requestMissingIcons()
     }
 
+    // MARK: - Folders
+
+    func createFolder(name: String) -> TileFolder {
+        let folder = TileFolder(name: name)
+        deck.addFolder(folder)
+        persistDeck()
+        return folder
+    }
+
+    func folder(id: String) -> TileFolder? {
+        deck.folder(id: id)
+    }
+
+    func addTileToFolder(folderID: UUID, tile: Tile) {
+        deck.addTileToFolder(folderID: folderID, tile: tile)
+        persistDeck()
+    }
+
+    func updateFolder(id: UUID, name: String) {
+        deck.updateFolder(id: id, name: name)
+        persistDeck()
+    }
+
+    func removeFolder(id: UUID) {
+        // Remove the folder tile from the deck too
+        if let tileID = deck.pages.flatMap(\.tiles).first(where: {
+            if case .folder(let fid) = $0.target { return fid == id.uuidString }
+            return false
+        })?.id {
+            deck.removeTile(id: tileID)
+        }
+        deck.removeFolder(id: id)
+        persistDeck()
+    }
+
     func updateTile(id: UUID, label: String, emoji: String?) {
         deck.updateTile(id: id, label: label, emoji: emoji)
         persistDeck()

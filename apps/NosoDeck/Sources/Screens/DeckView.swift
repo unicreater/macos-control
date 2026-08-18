@@ -15,6 +15,7 @@ struct DeckView: View {
     @State private var showEmojiOverlay = false
     @State private var showRadialMenu = false
     @State private var editingTile: Tile?
+    @State private var openFolderID: String?
     @State var selectedTab = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
@@ -122,6 +123,17 @@ struct DeckView: View {
                                 )
                                 .transition(.opacity)
                                 .animation(.easeInOut(duration: 0.15), value: showRadialMenu)
+                            }
+                        }
+                        .overlay {
+                            if let fid = openFolderID, let folder = model.folder(id: fid) {
+                                FolderOverlay(
+                                    folder: folder,
+                                    model: model,
+                                    onDismiss: { openFolderID = nil }
+                                )
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.2), value: openFolderID)
                             }
                         }
                         .overlay(alignment: .bottom) {
@@ -404,6 +416,8 @@ struct DeckView: View {
                 onTap: {
                     if model.isEditing {
                         editingTile = tile
+                    } else if case .folder(let fid) = tile.target {
+                        openFolderID = fid
                     } else if model.activity(for: tile) == .frontmost {
                         showRadialMenu = true
                     } else {
