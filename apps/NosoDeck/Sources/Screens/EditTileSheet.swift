@@ -118,6 +118,7 @@ struct EditTileSheet: View {
         case .shortcut: return "bolt"
         case .website: return "globe"
         case .keyCombo: return "command"
+        case .folder: return "folder"
         }
     }
 
@@ -127,6 +128,7 @@ struct EditTileSheet: View {
         case .shortcut(let name): return name
         case .website(let url): return url
         case .keyCombo(let combo): return combo.uppercased()
+        case .folder(let id): return "Folder \(id.prefix(8))"
         }
     }
 }
