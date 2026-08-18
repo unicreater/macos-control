@@ -51,7 +51,6 @@ struct AgentIdentityStore {
             _cachedSecret = fresh
         }
 
-        NSLog("[MacAgent] identity deviceID=%@", _cachedDeviceID)
     }
 
     // MARK: - This Mac

@@ -250,12 +250,9 @@ final class AppModel {
     /// A tap: launch if closed, front if running (FR-9). Refused while the link is
     /// down, which is the same condition the deck's opacity is showing.
     func activate(_ tile: Tile) {
-        print("[NosoDeck] activate: state=\(session.state) accepts=\(session.acceptsActions) target=\(tile.target)")
         guard session.acceptsActions else {
-            print("[NosoDeck] BLOCKED — not live")
             return
         }
-        print("[NosoDeck] SENDING action for \(tile.label)")
         Haptics.tileTap()
         lastActionError = nil
         client.send(.action(ActionRequest(activating: tile.target)))
@@ -633,10 +630,8 @@ final class AppModel {
         client.onStateEvent = { [weak self] macState in
             self?.macState = macState
             if !macState.sessions.isEmpty {
-                print("[NosoDeck] Sessions received: \(macState.sessions.map { "\($0.bundleID): \($0.sessions.count) sessions" })")
                 for info in macState.sessions {
                     for s in info.sessions {
-                        print("[NosoDeck]   \(s.label) — \(s.status) \(s.detail ?? "") cpu:\(s.cpuPercent ?? 0)")
                     }
                 }
             }

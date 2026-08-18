@@ -25,14 +25,11 @@ final class SessionTracker {
 
     func start() {
         stop()
-        NSLog("[MacAgent] SessionTracker starting")
         let queue = DispatchQueue(label: "nosodeck.sessions", qos: .utility)
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now() + 1, repeating: 3)
         t.setEventHandler { [weak self] in
-            NSLog("[MacAgent] Timer fired, scanning...")
             let infos = Self.scanSessionsSync()
-            NSLog("[MacAgent] Scan done: %d results", infos.count)
             DispatchQueue.main.async {
                 self?.applyResults(infos)
             }

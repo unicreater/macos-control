@@ -108,11 +108,9 @@ final class DeckClient {
     @discardableResult
     func send(_ message: Message) -> UUID? {
         guard let connection else {
-            print("[NosoDeck] send FAILED — no connection")
             return nil
         }
         let envelope = Envelope(message: message)
-        print("[NosoDeck] send: \(message.type.rawValue) connState=\(connection.state)")
         connection.send(envelope)
         return envelope.id
     }

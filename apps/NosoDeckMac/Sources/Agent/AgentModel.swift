@@ -114,7 +114,6 @@ final class AgentModel {
     // MARK: - Lifecycle
 
     func start() {
-        NSLog("[MacAgent] AgentModel.start() called")
         listener.onStateChange = { [weak self] state in
             self?.handleListenerState(state)
         }
@@ -191,7 +190,6 @@ final class AgentModel {
     private func restartListener() {
         // The open pairing key lets any phone connect for the pairing flow.
         // Authentication happens at the application layer (PIN in pairRequest).
-        NSLog("[MacAgent] restartListener deviceID=%@ fingerprint=%@", identityStore.deviceID, identityStore.fingerprint)
         var keys = [PresharedKey(
             identity: DeckService.pairingKeyIdentity,
             key: DeckTransport.openPairingKey(deviceID: identityStore.deviceID)
@@ -279,7 +277,6 @@ final class AgentModel {
     // MARK: - Protocol
 
     private func handle(_ envelope: Envelope, from session: AgentSession) {
-        NSLog("[MacAgent] Received: %@ isPaired=%d", envelope.type.rawValue, session.isPaired ? 1 : 0)
         switch envelope.message {
         case .hello(let hello):
             let paired = identityStore.isPaired(phoneID: hello.deviceID)
