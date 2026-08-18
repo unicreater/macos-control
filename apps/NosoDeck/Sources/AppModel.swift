@@ -371,6 +371,11 @@ final class AppModel {
         requestMissingIcons()
     }
 
+    func updateTile(id: UUID, label: String, emoji: String?) {
+        deck.updateTile(id: id, label: label, emoji: emoji)
+        persistDeck()
+    }
+
     /// The last removed tile and its original slot, for undo.
     private(set) var lastRemovedTile: (tile: Tile, slot: DeckSlot)?
     private var undoTimer: Task<Void, Never>?

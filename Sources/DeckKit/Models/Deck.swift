@@ -104,6 +104,17 @@ public struct Deck: Codable, Hashable, Sendable {
         _ = pages[slot.pageIndex].insert(tile, at: slot.slotIndex)
     }
 
+    /// Updates a tile's label and emoji in place.
+    public mutating func updateTile(id: UUID, label: String, emoji: String?) {
+        for pageIndex in pages.indices {
+            if let tileIndex = pages[pageIndex].tiles.firstIndex(where: { $0.id == id }) {
+                pages[pageIndex].tiles[tileIndex].label = label
+                pages[pageIndex].tiles[tileIndex].emoji = emoji
+                return
+            }
+        }
+    }
+
     @discardableResult
     public mutating func removeTile(id: UUID) -> Tile? {
         for index in pages.indices {
