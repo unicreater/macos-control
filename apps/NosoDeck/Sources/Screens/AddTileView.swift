@@ -276,12 +276,7 @@ struct AddTileView: View {
 
     @ViewBuilder
     private var shortcutTab: some View {
-        if !hasAcceptedAutomationPrompt && model.shortcuts.isEmpty {
-            PrePromptCard(kind: .automation, allowTitle: "Show my Shortcuts") {
-                hasAcceptedAutomationPrompt = true
-                model.requestShortcuts()
-            }
-        } else if model.automationWasRefused {
+        if model.automationWasRefused {
             emptyState(
                 "NosoDeck can't see your Shortcuts. \(PermissionKind.automation.degradedPath ?? "") You can allow it in System Settings → Privacy & Security → Automation on the Mac."
             )
@@ -585,8 +580,8 @@ struct AddTileView: View {
         tab = kind
         query = ""
         label = ""
-        if kind == .shortcut && !model.shortcuts.isEmpty {
-            hasAcceptedAutomationPrompt = true
+        if kind == .shortcut {
+            model.requestShortcuts()
         }
         if kind == .website {
             model.requestBrowserTabs()
