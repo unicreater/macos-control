@@ -21,7 +21,6 @@ struct SettingsView: View {
             }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .scrollContentBackground(.hidden)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(DeckColor.chassis)
         .confirmationDialog(
