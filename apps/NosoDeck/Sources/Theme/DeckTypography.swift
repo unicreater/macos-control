@@ -11,6 +11,8 @@ enum DeckFont {
     case display
     /// Inter 26–32 / 500 / −0.5 to −1.
     case title
+    /// Serif headline for onboarding/PIN screens.
+    case serifHeadline
     /// Inter 15–17 / 400.
     case body
     /// Inter 13–14 / 400.
@@ -26,6 +28,7 @@ enum DeckFont {
         switch self {
         case .display: return 38
         case .title: return 28
+        case .serifHeadline: return 38
         case .body: return 16
         case .bodySmall: return 13
         case .legend: return 12
@@ -37,6 +40,7 @@ enum DeckFont {
     var weight: Font.Weight {
         switch self {
         case .display, .title: return .medium
+        case .serifHeadline: return .bold
         default: return .regular
         }
     }
@@ -44,6 +48,7 @@ enum DeckFont {
     var design: Font.Design {
         switch self {
         case .legend, .meta, .monoDigits: return .monospaced
+        case .serifHeadline: return .serif
         default: return .default
         }
     }
@@ -51,7 +56,7 @@ enum DeckFont {
     var tracking: CGFloat {
         switch self {
         case .display: return -1
-        case .title: return -0.5
+        case .title, .serifHeadline: return -0.5
         case .legend: return 1
         case .meta: return 1.5
         default: return 0
@@ -61,7 +66,7 @@ enum DeckFont {
     /// The text style each role scales against, so Dynamic Type works throughout.
     var textStyle: Font.TextStyle {
         switch self {
-        case .display: return .largeTitle
+        case .display, .serifHeadline: return .largeTitle
         case .title: return .title
         case .body: return .body
         case .bodySmall: return .footnote
