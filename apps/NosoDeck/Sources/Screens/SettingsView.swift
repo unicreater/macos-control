@@ -49,13 +49,13 @@ struct SettingsView: View {
             ScrollView {
                 landscapeLayout
             }
+            .scrollEdgeEffectHidden(true)
             .scrollBounceBehavior(.basedOnSize)
             .frame(width: landscapeW, height: landscapeH)
             .background(.clear)
             .rotationEffect(.degrees(-90))
             .frame(width: portraitW, height: portraitH)
         }
-        .background(.clear)
         .confirmationDialog(
             "Unpair \(model.connectedMacName ?? "this Mac")?",
             isPresented: $isConfirmingUnpair,
