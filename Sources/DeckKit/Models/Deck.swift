@@ -197,18 +197,22 @@ public struct Deck: Codable, Hashable, Sendable {
 
 extension Deck {
     private enum CodingKeys: String, CodingKey {
-        case pages
+        case pages, folders
     }
 
     /// Hand-written so decoding routes through `init(pages:)` and inherits its clamping.
+    /// `folders` is optional for backward compatibility with old deck files.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(pages: try container.decode([Page].self, forKey: .pages))
+        let pages = try container.decode([Page].self, forKey: .pages)
+        let folders = try container.decodeIfPresent([TileFolder].self, forKey: .folders) ?? []
+        self.init(pages: pages, folders: folders)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(pages, forKey: .pages)
+        try container.encode(folders, forKey: .folders)
     }
 }
 
