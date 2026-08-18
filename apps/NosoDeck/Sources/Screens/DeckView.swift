@@ -340,6 +340,10 @@ struct DeckView: View {
                         emptyDeckOnboarding
                     } else {
                         grid(pageIndex: pageIndex)
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.95).combined(with: .opacity),
+                                removal: .opacity
+                            ))
                     }
                     Spacer(minLength: 0)
                 }
@@ -522,7 +526,11 @@ struct DeckView: View {
     private var pageBinding: Binding<Int> {
         Binding(
             get: { model.currentPage },
-            set: { model.setPage($0) }
+            set: { newPage in
+                withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) {
+                    model.setPage(newPage)
+                }
+            }
         )
     }
 
