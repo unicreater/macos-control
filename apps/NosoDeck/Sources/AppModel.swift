@@ -71,11 +71,15 @@ final class AppModel {
     init(identityStore: PhoneIdentityStore = PhoneIdentityStore()) {
         // Read through a local: `self` is not usable until every stored property is set.
         let deckStore = DeckStore()
-        let saved = deckStore.load()
 
         self.identityStore = identityStore
         self.client = DeckClient(identityStore: identityStore)
         self.deckStore = deckStore
+
+        // Load per-Mac deck if we have a last-used Mac
+        let trust = identityStore.loadTrust()
+        let lastMacID = trust.pairedDeviceIDs.first
+        let saved = deckStore.load(macID: lastMacID)
         self.hasSavedDeck = saved != nil
         self.deck = saved ?? Deck()
 
@@ -89,7 +93,6 @@ final class AppModel {
             self.gestureMapping = mapping
         }
 
-        let trust = identityStore.loadTrust()
         self.pairing = PairingMachine(trust: trust)
 
         if trust.hasNeverPaired {
@@ -472,7 +475,26 @@ final class AppModel {
 
     private func persistDeck() {
         hasSavedDeck = true
-        deckStore.save(deck)
+        deckStore.save(deck, macID: targetMacID)
+    }
+
+    /// Switch to a different paired Mac's deck layout.
+    func switchToMac(_ macID: String) {
+        targetMacID = macID
+        let saved = deckStore.load(macID: macID)
+        deck = saved ?? Deck()
+        hasSavedDeck = saved != nil
+        currentPage = 0
+        // Try connecting to this Mac
+        if let mac = discovered.first(where: { $0.deviceID == macID }),
+           let secret = identityStore.sessionSecret(forMacID: macID) {
+            client.connect(to: mac, credential: .trusted(secret))
+        }
+    }
+
+    /// All paired Mac device IDs.
+    var pairedMacIDs: [String] {
+        pairing.trust.pairedDeviceIDs
     }
 
     // MARK: - Recents and emoji (FR-15, FR-16)

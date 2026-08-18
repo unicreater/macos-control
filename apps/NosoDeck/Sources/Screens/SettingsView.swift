@@ -225,6 +225,58 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                 }
             }
+
+            // Other paired Macs
+            if model.pairedMacIDs.count > 1 {
+                Divider().overlay(DeckColor.strokeSubtle)
+                VStack(alignment: .leading, spacing: DeckSpace.s) {
+                    Text("Other Macs")
+                        .deckFont(.meta)
+                        .foregroundStyle(DeckColor.inkMuted)
+
+                    ForEach(model.pairedMacIDs.filter { $0 != model.pairing.device?.deviceID }, id: \.self) { macID in
+                        HStack(spacing: DeckSpace.m) {
+                            Image(systemName: "desktopcomputer")
+                                .font(.system(size: 12))
+                                .foregroundStyle(DeckColor.inkFaint)
+                            Text(macID.prefix(8) + "…")
+                                .deckFont(.bodySmall)
+                                .foregroundStyle(DeckColor.inkMuted)
+                            Spacer()
+                            Button {
+                                model.switchToMac(macID)
+                            } label: {
+                                Text("Switch")
+                                    .deckFont(.meta)
+                                    .foregroundStyle(DeckColor.mint)
+                                    .padding(.horizontal, DeckSpace.s)
+                                    .frame(height: 28)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
+                                            .strokeBorder(DeckColor.mint, lineWidth: 1)
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+
+            // Pair another Mac
+            if model.pairing.isPaired {
+                Divider().overlay(DeckColor.strokeSubtle)
+                Button { model.startPairing() } label: {
+                    HStack(spacing: DeckSpace.s) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12))
+                            .foregroundStyle(DeckColor.mint)
+                        Text("Pair another Mac")
+                            .deckFont(.bodySmall)
+                            .foregroundStyle(DeckColor.mint)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
