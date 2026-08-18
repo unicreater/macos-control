@@ -9,14 +9,16 @@ import SwiftUI
 /// v1 is dark-appearance only (light mode is undesigned), which is declared in the
 /// generated Info.plist, so these are fixed values rather than an adaptive set.
 enum DeckColor {
+    private static var theme: DeckTheme { ThemeManager.shared.current }
+
     /// Outermost background, device bezel.
-    static let void = Color(hex: 0x0A0A0A)
+    static var void: Color { theme.void }
     /// App background.
-    static let chassis = Color(hex: 0x111111)
+    static var chassis: Color { theme.chassis }
     /// Cards, sheets.
-    static let surface = Color(hex: 0x161616)
+    static var surface: Color { theme.surface }
     /// List rows, panels.
-    static let surfaceRaised = Color(hex: 0x1A1A1A)
+    static var surfaceRaised: Color { theme.surfaceRaised }
 
     /// Resting keycap fill, top and bottom of the gradient.
     static let keycapTop = Color(hex: 0x242424)
@@ -35,8 +37,8 @@ enum DeckColor {
     static let inkMuted = Color(hex: 0x8A8A8A)
     static let inkFaint = Color(hex: 0x6A6A6A)
 
-    /// State only — running, frontmost, connected, primary confirm.
-    static let mint = Color(hex: 0xA4D4C5)
+    /// State accent — running, frontmost, connected, primary confirm.
+    static var mint: Color { theme.accent }
     /// Premium only — gates, upgrade CTA.
     static let ochre = Color(hex: 0xE8B94A)
     /// Destructive only — unpair, delete, disconnected banner.
@@ -44,8 +46,8 @@ enum DeckColor {
     static let redInk = Color(hex: 0xFF8080)
     static let redBackground = Color(hex: 0x1E1414)
 
-    /// Text on a mint fill.
-    static let onMint = Color(hex: 0x0A1A1A)
+    /// Text on an accent fill.
+    static var onMint: Color { theme.onAccent }
     /// Text on an ochre fill.
     static let onOchre = Color(hex: 0x1A1300)
 

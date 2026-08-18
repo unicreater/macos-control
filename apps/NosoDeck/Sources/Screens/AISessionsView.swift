@@ -32,7 +32,7 @@ struct AISessionsView: View {
         .padding(.bottom, DeckGrid.bottomPadding)
         .padding(.horizontal, DeckSpace.safeInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DeckColor.chassis)
+        .background(.clear)
     }
 
     private var header: some View {

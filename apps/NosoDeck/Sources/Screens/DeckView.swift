@@ -32,7 +32,6 @@ struct DeckView: View {
                 .padding(.horizontal, isLandscape ? DeckSpace.m : DeckSpace.m)
                 .padding(.leading, isLandscape ? DeckSpace.xxxl - DeckSpace.m : 0)
                 .frame(width: contentW, height: contentH)
-                .background(DeckColor.chassis.ignoresSafeArea())
                 .overlay {
                     VoiceOverlay(recognizer: voiceRecognizer) {
                         let text = voiceRecognizer.sendableText
@@ -109,7 +108,7 @@ struct DeckView: View {
             TabView(selection: $selectedTab) {
                 Tab("Deck", systemImage: "square.grid.2x2", value: 0) {
                     deckContent
-                        .background(DeckColor.chassis.ignoresSafeArea())
+                        .themeBackground()
                         .overlay {
                             if showRadialMenu {
                                 RadialMenuView(
@@ -128,7 +127,7 @@ struct DeckView: View {
 
                 Tab("Settings", systemImage: "gearshape", value: 1) {
                     SettingsView(model: model)
-                        .background(DeckColor.chassis.ignoresSafeArea())
+                        .themeBackground()
                 }
 
                 Tab("History", systemImage: "clock.arrow.circlepath", value: 2, role: .search) {

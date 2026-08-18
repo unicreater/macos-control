@@ -26,7 +26,7 @@ struct SettingsView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(DeckColor.chassis)
+        .background(.clear)
         .confirmationDialog(
             "Unpair \(model.connectedMacName ?? "this Mac")?",
             isPresented: $isConfirmingUnpair,
@@ -74,7 +74,7 @@ struct SettingsView: View {
         VStack(spacing: DeckSpace.l) {
             versionLabel
             deviceCard
-            premiumCard
+            themeCard
             deckCard
             rowList
         }
@@ -93,7 +93,7 @@ struct SettingsView: View {
                     Spacer(minLength: 0)
                 }
                 VStack(spacing: DeckSpace.l) {
-                    premiumCard
+                    themeCard
                     rowList
                     Spacer(minLength: 0)
                 }
@@ -104,6 +104,68 @@ struct SettingsView: View {
     }
 
     // MARK: - Cards
+
+    private var themeCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: DeckSpace.m) {
+                Text("Theme")
+                    .deckFont(.meta)
+                    .foregroundStyle(DeckColor.inkMuted)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DeckSpace.s) {
+                        ForEach(DeckTheme.all) { theme in
+                            themeChip(theme)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func themeChip(_ theme: DeckTheme) -> some View {
+        let isActive = ThemeManager.shared.current.id == theme.id
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                ThemeManager.shared.current = theme
+            }
+        } label: {
+            VStack(spacing: 6) {
+                // Preview swatch
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(theme.chassis)
+                    .frame(width: 48, height: 48)
+                    .overlay {
+                        if let mesh = theme.meshColors, mesh.count >= 9 {
+                            MeshGradient(
+                                width: 3, height: 3,
+                                points: [
+                                    [0, 0], [0.5, 0], [1, 0],
+                                    [0, 0.5], [0.5, 0.5], [1, 0.5],
+                                    [0, 1], [0.5, 1], [1, 1],
+                                ],
+                                colors: Array(mesh.prefix(9))
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                    }
+                    .overlay {
+                        Circle()
+                            .fill(theme.accent)
+                            .frame(width: 12, height: 12)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(isActive ? theme.accent : Color.clear, lineWidth: 2)
+                    }
+
+                Text(theme.name)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(isActive ? DeckColor.ink : DeckColor.inkMuted)
+            }
+        }
+        .buttonStyle(.plain)
+    }
 
     private var versionLabel: some View {
         HStack {
