@@ -70,6 +70,11 @@ struct KeycapView: View {
         } else if let emoji = tile.emoji, !emoji.isEmpty {
             Text(emoji)
                 .font(.system(size: 52))
+        } else if case .keyCombo(let combo) = tile.target {
+            let preset = KeyComboPreset.all.first { $0.combo == combo }
+            Image(systemName: preset?.icon ?? "command")
+                .font(.system(size: 32))
+                .foregroundStyle(DeckColor.inkSecondary)
         } else if case .website(let url) = tile.target {
             AsyncImage(url: faviconURL(for: url)) { phase in
                 if let image = phase.image {

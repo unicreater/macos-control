@@ -228,6 +228,8 @@ public enum ActionKind: String, Codable, Sendable, CaseIterable {
     /// Scroll
     case scrollUp
     case scrollDown
+    /// Arbitrary key combo — target is "cmd+shift+3" format
+    case keyCombo
 }
 
 public struct ActionRequest: Codable, Hashable, Sendable {
@@ -249,6 +251,8 @@ public struct ActionRequest: Codable, Hashable, Sendable {
             self.init(kind: .runShortcut, target: name)
         case .website(let url):
             self.init(kind: .openURL, target: url)
+        case .keyCombo(let combo):
+            self.init(kind: .keyCombo, target: combo)
         }
     }
 }

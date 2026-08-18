@@ -62,8 +62,55 @@ struct ActionExecutor {
             return sendScroll(deltaY: 5)
         case .scrollDown:
             return sendScroll(deltaY: -5)
+        case .keyCombo:
+            return performKeyCombo(request.target)
         }
     }
+
+    /// Parses a combo string like "cmd+shift+3" and sends the corresponding CGEvent.
+    private func performKeyCombo(_ combo: String) -> Result<Void, ActionFailure> {
+        let parts = combo.lowercased().components(separatedBy: "+")
+        guard let keyPart = parts.last, !keyPart.isEmpty else {
+            return .failure(.systemError("Empty key combo"))
+        }
+        let modParts = parts.dropLast()
+
+        var flags: CGEventFlags = []
+        for mod in modParts {
+            switch mod {
+            case "cmd", "command": flags.insert(.maskCommand)
+            case "shift": flags.insert(.maskShift)
+            case "alt", "option", "opt": flags.insert(.maskAlternate)
+            case "ctrl", "control": flags.insert(.maskControl)
+            default: break
+            }
+        }
+
+        guard let keyCode = Self.keyCodeMap[keyPart] else {
+            return .failure(.systemError("Unknown key: \(keyPart)"))
+        }
+
+        return sendKeyCombo(key: keyCode, modifiers: flags)
+    }
+
+    private static let keyCodeMap: [String: CGKeyCode] = [
+        "a": 0x00, "s": 0x01, "d": 0x02, "f": 0x03, "h": 0x04, "g": 0x05,
+        "z": 0x06, "x": 0x07, "c": 0x08, "v": 0x09, "b": 0x0B, "q": 0x0C,
+        "w": 0x0D, "e": 0x0E, "r": 0x0F, "y": 0x10, "t": 0x11, "o": 0x1F,
+        "u": 0x20, "i": 0x22, "p": 0x23, "l": 0x25, "j": 0x26, "k": 0x28,
+        "n": 0x2D, "m": 0x2E,
+        "1": 0x12, "2": 0x13, "3": 0x14, "4": 0x15, "5": 0x17, "6": 0x16,
+        "7": 0x1A, "8": 0x1C, "9": 0x19, "0": 0x1D,
+        "space": 0x31, "return": 0x24, "enter": 0x24, "tab": 0x30,
+        "escape": 0x35, "esc": 0x35, "delete": 0x33, "backspace": 0x33,
+        "up": 0x7E, "down": 0x7D, "left": 0x7B, "right": 0x7C,
+        "[": 0x21, "]": 0x1E, "-": 0x1B, "=": 0x18,
+        ";": 0x29, "'": 0x27, ",": 0x2B, ".": 0x2F, "/": 0x2C, "\\": 0x2A,
+        "`": 0x32,
+        "f1": 0x7A, "f2": 0x78, "f3": 0x63, "f4": 0x76, "f5": 0x60,
+        "f6": 0x61, "f7": 0x62, "f8": 0x64, "f9": 0x65, "f10": 0x6D,
+        "f11": 0x67, "f12": 0x6F,
+    ]
 
     /// Smart URL opening: if the URL is already open in a browser tab, switch to it.
     /// Otherwise open it normally (FR-14).

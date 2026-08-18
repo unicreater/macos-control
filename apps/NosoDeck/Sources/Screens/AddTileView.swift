@@ -19,6 +19,7 @@ struct AddTileView: View {
     @State private var disabledBrowsers: Set<String> = []
     @State private var expandedFolders: Set<String> = []
     @State private var sortByRecent = false
+    @State private var selectedKeyCombo: KeyComboPreset?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -119,6 +120,8 @@ struct AddTileView: View {
                 shortcutTab
             case .website:
                 websiteTab
+            case .keyCombo:
+                keyComboTab
             }
         }
         .padding(.horizontal, DeckSpace.m)
@@ -552,6 +555,78 @@ struct AddTileView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Key Combos
+
+    private var keyComboTab: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DeckSpace.l) {
+                ForEach(keyComboCategories, id: \.self) { category in
+                    VStack(alignment: .leading, spacing: DeckSpace.s) {
+                        Text(category)
+                            .deckFont(.meta)
+                            .foregroundStyle(DeckColor.inkMuted)
+
+                        let presets = KeyComboPreset.all.filter { $0.category == category }
+                        let cols = Array(repeating: GridItem(.flexible(), spacing: DeckSpace.s), count: 3)
+
+                        LazyVGrid(columns: cols, spacing: DeckSpace.s) {
+                            ForEach(presets) { preset in
+                                keyComboCell(preset)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.bottom, 72)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private var keyComboCategories: [String] {
+        var seen: [String] = []
+        for preset in KeyComboPreset.all where !seen.contains(preset.category) {
+            seen.append(preset.category)
+        }
+        return seen
+    }
+
+    private func keyComboCell(_ preset: KeyComboPreset) -> some View {
+        let isSelected = selectedKeyCombo?.id == preset.id
+        return Button {
+            selectedKeyCombo = preset
+            label = preset.name
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: preset.icon)
+                    .font(.system(size: 22))
+                    .foregroundStyle(isSelected ? DeckColor.mint : DeckColor.ink)
+                    .frame(width: 48, height: 48)
+                    .background(
+                        isSelected ? DeckColor.mint.opacity(0.12) : Color(hex: 0x2C2C2C),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+
+                Text(preset.name)
+                    .deckFont(.meta)
+                    .foregroundStyle(DeckColor.inkMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Text(preset.combo.uppercased().replacingOccurrences(of: "+", with: " + "))
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(DeckColor.inkFaint)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DeckSpace.s)
+            .overlay {
+                RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
+                    .strokeBorder(isSelected ? DeckColor.mint : .clear, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
     private var emojiPicker: some View {
         VStack(alignment: .leading, spacing: DeckSpace.s) {
             Text("Tile emoji")
@@ -593,6 +668,7 @@ struct AddTileView: View {
         case .app: return "Apps"
         case .shortcut: return "Shortcuts"
         case .website: return "Website"
+        case .keyCombo: return "Keys"
         }
     }
 
@@ -612,6 +688,8 @@ struct AddTileView: View {
             return selectedShortcut.map { .shortcut(name: $0) }
         case .website:
             return isURLValid ? .website(url: urlText.trimmingCharacters(in: .whitespaces)) : nil
+        case .keyCombo:
+            return selectedKeyCombo.map { .keyCombo(combo: $0.combo) }
         }
     }
 
@@ -635,6 +713,8 @@ struct AddTileView: View {
             return isURLValid
                 && model.nextSlot != nil
                 && !label.trimmingCharacters(in: .whitespaces).isEmpty
+        case .keyCombo:
+            return selectedKeyCombo != nil && model.nextSlot != nil
         }
     }
 
@@ -651,6 +731,13 @@ struct AddTileView: View {
         case .website:
             guard let target else { return }
             model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))
+        case .keyCombo:
+            guard let preset = selectedKeyCombo else { return }
+            model.add(Tile(
+                target: .keyCombo(combo: preset.combo),
+                label: preset.name,
+                emoji: nil
+            ))
         }
         dismiss()
     }
