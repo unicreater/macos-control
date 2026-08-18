@@ -593,6 +593,11 @@ final class AppModel {
                 self.client.sendPairRequest(pin: pin)
             } else if ack.isPaired {
                 self.requestCatalog()
+                // Auto-request shortcuts if the deck has any shortcut tiles
+                if self.deck.pages.flatMap(\.tiles).contains(where: { $0.kind == .shortcut }) {
+                    self.hasRequestedShortcuts = true
+                    self.requestShortcuts()
+                }
             }
         }
 
