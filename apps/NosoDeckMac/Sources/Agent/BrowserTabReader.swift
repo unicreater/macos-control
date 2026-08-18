@@ -45,7 +45,7 @@ struct BrowserTabReader {
     private func arcTabs() -> [BrowserTab] {
         let bundleID = Self.browserBundleIDs["Arc"]!
         guard isRunning(bundleID) else { return [] }
-        // Each line: spaceName \t title \t url
+        // Only unpinned tabs — pinned tabs are bookmarks/folders, not active tabs
         let script = """
         tell application "Arc"
             set tabList to ""
@@ -55,7 +55,8 @@ struct BrowserTabReader {
                         set spaceName to title of s
                         repeat with t in tabs of s
                             set tabURL to URL of t
-                            if tabURL starts with "http" then
+                            set tabLoc to location of t
+                            if tabURL starts with "http" and tabLoc is not pinned then
                                 set tabList to tabList & spaceName & "\\t" & title of t & "\\t" & tabURL & "\\n"
                             end if
                         end repeat

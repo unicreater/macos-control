@@ -139,11 +139,28 @@ public struct IconResponse: Codable, Hashable, Sendable {
     }
 }
 
+public struct ShortcutInfo: Codable, Hashable, Sendable {
+    public var name: String
+    /// RGB color from Shortcuts, 0-255 range.
+    public var colorR: UInt8
+    public var colorG: UInt8
+    public var colorB: UInt8
+
+    public init(name: String, colorR: UInt8 = 100, colorG: UInt8 = 100, colorB: UInt8 = 100) {
+        self.name = name
+        self.colorR = colorR
+        self.colorG = colorG
+        self.colorB = colorB
+    }
+}
+
 public struct ShortcutList: Codable, Hashable, Sendable {
     public var names: [String]
+    public var shortcuts: [ShortcutInfo]
 
-    public init(names: [String]) {
+    public init(names: [String], shortcuts: [ShortcutInfo] = []) {
         self.names = names
+        self.shortcuts = shortcuts
     }
 }
 

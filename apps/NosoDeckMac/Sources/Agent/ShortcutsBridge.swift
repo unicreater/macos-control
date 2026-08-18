@@ -41,21 +41,41 @@ struct ShortcutsBridge {
         }
     }
 
-    /// Every shortcut's name, or an empty list when consent is missing — the phone
-    /// shows the degraded path rather than an empty tab with no explanation.
+    /// Every shortcut's name, or an empty list when consent is missing.
     func names() -> [String] {
-        let script = """
-        tell application "Shortcuts Events" to get name of every shortcut
-        """
-        guard let descriptor = run(script: script) else { return [] }
+        shortcutInfos().map(\.name)
+    }
 
-        // A list of strings comes back as a descriptor list, one-indexed.
-        guard descriptor.numberOfItems > 0 else {
-            return descriptor.stringValue.map { [$0] } ?? []
-        }
-        return (1...descriptor.numberOfItems).compactMap {
-            descriptor.atIndex($0)?.stringValue
-        }
+    /// Shortcut names with their colors.
+    func shortcutInfos() -> [ShortcutInfo] {
+        let script = """
+        tell application "Shortcuts Events"
+            set output to ""
+            repeat with s in every shortcut
+                set c to color of s
+                set output to output & name of s & "\\t" & item 1 of c & "," & item 2 of c & "," & item 3 of c & "\\n"
+            end repeat
+            return output
+        end tell
+        """
+        guard let descriptor = run(script: script), let raw = descriptor.stringValue else { return [] }
+
+        return raw.components(separatedBy: "\n")
+            .filter { !$0.isEmpty }
+            .compactMap { line in
+                let parts = line.components(separatedBy: "\t")
+                guard parts.count >= 2 else { return nil }
+                let name = parts[0]
+                let rgb = parts[1].components(separatedBy: ",")
+                guard rgb.count == 3,
+                      let r = UInt32(rgb[0].trimmingCharacters(in: .whitespaces)),
+                      let g = UInt32(rgb[1].trimmingCharacters(in: .whitespaces)),
+                      let b = UInt32(rgb[2].trimmingCharacters(in: .whitespaces)) else {
+                    return ShortcutInfo(name: name)
+                }
+                // Shortcuts uses 16-bit color (0-65535), convert to 8-bit
+                return ShortcutInfo(name: name, colorR: UInt8(r >> 8), colorG: UInt8(g >> 8), colorB: UInt8(b >> 8))
+            }
     }
 
     func run(named name: String) -> Result<Void, ActionFailure> {

@@ -16,6 +16,7 @@ struct KeycapView: View {
     var editIndex = 0
     /// The real Mac icon, once it has arrived from the agent (FR-7).
     var icon: Image?
+    var shortcutColor: ShortcutInfo?
     var onTap: () -> Void = {}
     var onRemove: () -> Void = {}
     /// Swipe down on a running tile to quit that app (FR-11).
@@ -86,6 +87,23 @@ struct KeycapView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
+        } else if let sc = shortcutColor {
+            // Shortcut tile with color background and label
+            RoundedRectangle(cornerRadius: iconRadius, style: .continuous)
+                .fill(Color(red: Double(sc.colorR) / 255, green: Double(sc.colorG) / 255, blue: Double(sc.colorB) / 255))
+                .overlay {
+                    VStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(.white.opacity(0.9))
+                        Text(tile.label)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 6)
+                    }
+                }
         } else {
             RoundedRectangle(cornerRadius: iconRadius, style: .continuous)
                 .fill(Color(hex: 0x2A2A2A))

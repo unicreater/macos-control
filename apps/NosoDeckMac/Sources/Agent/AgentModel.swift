@@ -340,8 +340,9 @@ final class AgentModel {
             // the phone only asks after showing its pre-prompt card (FR-24). An empty
             // list means consent was refused; the phone hides the tab and says why.
             _ = shortcuts.permissionStatus(promptIfNeeded: true)
+            let infos = shortcuts.shortcutInfos()
             session.connection.send(envelope.reply(.shortcuts(
-                ShortcutList(names: shortcuts.names())
+                ShortcutList(names: infos.map(\.name), shortcuts: infos)
             )))
 
         case .action(let request):

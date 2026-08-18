@@ -35,7 +35,7 @@ final class DeckClient {
     var onActionResult: ((ActionResult) -> Void)?
     var onCatalog: ((Catalog) -> Void)?
     var onIcon: ((IconResponse) -> Void)?
-    var onShortcuts: (([String]) -> Void)?
+    var onShortcuts: (([String], [ShortcutInfo]) -> Void)?
     var onBrowserTabs: (([BrowserTab]) -> Void)?
 
     init(identityStore: PhoneIdentityStore) {
@@ -182,7 +182,7 @@ final class DeckClient {
             onIcon?(icon)
 
         case .shortcuts(let list):
-            onShortcuts?(list.names)
+            onShortcuts?(list.names, list.shortcuts)
 
         case .browserTabs(let list):
             onBrowserTabs?(list.tabs)

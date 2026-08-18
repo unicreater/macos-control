@@ -17,6 +17,7 @@ struct AddTileView: View {
     @State private var emoji = "⚡️"
     @State private var hasAcceptedAutomationPrompt = false
     @State private var disabledBrowsers: Set<String> = []
+    @State private var expandedFolders: Set<String> = []
     @State private var sortByRecent = false
 
     var body: some View {
@@ -310,14 +311,21 @@ struct AddTileView: View {
 
     private func shortcutRow(_ name: String) -> some View {
         let isSelected = selectedShortcut == name
+        let info = model.shortcutInfos.first { $0.name == name }
+        let color = info.map { Color(red: Double($0.colorR) / 255, green: Double($0.colorG) / 255, blue: Double($0.colorB) / 255) } ?? Color(hex: 0x2C2C2C)
         return Button {
             selectedShortcut = name
             label = name
         } label: {
             HStack(spacing: DeckSpace.m) {
                 RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
-                    .fill(Color(hex: 0x2C2C2C))
+                    .fill(color)
                     .frame(width: 26, height: 26)
+                    .overlay {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
                 Text(name)
                     .deckFont(.body)
                     .foregroundStyle(DeckColor.ink)
@@ -355,6 +363,65 @@ struct AddTileView: View {
         model.browserTabs.filter { !disabledBrowsers.contains($0.browser) }
     }
 
+    private struct TabGroup: Identifiable {
+        let folder: String
+        let tabs: [BrowserTab]
+        var id: String { folder }
+    }
+
+    private var groupedTabs: [TabGroup] {
+        var groups: [(String, [BrowserTab])] = []
+        var seen: Set<String> = []
+        for tab in visibleTabs {
+            let folder = tab.folder ?? "Tabs"
+            if !seen.contains(folder) {
+                seen.insert(folder)
+                groups.append((folder, []))
+            }
+            if let idx = groups.firstIndex(where: { $0.0 == folder }) {
+                groups[idx].1.append(tab)
+            }
+        }
+        return groups.map { TabGroup(folder: $0.0, tabs: $0.1) }
+    }
+
+    private func folderSection(_ group: TabGroup) -> some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    if expandedFolders.contains(group.folder) {
+                        expandedFolders.remove(group.folder)
+                    } else {
+                        expandedFolders.insert(group.folder)
+                    }
+                }
+            } label: {
+                HStack(spacing: DeckSpace.s) {
+                    Image(systemName: expandedFolders.contains(group.folder) ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(DeckColor.inkMuted)
+                        .frame(width: 16)
+                    Text(group.folder)
+                        .deckFont(.legend)
+                        .foregroundStyle(DeckColor.inkSecondary)
+                    Text("\(group.tabs.count)")
+                        .deckFont(.meta)
+                        .foregroundStyle(DeckColor.inkFaint)
+                    Spacer()
+                }
+                .padding(.horizontal, DeckSpace.m)
+                .frame(minHeight: 36)
+            }
+            .buttonStyle(.plain)
+
+            if expandedFolders.contains(group.folder) {
+                ForEach(group.tabs, id: \.url) { tab in
+                    browserTabRow(tab)
+                }
+            }
+        }
+    }
+
     private var websiteTab: some View {
         HStack(alignment: .top, spacing: 0) {
             // Left: browser sidebar
@@ -380,8 +447,16 @@ struct AddTileView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 7) {
-                        ForEach(visibleTabs, id: \.url) { tab in
-                            browserTabRow(tab)
+                        let grouped = groupedTabs
+                        ForEach(grouped, id: \.folder) { group in
+                            if grouped.count == 1 && group.folder == "Tabs" {
+                                // Single group, no folder header needed
+                                ForEach(group.tabs, id: \.url) { tab in
+                                    browserTabRow(tab)
+                                }
+                            } else {
+                                folderSection(group)
+                            }
                         }
                     }
                     .padding(.bottom, 72)
@@ -577,7 +652,7 @@ struct AddTileView: View {
             }
         case .shortcut:
             guard let target else { return }
-            model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces), emoji: emoji))
+            model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))
         case .website:
             guard let target else { return }
             model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))

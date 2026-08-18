@@ -38,6 +38,7 @@ final class AppModel {
     private(set) var catalog: [AppCatalogEntry] = []
     /// The Mac's Apple Shortcuts, once consent has been given (FR-13).
     private(set) var shortcuts: [String] = []
+    private(set) var shortcutInfos: [ShortcutInfo] = []
     private(set) var browserTabs: [BrowserTab] = []
     private var hasRequestedShortcuts = false
     private var shortcutsAnswered = false
@@ -400,6 +401,10 @@ final class AppModel {
     /// The four cells of the recents column, most recent first (FR-16).
     var visibleRecents: [String] { macState.visibleRecents }
 
+    func shortcutColor(for name: String) -> ShortcutInfo? {
+        shortcutInfos.first { $0.name == name }
+    }
+
     func name(forBundleID bundleID: String) -> String {
         catalog.first { $0.bundleID == bundleID }?.name ?? bundleID
     }
@@ -599,9 +604,10 @@ final class AppModel {
             self?.icons.store(hash: icon.hash, png: icon.png)
         }
 
-        client.onShortcuts = { [weak self] names in
+        client.onShortcuts = { [weak self] names, infos in
             guard let self else { return }
             self.shortcuts = names
+            self.shortcutInfos = infos
             self.shortcutsAnswered = true
             self.permissions[.automation] = names.isEmpty ? .denied : .granted
         }
