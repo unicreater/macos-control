@@ -423,6 +423,20 @@ final class AppModel {
         persistDeck()
     }
 
+    /// Drag one tile onto another to create a folder containing both.
+    /// The target tile's slot is replaced with the new folder tile.
+    func createFolderFromTiles(draggedID: UUID, targetID: UUID) {
+        guard let targetSlot = deck.slot(ofTileID: targetID),
+              let draggedTile = deck.removeTile(id: draggedID),
+              let targetTile = deck.removeTile(id: targetID) else { return }
+        let folder = TileFolder(name: "New Folder", tiles: [targetTile, draggedTile])
+        deck.addFolder(folder)
+        let folderTile = Tile(target: .folder(id: folder.id.uuidString), label: folder.name)
+        deck.insert(folderTile, at: targetSlot)
+        persistDeck()
+        Haptics.tileAdded()
+    }
+
     func updateFolder(id: UUID, name: String) {
         deck.updateFolder(id: id, name: name)
         persistDeck()

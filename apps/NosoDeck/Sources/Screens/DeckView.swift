@@ -126,12 +126,9 @@ struct DeckView: View {
                         .themeBackground()
                         .overlay {
                             if showRadialMenu {
-                                RadialMenuView(
-                                    frontmostBundleID: model.macState.frontmost,
+                                ControlPanelView(
+                                    model: model,
                                     isLandscape: model.isLandscapeLayout,
-                                    onAction: { action in
-                                        model.sendGesture(action)
-                                    },
                                     onDismiss: { showRadialMenu = false }
                                 )
                                 .transition(.opacity)
@@ -166,7 +163,9 @@ struct DeckView: View {
             .tint(DeckColor.mint)
         }
         .background {
-            WindowGestureInstaller(onAction: { model.sendGesture($0) }, mapping: model.gestureMapping)
+            if !showRadialMenu {
+                WindowGestureInstaller(onAction: { model.sendGesture($0) }, mapping: model.gestureMapping)
+            }
         }
         .sheet(isPresented: $isAddingTile) {
             AddTileView(model: model)
@@ -454,16 +453,24 @@ struct DeckView: View {
                             .frame(width: 150, height: 112)
                     }
                     .dropDestination(for: String.self) { items, _ in
-                        // If dropping onto a folder tile, add the dragged tile into the folder
+                        guard let raw = items.first,
+                              let draggedID = UUID(uuidString: raw),
+                              draggedID != tile.id else { return false }
+
+                        // Drop onto a folder: add tile into existing folder
                         if case .folder(let fid) = tile.target,
-                           let raw = items.first,
-                           let draggedID = UUID(uuidString: raw),
                            let folderUUID = UUID(uuidString: fid) {
-                            guard draggedID != tile.id else { return false }
                             model.moveTileToFolder(tileID: draggedID, folderID: folderUUID)
                             return true
                         }
-                        return move(items, to: DeckSlot(pageIndex: pageIndex, slotIndex: slot))
+
+                        // Drop onto another tile: create a new folder from both
+                        if case .folder = model.deck.tile(withID: draggedID)?.target {
+                            // Don't nest folders
+                            return move(items, to: DeckSlot(pageIndex: pageIndex, slotIndex: slot))
+                        }
+                        model.createFolderFromTiles(draggedID: draggedID, targetID: tile.id)
+                        return true
                     }
             } else {
                 keycap.simultaneousGesture(
