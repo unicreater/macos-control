@@ -62,28 +62,32 @@ struct DeckView: View {
                 }
                 .animation(.easeInOut(duration: 0.2), value: showEmojiOverlay)
                 .overlay(alignment: .bottomTrailing) {
-                    Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        if voiceRecognizer.isRecording {
-                            voiceRecognizer.stop()
-                            let text = voiceRecognizer.sendableText
-                            if !text.isEmpty { model.sendVoiceText(text) }
-                            voiceRecognizer.clear()
-                        } else {
-                            voiceRecognizer.start()
+                    if !model.isEditing {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            if voiceRecognizer.isRecording {
+                                voiceRecognizer.stop()
+                                let text = voiceRecognizer.sendableText
+                                if !text.isEmpty { model.sendVoiceText(text) }
+                                voiceRecognizer.clear()
+                            } else {
+                                voiceRecognizer.start()
+                            }
+                        } label: {
+                            Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                         }
-                    } label: {
-                        Image(systemName: voiceRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(voiceRecognizer.isRecording ? DeckColor.red : DeckColor.inkMuted)
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                        .buttonStyle(.plain)
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 12)
+                        .transition(.opacity)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.trailing, 16)
-                    .padding(.bottom, 12)
                 }
+                .animation(.easeInOut(duration: 0.15), value: model.isEditing)
                 .if(isLandscape) { view in
                     view
                         .rotationEffect(.degrees(-90))
@@ -265,54 +269,61 @@ struct DeckView: View {
     /// S5's page strip: switch pages, add one, delete one with a confirm.
     private var editPageStrip: some View {
         HStack(spacing: DeckSpace.s) {
+            // Page number circles
             ForEach(0..<model.pageCount, id: \.self) { index in
                 Button { model.setPage(index) } label: {
-                    Text("Page \(index + 1)")
-                        .deckFont(.legend)
-                        .foregroundStyle(index == model.currentPage ? DeckColor.mint : DeckColor.inkMuted)
-                        .padding(.horizontal, DeckSpace.m)
-                        .frame(height: 32)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous)
-                                .strokeBorder(
-                                    index == model.currentPage ? DeckColor.mint : Color(hex: 0x2C2C2C),
-                                    lineWidth: 1
-                                )
-                        }
+                    Text("\(index + 1)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(index == model.currentPage ? DeckColor.onMint : DeckColor.inkMuted)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            index == model.currentPage ? DeckColor.mint : Color(hex: 0x2C2C2C),
+                            in: Circle()
+                        )
                 }
                 .buttonStyle(.plain)
             }
 
-            addPagePill
+            // Add page
+            Button { model.addPage() } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(DeckColor.onOchre)
+                    .frame(width: 28, height: 28)
+                    .background(DeckColor.ochre, in: Circle())
+            }
+            .buttonStyle(.plain)
 
+            // Add folder
             Button { createFolder() } label: {
-                Text("+ Folder")
-                    .deckFont(.meta)
+                Image(systemName: "folder.badge.plus")
+                    .font(.system(size: 14))
                     .foregroundStyle(DeckColor.ochre)
-                    .padding(.horizontal, DeckSpace.m)
-                    .frame(height: 32)
-                    .background(DeckColor.ochre.opacity(0.15), in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+                    .frame(width: 32, height: 28)
             }
             .buttonStyle(.plain)
 
             Spacer()
 
+            // Delete page
             if model.pageCount > 1 {
                 Button { isConfirmingPageDelete = true } label: {
-                    Text("Delete page")
-                        .deckFont(.legend)
+                    Image(systemName: "trash")
+                        .font(.system(size: 14))
                         .foregroundStyle(DeckColor.redInk)
+                        .frame(width: 32, height: 28)
                 }
                 .buttonStyle(.plain)
             }
 
+            // Done
             Button { model.toggleEditing() } label: {
                 Text("Done")
                     .deckFont(.legend)
                     .foregroundStyle(DeckColor.onMint)
                     .padding(.horizontal, DeckSpace.l)
-                    .frame(height: 32)
-                    .background(DeckColor.mint, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
+                    .frame(height: 28)
+                    .background(DeckColor.mint, in: Capsule())
             }
             .buttonStyle(.plain)
         }
@@ -328,18 +339,6 @@ struct DeckView: View {
         }
     }
 
-    private var addPagePill: some View {
-        Button { model.addPage() } label: {
-            Text("+ Page")
-                .deckFont(.meta)
-                .foregroundStyle(DeckColor.onOchre)
-                .padding(.horizontal, DeckSpace.m)
-                .frame(height: model.isEditing ? 32 : 20)
-                .background(DeckColor.ochre, in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(model.canAddPage ? "Add a page" : "Add a page — requires Premium")
-    }
 
     // MARK: - Grid
 
@@ -415,6 +414,11 @@ struct DeckView: View {
         if slot < page.tiles.count {
             let tile = page.tiles[slot]
             let shortcutName: String? = { if case .shortcut(let name) = tile.target { return name } else { return nil } }()
+            let folderPreview: [(tile: Tile, icon: Image?)] = {
+                guard case .folder(let fid) = tile.target,
+                      let folder = model.folder(id: fid) else { return [] }
+                return folder.tiles.prefix(4).map { t in (tile: t, icon: model.icon(for: t)) }
+            }()
             let keycap = KeycapView(
                 tile: tile,
                 activity: model.activity(for: tile),
@@ -422,6 +426,7 @@ struct DeckView: View {
                 editIndex: slot,
                 icon: model.icon(for: tile),
                 shortcutColor: shortcutName.flatMap { model.shortcutColor(for: $0) },
+                folderPreview: folderPreview,
                 // A long press flips edit mode while the finger is still down, so by
                 // the time it lifts this guard is what stops the tap from also firing.
                 onTap: {
@@ -444,12 +449,20 @@ struct DeckView: View {
             if model.isEditing {
                 keycap
                     .draggable(tile.id.uuidString) {
-                        // The preview is the cap itself, so what moves is what was grabbed.
                         KeycapView(tile: tile, activity: .idle, isDragging: true)
                             .frame(width: 150, height: 112)
                     }
                     .dropDestination(for: String.self) { items, _ in
-                        move(items, to: DeckSlot(pageIndex: pageIndex, slotIndex: slot))
+                        // If dropping onto a folder tile, add the dragged tile into the folder
+                        if case .folder(let fid) = tile.target,
+                           let raw = items.first,
+                           let draggedID = UUID(uuidString: raw),
+                           let folderUUID = UUID(uuidString: fid) {
+                            guard draggedID != tile.id else { return false }
+                            model.moveTileToFolder(tileID: draggedID, folderID: folderUUID)
+                            return true
+                        }
+                        return move(items, to: DeckSlot(pageIndex: pageIndex, slotIndex: slot))
                     }
             } else {
                 keycap.simultaneousGesture(

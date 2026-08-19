@@ -17,6 +17,8 @@ struct KeycapView: View {
     /// The real Mac icon, once it has arrived from the agent (FR-7).
     var icon: Image?
     var shortcutColor: ShortcutInfo?
+    /// For folder tiles: the contained tiles and their icons, used for the mini 2x2 preview.
+    var folderPreview: [(tile: Tile, icon: Image?)] = []
     var onTap: () -> Void = {}
     var onRemove: () -> Void = {}
     /// Swipe down on a running tile to quit that app (FR-11).
@@ -36,9 +38,11 @@ struct KeycapView: View {
                     .frame(width: size, height: size)
                     .padding(1.5)
                     .background(
-                        activity == .frontmost
-                            ? Color.white.opacity(0.12)
-                            : Color.white.opacity(0.05)
+                        isFolder
+                            ? Color.white.opacity(0.10)
+                            : activity == .frontmost
+                                ? Color.white.opacity(0.12)
+                                : Color.white.opacity(0.05)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: iconRadius + 1, style: .continuous))
                     .overlay {
@@ -71,9 +75,7 @@ struct KeycapView: View {
             Text(emoji)
                 .font(.system(size: 52))
         } else if case .folder = tile.target {
-            Image(systemName: "folder.fill")
-                .font(.system(size: 32))
-                .foregroundStyle(DeckColor.ochre)
+            folderPreviewGrid
         } else if case .keyCombo(let combo) = tile.target {
             let preset = KeyComboPreset.all.first { $0.combo == combo }
             Image(systemName: preset?.icon ?? "command")
@@ -116,6 +118,86 @@ struct KeycapView: View {
         } else {
             RoundedRectangle(cornerRadius: iconRadius, style: .continuous)
                 .fill(Color(hex: 0x2A2A2A))
+        }
+    }
+
+    private var isFolder: Bool {
+        if case .folder = tile.target { return true }
+        return false
+    }
+
+    /// iOS App Library-style 2x2 mini icon grid for folder tiles.
+    @ViewBuilder
+    private var folderPreviewGrid: some View {
+        GeometryReader { geo in
+            let gridSize = min(geo.size.width, geo.size.height)
+            if folderPreview.isEmpty {
+                // Empty folder: blank tile, backdrop opacity handles the visual
+                Color.clear
+            } else if folderPreview.count == 1 {
+                // Single tile: fill the whole space
+                folderMiniIcon(folderPreview[0].tile, icon: folderPreview[0].icon, size: gridSize * 0.7)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // 2x2 grid: top-left, top-right, bottom-left, bottom-right
+                let cellSize = gridSize * 0.38
+                let spacing = gridSize * 0.06
+                let items = Array(folderPreview.prefix(4))
+                VStack(spacing: spacing) {
+                    HStack(spacing: spacing) {
+                        folderMiniIcon(items[0].tile, icon: items[0].icon, size: cellSize)
+                        if items.count > 1 {
+                            folderMiniIcon(items[1].tile, icon: items[1].icon, size: cellSize)
+                        } else {
+                            Color.clear.frame(width: cellSize, height: cellSize)
+                        }
+                    }
+                    HStack(spacing: spacing) {
+                        if items.count > 2 {
+                            folderMiniIcon(items[2].tile, icon: items[2].icon, size: cellSize)
+                        } else {
+                            Color.clear.frame(width: cellSize, height: cellSize)
+                        }
+                        if items.count > 3 {
+                            folderMiniIcon(items[3].tile, icon: items[3].icon, size: cellSize)
+                        } else {
+                            Color.clear.frame(width: cellSize, height: cellSize)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func folderMiniIcon(_ tile: Tile, icon: Image?, size: CGFloat) -> some View {
+        let miniRadius = size * 0.22
+        if let emoji = tile.emoji, !emoji.isEmpty {
+            Text(emoji)
+                .font(.system(size: size * 0.6))
+                .frame(width: size, height: size)
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: miniRadius, style: .continuous))
+        } else if case .website(let url) = tile.target {
+            AsyncImage(url: faviconURL(for: url)) { phase in
+                if let image = phase.image {
+                    image.resizable().aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: miniRadius, style: .continuous))
+                } else {
+                    Image(systemName: "globe")
+                        .font(.system(size: size * 0.5))
+                        .foregroundStyle(DeckColor.inkMuted)
+                }
+            }
+            .frame(width: size, height: size)
+        } else if let icon {
+            icon.renderingMode(.original).resizable().aspectRatio(contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: miniRadius, style: .continuous))
+                .frame(width: size, height: size)
+        } else {
+            RoundedRectangle(cornerRadius: miniRadius, style: .continuous)
+                .fill(Color(hex: 0x2A2A2A))
+                .frame(width: size, height: size)
         }
     }
 

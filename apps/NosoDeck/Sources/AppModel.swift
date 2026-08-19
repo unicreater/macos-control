@@ -404,6 +404,12 @@ final class AppModel {
         persistDeck()
     }
 
+    func moveTileToFolder(tileID: UUID, folderID: UUID) {
+        guard let removed = deck.removeTile(id: tileID) else { return }
+        deck.addTileToFolder(folderID: folderID, tile: removed)
+        persistDeck()
+    }
+
     func updateFolder(id: UUID, name: String) {
         deck.updateFolder(id: id, name: name)
         persistDeck()

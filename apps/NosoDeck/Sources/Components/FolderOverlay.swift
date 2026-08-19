@@ -59,6 +59,11 @@ struct FolderOverlay: View {
                     }
                 }
 
+                Text("Drag tiles onto this folder in edit mode to add them")
+                    .deckFont(.meta)
+                    .foregroundStyle(DeckColor.inkFaint)
+                    .multilineTextAlignment(.center)
+
                 Button { onDismiss() } label: {
                     Text("Done")
                         .deckFont(.body)
@@ -74,7 +79,7 @@ struct FolderOverlay: View {
             .background(DeckColor.chassis, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
-                    .strokeBorder(DeckColor.ochre.opacity(0.5), lineWidth: 1)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
             }
             .padding(.horizontal, DeckSpace.xl)
         }
