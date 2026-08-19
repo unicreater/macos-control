@@ -63,7 +63,17 @@ final class AppModel {
     private let deckStore: DeckStore
     private var reconnectTask: Task<Void, Never>?
     private var pendingPIN: PairingPIN?
-    private var targetMacID: String?
+    private static let lastMacIDKey = "com.noso.nosodeck.lastMacID"
+    private static let lastMacIDKeychainAccount = "phone.lastMacID"
+    private static let lastMacKeychain = KeychainStore(service: "com.noso.nosodeck.ios")
+    private var targetMacID: String? {
+        didSet {
+            UserDefaults.standard.set(targetMacID, forKey: Self.lastMacIDKey)
+            if let id = targetMacID {
+                Self.lastMacKeychain.set(Data(id.utf8), forAccount: Self.lastMacIDKeychainAccount)
+            }
+        }
+    }
     /// True when the layout came from disk, so the Mac's suggestions are only used on a
     /// genuinely first run (FR-12).
     private var hasSavedDeck: Bool
@@ -76,9 +86,12 @@ final class AppModel {
         self.client = DeckClient(identityStore: identityStore)
         self.deckStore = deckStore
 
-        // Load per-Mac deck if we have a last-used Mac
+        // Load per-Mac deck — prefer the last-used macID (persisted), fall back to first paired
         let trust = identityStore.loadTrust()
-        let lastMacID = trust.pairedDeviceIDs.first
+        let lastMacID: String? = UserDefaults.standard.string(forKey: Self.lastMacIDKey)
+            ?? Self.lastMacKeychain.data(forAccount: Self.lastMacIDKeychainAccount)
+                .flatMap { String(data: $0, encoding: .utf8) }
+            ?? trust.pairedDeviceIDs.first
         let saved = deckStore.load(macID: lastMacID)
         self.hasSavedDeck = saved != nil
         self.deck = saved ?? Deck()
@@ -102,7 +115,7 @@ final class AppModel {
             // background. The last paired Mac will be picked up by autoConnectIfPossible
             // as soon as Bonjour finds it — no manual selection needed.
             self.route = .deck
-            self.targetMacID = trust.pairedDeviceIDs.first
+            self.targetMacID = lastMacID
         }
 
         wireClient()
@@ -537,6 +550,11 @@ final class AppModel {
     func sendGesture(_ kind: ActionKind) {
         guard session.acceptsActions else { return }
         client.send(.action(ActionRequest(kind: kind, target: "")))
+    }
+
+    func sendAction(kind: ActionKind, target: String) {
+        guard session.acceptsActions else { return }
+        client.send(.action(ActionRequest(kind: kind, target: target)))
     }
 
     func activateSession(bundleID: String, windowID: Int?) {
