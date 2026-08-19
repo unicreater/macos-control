@@ -4,10 +4,19 @@ import Foundation
 /// Where the deck layout lives: versioned JSON in Application Support (PRD §5).
 ///
 /// Supports per-Mac deck layouts. Each Mac gets its own file keyed by device ID.
+/// Uses Keychain as fallback so deck layouts survive ad-hoc rebuilds — filesystem
+/// and UserDefaults both get wiped when the app container changes, but Keychain
+/// persists (same reason PhoneIdentityStore uses Keychain).
 struct DeckStore {
     private let directory: URL
+    private let keychain: KeychainStore
 
-    init() {
+    private func keychainAccount(forMacID macID: String?) -> String {
+        macID.map { "deck.\($0)" } ?? "deck"
+    }
+
+    init(keychain: KeychainStore = KeychainStore(service: "com.noso.nosodeck.ios")) {
+        self.keychain = keychain
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
         self.directory = base.appendingPathComponent("NosoDeck", isDirectory: true)
@@ -20,22 +29,40 @@ struct DeckStore {
     }
 
     func load(macID: String? = nil) -> Deck? {
+        // Try filesystem first (fastest)
         let url = fileURL(forMacID: macID)
-        // Fall back to the shared deck.json if per-Mac file doesn't exist
         let fallbackURL = directory.appendingPathComponent("deck.json")
         let targetURL = FileManager.default.fileExists(atPath: url.path) ? url : fallbackURL
 
-        guard let data = try? Data(contentsOf: targetURL),
-              let document = try? JSONDecoder().decode(DeckDocument.self, from: data) else {
-            return nil
+        if let data = try? Data(contentsOf: targetURL),
+           let document = try? JSONDecoder().decode(DeckDocument.self, from: data),
+           !document.isFromFutureSchema {
+            return document.deck
         }
-        guard !document.isFromFutureSchema else { return nil }
-        return document.deck
+
+        // Fall back to Keychain (survives rebuilds)
+        let account = keychainAccount(forMacID: macID)
+        if let data = keychain.data(forAccount: account),
+           let document = try? JSONDecoder().decode(DeckDocument.self, from: data),
+           !document.isFromFutureSchema {
+            return document.deck
+        }
+
+        // Try the generic key if per-Mac wasn't found
+        if macID != nil, let data = keychain.data(forAccount: "deck"),
+           let document = try? JSONDecoder().decode(DeckDocument.self, from: data),
+           !document.isFromFutureSchema {
+            return document.deck
+        }
+
+        return nil
     }
 
     func save(_ deck: Deck, macID: String? = nil) {
         guard let data = try? JSONEncoder().encode(DeckDocument(deck: deck)) else { return }
+        // Write to both filesystem and Keychain
         try? data.write(to: fileURL(forMacID: macID), options: .atomic)
+        keychain.set(data, forAccount: keychainAccount(forMacID: macID))
     }
 
     /// List all Mac IDs that have saved deck layouts.

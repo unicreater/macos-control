@@ -64,6 +64,18 @@ struct ActionExecutor {
             return sendScroll(deltaY: -5)
         case .keyCombo:
             return performKeyCombo(request.target)
+        case .moveMouse:
+            return moveMouseBy(request.target)
+        case .mouseClick:
+            return mouseClick()
+        case .mouseDown:
+            return mouseButton(down: true)
+        case .mouseUp:
+            return mouseButton(down: false)
+        case .scrollMouse:
+            return scrollBy(request.target)
+        case .pinchZoom:
+            return zoomBy(request.target)
         }
     }
 
@@ -324,6 +336,68 @@ struct ActionExecutor {
         keyUp.flags = modifiers
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
+        return .success(())
+    }
+
+    // MARK: - Touchpad
+
+    private func moveMouseBy(_ target: String) -> Result<Void, ActionFailure> {
+        let parts = target.split(separator: ",")
+        guard parts.count == 2,
+              let dx = Double(parts[0]), let dy = Double(parts[1]) else {
+            return .failure(.systemError("Invalid move format"))
+        }
+        let current = CGEvent(source: nil)?.location ?? .zero
+        let dest = CGPoint(x: current.x + dx, y: current.y + dy)
+        guard let event = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: dest, mouseButton: .left) else {
+            return .failure(.systemError("Could not create mouse event"))
+        }
+        event.post(tap: .cghidEventTap)
+        return .success(())
+    }
+
+    private func mouseClick() -> Result<Void, ActionFailure> {
+        let pos = CGEvent(source: nil)?.location ?? .zero
+        guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: pos, mouseButton: .left),
+              let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: pos, mouseButton: .left) else {
+            return .failure(.systemError("Could not create click event"))
+        }
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+        return .success(())
+    }
+
+    private func mouseButton(down: Bool) -> Result<Void, ActionFailure> {
+        let pos = CGEvent(source: nil)?.location ?? .zero
+        let type: CGEventType = down ? .leftMouseDown : .leftMouseUp
+        guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: pos, mouseButton: .left) else {
+            return .failure(.systemError("Could not create mouse event"))
+        }
+        event.post(tap: .cghidEventTap)
+        return .success(())
+    }
+
+    private func scrollBy(_ target: String) -> Result<Void, ActionFailure> {
+        guard let dy = Double(target) else {
+            return .failure(.systemError("Invalid scroll value"))
+        }
+        guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: Int32(dy), wheel2: 0, wheel3: 0) else {
+            return .failure(.systemError("Could not create scroll event"))
+        }
+        event.post(tap: .cghidEventTap)
+        return .success(())
+    }
+
+    private func zoomBy(_ target: String) -> Result<Void, ActionFailure> {
+        guard let scale = Double(target) else {
+            return .failure(.systemError("Invalid zoom value"))
+        }
+        // Zoom = Cmd + scroll
+        guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: Int32(scale * 10), wheel2: 0, wheel3: 0) else {
+            return .failure(.systemError("Could not create zoom event"))
+        }
+        event.flags = .maskCommand
+        event.post(tap: .cghidEventTap)
         return .success(())
     }
 

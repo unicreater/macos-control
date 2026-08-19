@@ -143,6 +143,7 @@ struct DeckView: View {
                                 FolderOverlay(
                                     folder: folder,
                                     model: model,
+                                    isLandscape: model.isLandscapeLayout,
                                     onDismiss: { openFolderID = nil }
                                 )
                                 .transition(.opacity)

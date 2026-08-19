@@ -230,6 +230,13 @@ public enum ActionKind: String, Codable, Sendable, CaseIterable {
     case scrollDown
     /// Arbitrary key combo — target is "cmd+shift+3" format
     case keyCombo
+    /// Touchpad — target is "dx,dy" for move, empty for click, "dy" for scroll
+    case moveMouse
+    case mouseClick
+    case mouseDown
+    case mouseUp
+    case scrollMouse
+    case pinchZoom
 }
 
 public struct ActionRequest: Codable, Hashable, Sendable {

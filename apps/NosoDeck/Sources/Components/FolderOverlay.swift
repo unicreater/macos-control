@@ -1,101 +1,91 @@
 import DeckKit
 import SwiftUI
 
-/// Overlay showing a folder's contents as a mini grid.
-/// Tap a tile inside to activate it, tap outside to close.
+/// Folder popup — blurred background with floating keycap tiles.
+/// Same visual language as the deck grid. Tap outside to dismiss.
 struct FolderOverlay: View {
     let folder: TileFolder
     let model: AppModel
+    let isLandscape: Bool
     let onDismiss: () -> Void
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: DeckSpace.s), count: 2)
+    private var columns: Int { min(folder.tiles.count, isLandscape ? 4 : 2) }
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            // Blurred background — tap to dismiss
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture { onDismiss() }
-                .ignoresSafeArea()
 
-            VStack(spacing: DeckSpace.m) {
-                Text(folder.name)
-                    .deckFont(.title)
-                    .foregroundStyle(DeckColor.ink)
+            GeometryReader { geo in
+                let portraitW = geo.size.width
+                let portraitH = geo.size.height
+                let contentW = isLandscape ? portraitH : portraitW
+                let contentH = isLandscape ? portraitW : portraitH
 
-                if folder.tiles.isEmpty {
-                    VStack(spacing: DeckSpace.s) {
-                        Image(systemName: "folder")
-                            .font(.system(size: 28))
-                            .foregroundStyle(DeckColor.inkFaint)
-                        Text("Empty folder")
-                            .deckFont(.bodySmall)
-                            .foregroundStyle(DeckColor.inkMuted)
-                    }
-                    .padding(.vertical, DeckSpace.xl)
-                } else {
-                    LazyVGrid(columns: columns, spacing: DeckSpace.s) {
-                        ForEach(folder.tiles) { tile in
-                            Button {
-                                model.activate(tile)
-                            } label: {
-                                VStack(spacing: 4) {
-                                    folderTileIcon(tile)
-                                        .frame(width: 48, height: 48)
-                                    Text(tile.label)
-                                        .deckFont(.meta)
-                                        .foregroundStyle(DeckColor.inkMuted)
-                                        .lineLimit(1)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, DeckSpace.s)
-                                .background(DeckColor.surfaceRaised, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
-                                        .strokeBorder(DeckColor.strokeSubtle, lineWidth: 1)
-                                }
+                VStack(spacing: DeckSpace.m) {
+                    // Folder name
+                    Text(folder.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DeckColor.ink)
+
+                    if folder.tiles.isEmpty {
+                        VStack(spacing: DeckSpace.s) {
+                            Image(systemName: "folder")
+                                .font(.system(size: 32))
+                                .foregroundStyle(DeckColor.inkFaint)
+                            Text("Drag tiles here in edit mode")
+                                .deckFont(.bodySmall)
+                                .foregroundStyle(DeckColor.inkMuted)
+                        }
+                        .frame(height: 120)
+                    } else {
+                        // Tile grid — same KeycapView as deck
+                        let gridColumns = Array(repeating: GridItem(.flexible(), spacing: DeckGrid.gutter), count: columns)
+                        let tileSize: CGFloat = isLandscape
+                            ? min((contentW - 80) / CGFloat(columns), 100)
+                            : min((contentW - 60) / CGFloat(columns), 120)
+
+                        LazyVGrid(columns: gridColumns, spacing: DeckGrid.gutter) {
+                            ForEach(folder.tiles) { tile in
+                                KeycapView(
+                                    tile: tile,
+                                    activity: model.activity(for: tile),
+                                    icon: model.icon(for: tile),
+                                    onTap: {
+                                        model.activate(tile)
+                                        onDismiss()
+                                    }
+                                )
+                                .frame(width: tileSize, height: tileSize)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
-
-                Text("Drag tiles onto this folder in edit mode to add them")
-                    .deckFont(.meta)
-                    .foregroundStyle(DeckColor.inkFaint)
-                    .multilineTextAlignment(.center)
-
-                Button { onDismiss() } label: {
-                    Text("Done")
-                        .deckFont(.body)
-                        .foregroundStyle(DeckColor.inkMuted)
-                        .frame(maxWidth: 100, minHeight: 36)
-                        .overlay {
-                            Capsule().strokeBorder(Color(hex: 0x3A3A3A), lineWidth: 1)
-                        }
+                .padding(DeckSpace.xl)
+                .frame(width: contentW * 0.75)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
                 }
-                .buttonStyle(.plain)
+                .frame(width: contentW, height: contentH)
+                .if(isLandscape) { view in
+                    view
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: portraitW, height: portraitH)
+                }
             }
-            .padding(DeckSpace.xl)
-            .background(DeckColor.chassis, in: RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: DeckRadius.card, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
-            }
-            .padding(.horizontal, DeckSpace.xl)
         }
     }
+}
 
+private extension View {
     @ViewBuilder
-    private func folderTileIcon(_ tile: Tile) -> some View {
-        if let emoji = tile.emoji, !emoji.isEmpty {
-            Text(emoji).font(.system(size: 28))
-        } else if let icon = model.icon(for: tile) {
-            icon.resizable().aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        } else {
-            Image(systemName: "app")
-                .font(.system(size: 24))
-                .foregroundStyle(DeckColor.inkMuted)
-        }
+    func `if`<Transform: View>(_ condition: Bool, transform: (Self) -> Transform) -> some View {
+        if condition { transform(self) } else { self }
     }
 }
