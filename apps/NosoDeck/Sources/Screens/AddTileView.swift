@@ -596,6 +596,11 @@ struct AddTileView: View {
         .scrollBounceBehavior(.basedOnSize)
     }
 
+    private func faviconURL(for urlString: String) -> URL? {
+        guard let url = URL(string: urlString), let host = url.host else { return nil }
+        return URL(string: "https://icon.horse/icon/\(host)")
+    }
+
     private func popularSiteCell(_ site: PopularSite) -> some View {
         let isSelected = selectedPopularSite?.id == site.id
         return Button {
@@ -604,13 +609,25 @@ struct AddTileView: View {
             urlText = site.url
         } label: {
             VStack(spacing: 4) {
-                Text(site.emoji)
-                    .font(.system(size: 28))
-                    .frame(width: 48, height: 48)
-                    .background(
-                        isSelected ? DeckColor.mint.opacity(0.12) : Color(hex: 0x2C2C2C),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
+                AsyncImage(url: faviconURL(for: site.url)) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fit)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(hex: 0x2C2C2C))
+                            .overlay {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(DeckColor.inkMuted)
+                            }
+                    }
+                }
+                .frame(width: 48, height: 48)
+                .background(
+                    isSelected ? DeckColor.mint.opacity(0.12) : .clear,
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
 
                 Text(site.name)
                     .deckFont(.meta)
@@ -802,7 +819,7 @@ struct AddTileView: View {
             model.add(Tile(target: target, label: label.trimmingCharacters(in: .whitespaces)))
         case .popular:
             guard let site = selectedPopularSite else { return }
-            model.add(Tile(target: .website(url: site.url), label: site.name, emoji: site.emoji))
+            model.add(Tile(target: .website(url: site.url), label: site.name))
         case .keys:
             guard let preset = selectedKeyCombo else { return }
             model.add(Tile(target: .keyCombo(combo: preset.combo), label: preset.name))

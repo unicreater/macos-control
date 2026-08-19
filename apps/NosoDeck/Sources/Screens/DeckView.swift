@@ -93,16 +93,25 @@ struct DeckView: View {
     }
 
     private var deckInner: some View {
-        VStack(spacing: 4) {
-            pages
-                .frame(maxWidth: .infinity)
-                .disabled(!model.session.acceptsActions && !model.isEditing)
-                .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 4) {
+                pages
+                    .frame(maxWidth: .infinity)
+                    .disabled(!model.session.acceptsActions && !model.isEditing)
+                    .animation(reduceMotion ? nil : DeckMotion.stateChange, value: model.session.state)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-            bottomBar
+                bottomBar
+            }
+
+            if model.lastRemovedTile != nil {
+                undoToast
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 40)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: model.lastRemovedTile != nil)
     }
 
     var body: some View {
@@ -136,14 +145,6 @@ struct DeckView: View {
                                 .animation(.easeInOut(duration: 0.2), value: openFolderID)
                             }
                         }
-                        .overlay(alignment: .bottom) {
-                            if model.lastRemovedTile != nil {
-                                undoToast
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    .padding(.bottom, 80)
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.2), value: model.lastRemovedTile != nil)
                 }
 
                 Tab("Settings", systemImage: "gearshape", value: 1) {
@@ -283,6 +284,16 @@ struct DeckView: View {
             }
 
             addPagePill
+
+            Button { createFolder() } label: {
+                Text("+ Folder")
+                    .deckFont(.meta)
+                    .foregroundStyle(DeckColor.ochre)
+                    .padding(.horizontal, DeckSpace.m)
+                    .frame(height: 32)
+                    .background(DeckColor.ochre.opacity(0.15), in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+            }
+            .buttonStyle(.plain)
 
             Spacer()
 
@@ -493,6 +504,14 @@ struct DeckView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func createFolder() {
+        let folder = model.createFolder(name: "New Folder")
+        model.add(Tile(
+            target: .folder(id: folder.id.uuidString),
+            label: folder.name
+        ))
     }
 
     private func openAddTile(page: Int) {
