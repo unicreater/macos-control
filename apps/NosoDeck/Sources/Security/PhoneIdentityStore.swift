@@ -12,6 +12,9 @@ struct PhoneIdentityStore {
     private static let deviceIDAccount = "phone.deviceID"
     private static let trustAccount = "phone.trust"
     private static let secretPrefix = "mac."
+    private static let udDeviceIDKey = "com.noso.nosodeck.ios.deviceID"
+    private static let udTrustKey = "com.noso.nosodeck.ios.trust"
+    private static let udSecretPrefix = "com.noso.nosodeck.ios.secret."
 
     private let keychain: KeychainStore
 
@@ -25,8 +28,14 @@ struct PhoneIdentityStore {
            let existing = String(data: data, encoding: .utf8), !existing.isEmpty {
             return existing
         }
+        // UserDefaults fallback for unsigned builds
+        if let ud = UserDefaults.standard.string(forKey: Self.udDeviceIDKey), !ud.isEmpty {
+            keychain.set(Data(ud.utf8), forAccount: Self.deviceIDAccount)
+            return ud
+        }
         let fresh = UUID().uuidString
         keychain.set(Data(fresh.utf8), forAccount: Self.deviceIDAccount)
+        UserDefaults.standard.set(fresh, forKey: Self.udDeviceIDKey)
         return fresh
     }
 
@@ -43,38 +52,72 @@ struct PhoneIdentityStore {
     // MARK: - Pinned identities
 
     func loadTrust() -> TrustStore {
-        guard let data = keychain.data(forAccount: Self.trustAccount),
-              let store = try? JSONDecoder().decode(TrustStore.self, from: data) else {
-            return TrustStore()
+        // Try keychain first
+        if let data = keychain.data(forAccount: Self.trustAccount),
+           let store = try? JSONDecoder().decode(TrustStore.self, from: data) {
+            return store
         }
-        return store
+        // UserDefaults fallback
+        if let data = UserDefaults.standard.data(forKey: Self.udTrustKey),
+           let store = try? JSONDecoder().decode(TrustStore.self, from: data) {
+            keychain.set(data, forAccount: Self.trustAccount)
+            return store
+        }
+        return TrustStore()
     }
 
     func save(_ trust: TrustStore) {
         guard let data = try? JSONEncoder().encode(trust) else { return }
         keychain.set(data, forAccount: Self.trustAccount)
+        UserDefaults.standard.set(data, forKey: Self.udTrustKey)
     }
 
     // MARK: - Session secrets
 
     func sessionSecret(forMacID macID: String) -> Data? {
-        keychain.data(forAccount: Self.secretPrefix + macID)
+        if let data = keychain.data(forAccount: Self.secretPrefix + macID) {
+            return data
+        }
+        // UserDefaults fallback
+        if let hex = UserDefaults.standard.string(forKey: Self.udSecretPrefix + macID),
+           let data = Data(hexString: hex) {
+            keychain.set(data, forAccount: Self.secretPrefix + macID)
+            return data
+        }
+        return nil
     }
 
     func setSessionSecret(_ secret: Data, forMacID macID: String) {
         keychain.set(secret, forAccount: Self.secretPrefix + macID)
+        UserDefaults.standard.set(secret.map { String(format: "%02x", $0) }.joined(),
+                                  forKey: Self.udSecretPrefix + macID)
     }
 
     func removeSessionSecret(forMacID macID: String) {
         keychain.removeItem(forAccount: Self.secretPrefix + macID)
+        UserDefaults.standard.removeObject(forKey: Self.udSecretPrefix + macID)
     }
 
-    /// Unpair (FR-5): drop both halves at once, so no stale key can outlive the trust
-    /// that justified it.
     func forget(macID: String) {
         removeSessionSecret(forMacID: macID)
         var trust = loadTrust()
         trust.forget(deviceID: macID)
         save(trust)
+    }
+}
+
+private extension Data {
+    init?(hexString: String) {
+        let len = hexString.count
+        guard len % 2 == 0 else { return nil }
+        var data = Data(capacity: len / 2)
+        var index = hexString.startIndex
+        while index < hexString.endIndex {
+            let next = hexString.index(index, offsetBy: 2)
+            guard let byte = UInt8(hexString[index..<next], radix: 16) else { return nil }
+            data.append(byte)
+            index = next
+        }
+        self = data
     }
 }
