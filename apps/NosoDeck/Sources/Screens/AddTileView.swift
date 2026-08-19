@@ -598,7 +598,7 @@ struct AddTileView: View {
 
     private func faviconURL(for urlString: String) -> URL? {
         guard let url = URL(string: urlString), let host = url.host else { return nil }
-        return URL(string: "https://icon.horse/icon/\(host)")
+        return URL(string: "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://\(host)&size=256")
     }
 
     private func popularSiteCell(_ site: PopularSite) -> some View {

@@ -121,8 +121,8 @@ struct KeycapView: View {
 
     private func faviconURL(for urlString: String) -> URL? {
         guard let url = URL(string: urlString), let host = url.host else { return nil }
-        // icon.horse provides high-res favicons (apple-touch-icon when available)
-        return URL(string: "https://icon.horse/icon/\(host)")
+        // Google high-res favicon service — returns up to 256px
+        return URL(string: "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://\(host)&size=256")
     }
 
 
@@ -176,19 +176,29 @@ struct TileButtonStyle: ButtonStyle {
 struct EmptySlotView: View {
     var onTap: () -> Void = {}
 
+    private var hasMeshTheme: Bool { ThemeManager.shared.current.meshColors != nil }
+
     var body: some View {
         Button(action: onTap) {
             GeometryReader { geo in
                 let size = min(geo.size.width, geo.size.height) * 0.8
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .light))
-                    .foregroundStyle(Color.white.opacity(0.15))
+                    .foregroundStyle(Color.white.opacity(hasMeshTheme ? 0.3 : 0.15))
                     .frame(width: size, height: size)
-                    .background(Color.white.opacity(0.03))
+                    .background {
+                        if hasMeshTheme {
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        } else {
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(Color.white.opacity(0.03))
+                        }
+                    }
                     .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1.5, dash: [8, 6]))
+                            .strokeBorder(Color.white.opacity(hasMeshTheme ? 0.15 : 0.08), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
