@@ -67,7 +67,7 @@ struct ActionExecutor {
         case .moveMouse:
             return moveMouseBy(request.target)
         case .mouseClick:
-            return mouseClick()
+            return mouseClick(count: Int64(request.target) ?? 1)
         case .mouseDown:
             return mouseButton(down: true)
         case .mouseUp:
@@ -356,12 +356,14 @@ struct ActionExecutor {
         return .success(())
     }
 
-    private func mouseClick() -> Result<Void, ActionFailure> {
+    private func mouseClick(count: Int64) -> Result<Void, ActionFailure> {
         let pos = CGEvent(source: nil)?.location ?? .zero
         guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: pos, mouseButton: .left),
               let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: pos, mouseButton: .left) else {
             return .failure(.systemError("Could not create click event"))
         }
+        down.setIntegerValueField(.mouseEventClickState, value: count)
+        up.setIntegerValueField(.mouseEventClickState, value: count)
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
         return .success(())

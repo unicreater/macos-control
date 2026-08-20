@@ -21,6 +21,8 @@ struct DeckView: View {
     // Always 4×2 landscape layout in portrait frame
 
     /// The deck grid — landscape-rotated or portrait, based on setting.
+    private var hasOverlay: Bool { showRadialMenu || openFolderID != nil }
+
     private var deckContent: some View {
         GeometryReader { geo in
             let portraitW = geo.size.width
@@ -154,13 +156,29 @@ struct DeckView: View {
                         .themeBackground()
                 }
 
-                Tab("History", systemImage: "clock.arrow.circlepath", value: 2, role: .search) {
-                    HistoryView(model: model)
-                        .toolbarBackground(.hidden, for: .tabBar)
-                        .scrollContentBackground(.hidden)
+                Tab(
+                    hasOverlay ? "" : "History",
+                    systemImage: hasOverlay ? "xmark.circle.fill" : "clock.arrow.circlepath",
+                    value: 2,
+                    role: .search
+                ) {
+                    if showRadialMenu {
+                        Color.clear
+                    } else {
+                        HistoryView(model: model)
+                            .toolbarBackground(.hidden, for: .tabBar)
+                            .scrollContentBackground(.hidden)
+                    }
                 }
             }
             .tint(DeckColor.mint)
+            .onChange(of: selectedTab) { _, newValue in
+                if hasOverlay && newValue == 2 {
+                    showRadialMenu = false
+                    openFolderID = nil
+                    selectedTab = 0
+                }
+            }
         }
         .background {
             if !showRadialMenu {
