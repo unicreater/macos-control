@@ -69,13 +69,14 @@ struct FolderOverlay: View {
                             .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
                     }
 
-                    // Control panel inside folder — don't rotate since folder already does
                     if showRadialMenu {
                         ControlPanelView(
                             model: model,
-                            isLandscape: false,
+                            isLandscape: isLandscape,
+                            skipRotation: true,
                             onDismiss: { showRadialMenu = false }
                         )
+                        .frame(width: contentW, height: contentH)
                         .transition(.opacity)
                     }
                 }

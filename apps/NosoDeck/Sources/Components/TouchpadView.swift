@@ -180,16 +180,26 @@ class TouchpadUIView: UIView {
 struct ControlPanelView: View {
     let model: AppModel
     let isLandscape: Bool
+    var skipRotation: Bool = false
     let onDismiss: () -> Void
 
-    private var actions: [ActionItem] {
+    private static let desktopActions: [ControlAction] = [
+        ControlAction(icon: "chevron.left.2", label: "Space L", kind: .keyCombo, target: "ctrl+left"),
+        ControlAction(icon: "chevron.right.2", label: "Space R", kind: .keyCombo, target: "ctrl+right"),
+        ControlAction(icon: "rectangle.3.group", label: "Mission", kind: .keyCombo, target: "ctrl+up"),
+        ControlAction(icon: "menubar.dock.rectangle", label: "Desktop", kind: .keyCombo, target: "cmd+f3"),
+    ]
+
+    private var allActions: [ControlAction] {
         let category = AppCategory.from(bundleID: model.macState.frontmost ?? "")
-        return category.actions
+        let appActions = category.actions.map { ControlAction(icon: $0.icon, label: $0.label, kind: $0.action, target: "") }
+        return appActions + Self.desktopActions
     }
+
+    @State private var actionPage = 0
 
     var body: some View {
         ZStack {
-            // Blurred background
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
@@ -199,14 +209,14 @@ struct ControlPanelView: View {
             GeometryReader { geo in
                 let portraitW = geo.size.width
                 let portraitH = geo.size.height
-                let contentW = isLandscape ? portraitH : portraitW
-                let contentH = isLandscape ? portraitW : portraitH
+                // When skipRotation, the parent already provides landscape dimensions
+                let contentW = isLandscape && !skipRotation ? portraitH : portraitW
+                let contentH = isLandscape && !skipRotation ? portraitW : portraitH
 
                 Group {
                     if isLandscape {
-                        // Landscape: actions left, trackpad right, full height
                         HStack(spacing: DeckSpace.s) {
-                            actionGrid
+                            pagedActionGrid(width: contentW * 0.4, height: contentH)
                                 .frame(maxWidth: contentW * 0.4)
                             TouchpadView { kind, target in
                                 model.sendAction(kind: kind, target: target)
@@ -216,7 +226,6 @@ struct ControlPanelView: View {
                         .padding(DeckSpace.m)
                         .frame(width: contentW, height: contentH)
                     } else {
-                        // Portrait: actions top, trackpad bottom
                         VStack(spacing: DeckSpace.s) {
                             actionGrid
                                 .frame(maxHeight: contentH * 0.35)
@@ -229,7 +238,7 @@ struct ControlPanelView: View {
                         .frame(width: contentW, height: contentH)
                     }
                 }
-                .if(isLandscape) { view in
+                .if(isLandscape && !skipRotation) { view in
                     view
                         .rotationEffect(.degrees(-90))
                         .frame(width: portraitW, height: portraitH)
@@ -239,79 +248,74 @@ struct ControlPanelView: View {
     }
 
     private var cols: [GridItem] {
-        let count = isLandscape ? 2 : 3
+        let count = isLandscape ? 3 : 3
         return Array(repeating: GridItem(.flexible(), spacing: DeckSpace.s), count: count)
     }
 
-    private static let desktopActions: [ActionItem] = [
-        ActionItem(icon: "chevron.left.2", label: "Space L", action: .keyCombo),
-        ActionItem(icon: "chevron.right.2", label: "Space R", action: .keyCombo),
-        ActionItem(icon: "rectangle.3.group", label: "Mission", action: .keyCombo),
-        ActionItem(icon: "menubar.dock.rectangle", label: "Desktop", action: .keyCombo),
-    ]
-
-    private static let desktopCombos: [String: String] = [
-        "Space L": "ctrl+left",
-        "Space R": "ctrl+right",
-        "Mission": "ctrl+up",
-        "Desktop": "cmd+f3",
-    ]
-
+    // Portrait: scrollable grid of all actions
     private var actionGrid: some View {
         ScrollView {
             LazyVGrid(columns: cols, spacing: DeckSpace.s) {
-                ForEach(actions) { item in
-                    actionButton(icon: item.icon, label: item.label, kind: item.action)
-                }
-            }
-
-            // Desktop / Spaces actions
-            Divider().overlay(Color.white.opacity(0.08)).padding(.vertical, 4)
-
-            LazyVGrid(columns: cols, spacing: DeckSpace.s) {
-                ForEach(Self.desktopActions) { item in
-                    desktopButton(icon: item.icon, label: item.label, combo: Self.desktopCombos[item.label] ?? "")
+                ForEach(allActions) { item in
+                    controlButton(item)
                 }
             }
         }
         .scrollBounceBehavior(.basedOnSize)
     }
 
-    private func desktopButton(icon: String, label: String, combo: String) -> some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            model.sendAction(kind: .keyCombo, target: combo)
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundStyle(DeckColor.ink)
-                Text(label)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(DeckColor.inkMuted)
-                    .lineLimit(1)
+    // Landscape: paginated — 3 cols, fit rows to available height
+    private func pagedActionGrid(width: CGFloat, height: CGFloat) -> some View {
+        let colCount = 3
+        let rowHeight: CGFloat = 64
+        let spacing = DeckSpace.s
+        let availableH = height - DeckSpace.m * 2 - 20 // padding + page dots
+        let rowsPerPage = max(Int(availableH / (rowHeight + spacing)), 1)
+        let perPage = rowsPerPage * colCount
+        let items = allActions
+        let pageCount = max((items.count + perPage - 1) / perPage, 1)
+
+        return VStack(spacing: 4) {
+            TabView(selection: $actionPage) {
+                ForEach(0..<pageCount, id: \.self) { page in
+                    let start = page * perPage
+                    let end = min(start + perPage, items.count)
+                    let pageItems = Array(items[start..<end])
+                    let pageCols = Array(repeating: GridItem(.flexible(), spacing: DeckSpace.s), count: colCount)
+
+                    LazyVGrid(columns: pageCols, spacing: DeckSpace.s) {
+                        ForEach(pageItems) { item in
+                            controlButton(item)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                    .tag(page)
+                }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: DeckRadius.control, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+            .tabViewStyle(.page(indexDisplayMode: pageCount > 1 ? .automatic : .never))
+
+            if pageCount > 1 {
+                HStack(spacing: 4) {
+                    ForEach(0..<pageCount, id: \.self) { i in
+                        Circle()
+                            .fill(i == actionPage ? DeckColor.mint : Color.white.opacity(0.2))
+                            .frame(width: 5, height: 5)
+                    }
+                }
             }
         }
-        .buttonStyle(TileButtonStyle())
     }
 
-    private func actionButton(icon: String, label: String, kind: ActionKind) -> some View {
+    private func controlButton(_ item: ControlAction) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            model.sendAction(kind: kind, target: "")
+            model.sendAction(kind: item.kind, target: item.target)
         } label: {
             VStack(spacing: 4) {
-                Image(systemName: icon)
+                Image(systemName: item.icon)
                     .font(.system(size: 20))
                     .foregroundStyle(DeckColor.ink)
-                Text(label)
+                Text(item.label)
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(DeckColor.inkMuted)
                     .lineLimit(1)
@@ -326,6 +330,14 @@ struct ControlPanelView: View {
         }
         .buttonStyle(TileButtonStyle())
     }
+}
+
+private struct ControlAction: Identifiable {
+    let id = UUID()
+    let icon: String
+    let label: String
+    let kind: ActionKind
+    let target: String
 }
 
 private extension View {
