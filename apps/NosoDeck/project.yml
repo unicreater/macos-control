@@ -32,6 +32,7 @@ targets:
       # Transport code both apps need, but which cannot live in DeckKit because it
       # imports Network and CryptoKit and DeckKit must stay Linux-clean.
       - path: ../Shared
+      - path: Resources
     dependencies:
       - package: DeckKit
         product: DeckKit

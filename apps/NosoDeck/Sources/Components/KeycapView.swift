@@ -82,16 +82,7 @@ struct KeycapView: View {
                 .font(.system(size: 32))
                 .foregroundStyle(DeckColor.inkSecondary)
         } else if case .website(let url) = tile.target {
-            AsyncImage(url: faviconURL(for: url)) { phase in
-                if let image = phase.image {
-                    image.resizable().aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
-                } else {
-                    Image(systemName: "globe")
-                        .font(.system(size: 36))
-                        .foregroundStyle(DeckColor.inkMuted)
-                }
-            }
+            FaviconView(urlString: url, iconRadius: iconRadius)
         } else if let icon {
             icon
                 .renderingMode(.original)
@@ -179,17 +170,8 @@ struct KeycapView: View {
                 .frame(width: size, height: size)
                 .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: miniRadius, style: .continuous))
         } else if case .website(let url) = tile.target {
-            AsyncImage(url: faviconURL(for: url)) { phase in
-                if let image = phase.image {
-                    image.resizable().aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: miniRadius, style: .continuous))
-                } else {
-                    Image(systemName: "globe")
-                        .font(.system(size: size * 0.5))
-                        .foregroundStyle(DeckColor.inkMuted)
-                }
-            }
-            .frame(width: size, height: size)
+            FaviconView(urlString: url, iconRadius: miniRadius)
+                .frame(width: size, height: size)
         } else if let icon {
             icon.renderingMode(.original).resizable().aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: miniRadius, style: .continuous))
@@ -203,8 +185,7 @@ struct KeycapView: View {
 
     private func faviconURL(for urlString: String) -> URL? {
         guard let url = URL(string: urlString), let host = url.host else { return nil }
-        // Google high-res favicon service — returns up to 256px
-        return URL(string: "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://\(host)&size=256")
+        return URL(string: "https://\(host)/apple-touch-icon.png")
     }
 
 
