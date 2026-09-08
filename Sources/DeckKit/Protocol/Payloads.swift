@@ -266,6 +266,20 @@ public struct ActionRequest: Codable, Hashable, Sendable {
     }
 }
 
+/// Mac → phone: a new clipboard entry was detected.
+public struct ClipboardUpdate: Codable, Hashable, Sendable {
+    public var text: String
+    /// Source app bundle ID, if known.
+    public var sourceApp: String?
+    public var timestamp: Date
+
+    public init(text: String, sourceApp: String? = nil, timestamp: Date = Date()) {
+        self.text = text
+        self.sourceApp = sourceApp
+        self.timestamp = timestamp
+    }
+}
+
 public struct ActionResult: Codable, Hashable, Sendable {
     /// The `id` of the `action` envelope this answers.
     public var requestID: UUID

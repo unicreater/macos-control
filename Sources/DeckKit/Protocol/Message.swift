@@ -19,6 +19,7 @@ public enum MessageType: String, Codable, Sendable, CaseIterable {
     case pong
     case browserTabsRequest
     case browserTabs
+    case clipboardUpdate
 }
 
 /// One protocol message, payload included.
@@ -43,6 +44,7 @@ public enum Message: Hashable, Sendable {
     case pong
     case browserTabsRequest
     case browserTabs(BrowserTabList)
+    case clipboardUpdate(ClipboardUpdate)
 
     public var type: MessageType {
         switch self {
@@ -63,6 +65,7 @@ public enum Message: Hashable, Sendable {
         case .pong: return .pong
         case .browserTabsRequest: return .browserTabsRequest
         case .browserTabs: return .browserTabs
+        case .clipboardUpdate: return .clipboardUpdate
         }
     }
 

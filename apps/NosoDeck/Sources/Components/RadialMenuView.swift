@@ -39,7 +39,7 @@ struct RadialMenuView: View {
             )
             .if(isLandscape) { view in
                 view
-                    .rotationEffect(.degrees(-90))
+                    .rotationEffect(.degrees(LandscapeDirection.angle))
                     .frame(width: portraitW, height: portraitH)
             }
         }

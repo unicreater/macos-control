@@ -37,6 +37,7 @@ final class DeckClient {
     var onIcon: ((IconResponse) -> Void)?
     var onShortcuts: (([String], [ShortcutInfo]) -> Void)?
     var onBrowserTabs: (([BrowserTab]) -> Void)?
+    var onClipboardUpdate: ((ClipboardUpdate) -> Void)?
 
     init(identityStore: PhoneIdentityStore) {
         self.identityStore = identityStore
@@ -184,6 +185,9 @@ final class DeckClient {
 
         case .browserTabs(let list):
             onBrowserTabs?(list.tabs)
+
+        case .clipboardUpdate(let update):
+            onClipboardUpdate?(update)
 
         default:
             break

@@ -1,3 +1,4 @@
+import AppKit
 import DeckKit
 import Foundation
 import Network
@@ -52,6 +53,10 @@ final class AgentModel {
     private let emojiRain = EmojiRainWindow()
     private let dragDetector = DragDetector()
     private let pinWindow = PINWindow()
+    private var clipboardChangeCount: Int = 0
+    private var clipboardTimer: Timer?
+    private var lastPastedText: String?
+    private var lastSentClipboardText: String?
     private var sessions: [AgentSession] = []
     /// Failed PIN attempts since the last rotation.
     private var failedAttempts = 0
@@ -132,6 +137,7 @@ final class AgentModel {
         stateObserver.start()
         sessionTracker.start()
         dragDetector.start()
+        startClipboardMonitor()
 
         restartListener()
         // Warm the catalog in the background so it doesn't block the main thread
@@ -157,6 +163,42 @@ final class AgentModel {
         for session in sessions where session.isPaired {
             session.connection.send(Envelope(message: .stateEvent(state)))
         }
+    }
+
+    // MARK: - Clipboard monitor
+
+    private func startClipboardMonitor() {
+        clipboardChangeCount = NSPasteboard.general.changeCount
+        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkClipboard() }
+        }
+    }
+
+    private func checkClipboard() {
+        let pb = NSPasteboard.general
+        guard pb.changeCount != clipboardChangeCount else { return }
+        clipboardChangeCount = pb.changeCount
+        guard let text = pb.string(forType: .string), !text.isEmpty else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Skip if this is text we just pasted from clipboard history
+        if let last = lastPastedText, last == trimmed {
+            lastPastedText = nil
+            return
+        }
+        // Skip if same as the last thing we sent (e.g. re-selecting same text)
+        if lastSentClipboardText == trimmed { return }
+        lastSentClipboardText = trimmed
+        let clipped = text.count > 2000 ? String(text.prefix(2000)) + "..." : text
+        let sourceApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        let update = ClipboardUpdate(text: clipped, sourceApp: sourceApp)
+        for session in sessions where session.isPaired {
+            session.connection.send(Envelope(message: .clipboardUpdate(update)))
+        }
+    }
+
+    /// Called by ActionExecutor when pasting from clipboard history, so the monitor skips it.
+    func markPastedText(_ text: String) {
+        lastPastedText = text
     }
 
     @discardableResult
@@ -358,6 +400,10 @@ final class AgentModel {
     }
 
     private func perform(_ request: ActionRequest, for envelope: Envelope, on session: AgentSession) {
+        // Mark clipboard history pastes so the monitor doesn't echo them back
+        if request.kind == .pasteClipboard && !request.target.isEmpty {
+            markPastedText(request.target)
+        }
         Task { [weak self, weak session] in
             let result = await self?.executor.perform(request)
             guard let session else { return }

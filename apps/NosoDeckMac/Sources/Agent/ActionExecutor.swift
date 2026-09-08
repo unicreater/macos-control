@@ -30,6 +30,14 @@ struct ActionExecutor {
         case .copyClipboard:
             return sendKeyCombo(key: 0x08, modifiers: .maskCommand) // Cmd+C
         case .pasteClipboard:
+            if !request.target.isEmpty {
+                // Set clipboard then paste with a delay to let pasteboard commit
+                await MainActor.run {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(request.target, forType: .string)
+                }
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            }
             return sendKeyCombo(key: 0x09, modifiers: .maskCommand) // Cmd+V
         // MARK: - Radial menu actions
         case .mediaPlayPause:

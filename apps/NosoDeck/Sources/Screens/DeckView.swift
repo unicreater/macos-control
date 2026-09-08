@@ -16,6 +16,7 @@ struct DeckView: View {
     @State private var showRadialMenu = false
     @State private var editingTile: Tile?
     @State private var openFolderID: String?
+    @State private var showClipboard = false
     @State var selectedTab = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Always 4×2 landscape layout in portrait frame
@@ -92,7 +93,7 @@ struct DeckView: View {
                 .animation(.easeInOut(duration: 0.15), value: model.isEditing)
                 .if(isLandscape) { view in
                     view
-                        .rotationEffect(.degrees(-90))
+                        .rotationEffect(.degrees(model.landscapeAngle))
                         .frame(width: portraitW, height: portraitH)
                 }
         }
@@ -157,17 +158,42 @@ struct DeckView: View {
                 }
 
                 Tab(
-                    hasOverlay ? "" : "History",
-                    systemImage: hasOverlay ? "xmark.circle.fill" : "clock.arrow.circlepath",
+                    hasOverlay ? "" : (showClipboard ? "Clipboard" : "History"),
+                    systemImage: hasOverlay ? "xmark.circle.fill" : (showClipboard ? "doc.on.clipboard" : "clock.arrow.circlepath"),
                     value: 2,
                     role: .search
                 ) {
                     if showRadialMenu {
                         Color.clear
                     } else {
-                        HistoryView(model: model)
-                            .toolbarBackground(.hidden, for: .tabBar)
-                            .scrollContentBackground(.hidden)
+                        ZStack {
+                            if showClipboard {
+                                ClipboardHistoryView(model: model)
+                            } else {
+                                HistoryView(model: model)
+                            }
+                        }
+                        .themeBackground()
+                        .overlay(alignment: .bottomTrailing) {
+                            Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showClipboard.toggle()
+                                }
+                            } label: {
+                                Image(systemName: showClipboard ? "clock.arrow.circlepath" : "doc.on.clipboard")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(DeckColor.inkMuted)
+                                    .frame(width: 44, height: 44)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.trailing, 16)
+                            .padding(.bottom, 12)
+                        }
+                        .toolbarBackground(.hidden, for: .tabBar)
+                        .scrollContentBackground(.hidden)
                     }
                 }
             }
@@ -616,7 +642,7 @@ struct DeckView: View {
             content()
                 .frame(width: landscapeW, height: landscapeH)
                 .background(DeckColor.chassis.ignoresSafeArea())
-                .rotationEffect(.degrees(-90))
+                .rotationEffect(.degrees(model.landscapeAngle))
                 .frame(width: portraitW, height: portraitH)
         }
     }

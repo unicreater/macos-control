@@ -91,14 +91,20 @@ public struct AppSession: Codable, Hashable, Sendable {
     public var cpuPercent: Double?
     /// macOS window number, for raising the specific window/switching desktops
     public var windowID: Int?
+    /// Whether the window is on the current Space
+    public var isOnScreen: Bool?
+    /// Window position description: "left-top", "right", "full", "other-space", etc.
+    public var position: String?
 
-    public init(id: String, label: String, status: Status, detail: String? = nil, cpuPercent: Double? = nil, windowID: Int? = nil) {
+    public init(id: String, label: String, status: Status, detail: String? = nil, cpuPercent: Double? = nil, windowID: Int? = nil, isOnScreen: Bool? = nil, position: String? = nil) {
         self.id = id
         self.label = label
         self.status = status
         self.detail = detail
         self.cpuPercent = cpuPercent
         self.windowID = windowID
+        self.isOnScreen = isOnScreen
+        self.position = position
     }
 }
 

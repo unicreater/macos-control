@@ -114,6 +114,16 @@ struct AISessionsView: View {
                         .foregroundStyle(statusColor(session.status))
                         .lineLimit(1)
                 }
+
+                if let pos = session.position {
+                    HStack(spacing: 2) {
+                        Image(systemName: positionIcon(pos))
+                            .font(.system(size: 7))
+                        Text(pos)
+                            .font(.system(size: 8, weight: .medium))
+                    }
+                    .foregroundStyle(pos == "other space" ? DeckColor.inkFaint : DeckColor.inkMuted)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
@@ -191,6 +201,20 @@ struct AISessionsView: View {
             return "BUSY"
         case .idle: return "IDLE"
         case .done: return "DONE"
+        }
+    }
+
+    private func positionIcon(_ pos: String) -> String {
+        switch pos {
+        case "full": return "rectangle.fill"
+        case "left": return "rectangle.lefthalf.filled"
+        case "right": return "rectangle.righthalf.filled"
+        case "top-left": return "rectangle.inset.topleft.filled"
+        case "top-right": return "rectangle.inset.topright.filled"
+        case "bottom-left": return "rectangle.inset.bottomleft.filled"
+        case "bottom-right": return "rectangle.inset.bottomright.filled"
+        case "other space": return "square.stack.3d.up"
+        default: return "rectangle"
         }
     }
 

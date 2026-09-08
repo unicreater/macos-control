@@ -77,7 +77,9 @@ final class SessionTracker {
                             label: label,
                             status: .idle,
                             detail: "Ready",
-                            windowID: nextWindow?.windowNumber
+                            windowID: nextWindow?.windowNumber,
+                            isOnScreen: nextWindow?.isOnScreen,
+                            position: nextWindow?.position
                         ))
                     } else {
                         let cmd = children.first!.shortName
@@ -113,7 +115,9 @@ final class SessionTracker {
                             label: label,
                             status: status,
                             detail: detail,
-                            windowID: nextWindow?.windowNumber
+                            windowID: nextWindow?.windowNumber,
+                            isOnScreen: nextWindow?.isOnScreen,
+                            position: nextWindow?.position
                         ))
                     }
                 }
@@ -321,9 +325,8 @@ final class SessionTracker {
         let windowNumber: Int
         let name: String
         let isOnScreen: Bool
-        /// Real content windows (not menu bar items)
+        let position: String
         var isReal: Bool { !name.isEmpty }
-        /// Extract the project directory name from window title like "content-creation-workflow · ..."
         var projectName: String {
             let parts = name.components(separatedBy: " · ")
             return parts.first?.trimmingCharacters(in: .whitespaces) ?? name
@@ -331,6 +334,7 @@ final class SessionTracker {
     }
 
     nonisolated private static func getWarpWindows() -> [WarpWindow] {
+        let screen = CGDisplayBounds(CGMainDisplayID())
         guard let windowList = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] else { return [] }
         return windowList.compactMap { w -> WarpWindow? in
             guard (w["kCGWindowOwnerName"] as? String)?.contains("Warp") == true,
@@ -338,12 +342,39 @@ final class SessionTracker {
             let name = w["kCGWindowName"] as? String ?? ""
             let num = w["kCGWindowNumber"] as? Int ?? 0
             let onScreen = w["kCGWindowIsOnscreen"] as? Bool ?? false
-            // Skip tiny windows (menu bar items)
-            let bounds = w["kCGWindowBounds"] as? [String: Any] ?? [:]
-            let height = bounds["Height"] as? Double ?? 0
+            let bounds = w["kCGWindowBounds"] as? [String: Double] ?? [:]
+            let height = bounds["Height"] ?? 0
             guard height > 100 else { return nil }
-            return WarpWindow(windowNumber: num, name: name, isOnScreen: onScreen)
+            let pos = Self.describePosition(bounds: bounds, screen: screen, onScreen: onScreen)
+            return WarpWindow(windowNumber: num, name: name, isOnScreen: onScreen, position: pos)
         }
+    }
+
+    nonisolated private static func describePosition(bounds: [String: Double], screen: CGRect, onScreen: Bool) -> String {
+        guard onScreen else { return "other space" }
+        let x = bounds["X"] ?? 0
+        let y = bounds["Y"] ?? 0
+        let w = bounds["Width"] ?? 0
+        let h = bounds["Height"] ?? 0
+        let sw = screen.width
+        let sh = screen.height
+        let midX = x + w / 2
+        let midY = y + h / 2
+
+        // Full screen (covers >90% of screen)
+        if w > sw * 0.9 && h > sh * 0.9 { return "full" }
+        // Left/right half
+        let isLeft = midX < sw * 0.5
+        let isTop = midY < sh * 0.5
+        // Roughly half width
+        if w > sw * 0.4 && w < sw * 0.6 {
+            if h > sh * 0.8 { return isLeft ? "left" : "right" }
+            if isTop { return isLeft ? "top-left" : "top-right" }
+            return isLeft ? "bottom-left" : "bottom-right"
+        }
+        // Quarter
+        if isTop { return isLeft ? "top-left" : "top-right" }
+        return isLeft ? "bottom-left" : "bottom-right"
     }
 
     private struct ProcessEntry {

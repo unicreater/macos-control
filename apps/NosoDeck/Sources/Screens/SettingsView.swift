@@ -53,7 +53,7 @@ struct SettingsView: View {
             .scrollBounceBehavior(.basedOnSize)
             .frame(width: landscapeW, height: landscapeH)
             .background(.clear)
-            .rotationEffect(.degrees(-90))
+            .rotationEffect(.degrees(model.landscapeAngle))
             .frame(width: portraitW, height: portraitH)
         }
         .confirmationDialog(
@@ -317,6 +317,34 @@ struct SettingsView: View {
                         set: { model.setLandscapeLayout($0) }
                     )
                 )
+
+                if model.isLandscapeLayout {
+                    Divider().overlay(DeckColor.strokeSubtle)
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Landscape direction")
+                                .deckFont(.body)
+                                .foregroundStyle(DeckColor.ink)
+                            Text(model.landscapeAngle == -90 ? "Home button right" : "Home button left")
+                                .deckFont(.bodySmall)
+                                .foregroundStyle(DeckColor.inkMuted)
+                        }
+                        Spacer()
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                model.flipLandscapeDirection()
+                            }
+                        } label: {
+                            Image(systemName: "arrow.left.arrow.right")
+                                .font(.system(size: 14))
+                                .foregroundStyle(DeckColor.mint)
+                                .frame(width: 36, height: 36)
+                                .background(DeckColor.mint.opacity(0.12), in: RoundedRectangle(cornerRadius: DeckRadius.badge, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
         }
     }

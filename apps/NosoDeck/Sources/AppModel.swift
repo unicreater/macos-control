@@ -40,6 +40,7 @@ final class AppModel {
     private(set) var shortcuts: [String] = []
     private(set) var shortcutInfos: [ShortcutInfo] = []
     private(set) var browserTabs: [BrowserTab] = []
+    private(set) var clipboardHistory: [ClipboardItem] = ClipboardStore.load()
     private var hasRequestedShortcuts = false
     private var shortcutsAnswered = false
     /// The most recent action failure, for the tile that reported it.
@@ -101,6 +102,7 @@ final class AppModel {
         self.isEmojiStripEnabled = (defaults.object(forKey: Self.emojiStripKey) as? Bool) ?? true
         self.bulletStyle = (defaults.string(forKey: Self.bulletStyleKey)) ?? "bullet"
         self.isLandscapeLayout = (defaults.object(forKey: Self.layoutKey) as? Bool) ?? true
+        self.landscapeAngle = (defaults.object(forKey: Self.landscapeAngleKey) as? Double) ?? -90
         if let data = defaults.data(forKey: Self.gestureMappingKey),
            let mapping = try? JSONDecoder().decode(GestureMapping.self, from: data) {
             self.gestureMapping = mapping
@@ -327,6 +329,8 @@ final class AppModel {
     private(set) var keepsScreenAwake = true
     private(set) var isEmojiStripEnabled = true
     private(set) var isLandscapeLayout = true
+    /// Landscape rotation angle: -90 (home right) or 90 (home left)
+    private(set) var landscapeAngle: Double = -90
     private(set) var gestureMapping = GestureMapping.default
 
     func setKeepsScreenAwake(_ enabled: Bool) {
@@ -345,6 +349,11 @@ final class AppModel {
         UserDefaults.standard.set(enabled, forKey: Self.layoutKey)
     }
 
+    func flipLandscapeDirection() {
+        landscapeAngle = landscapeAngle == -90 ? 90 : -90
+        UserDefaults.standard.set(landscapeAngle, forKey: Self.landscapeAngleKey)
+    }
+
     func setGestureMapping(_ mapping: GestureMapping) {
         gestureMapping = mapping
         if let data = try? JSONEncoder().encode(mapping) {
@@ -361,6 +370,7 @@ final class AppModel {
     fileprivate static let emojiStripKey = "com.noso.nosodeck.emojiStrip"
     fileprivate static let bulletStyleKey = "com.noso.nosodeck.bulletStyle"
     fileprivate static let layoutKey = "com.noso.nosodeck.landscapeLayout"
+    fileprivate static let landscapeAngleKey = "com.noso.nosodeck.landscapeAngle"
     fileprivate static let gestureMappingKey = "com.noso.nosodeck.gestureMapping"
 
     /// "bullet" for • or "number" for 1. 2. 3.
@@ -397,6 +407,71 @@ final class AppModel {
         }
         persistDeck()
         requestMissingIcons()
+    }
+
+    // MARK: - Clipboard
+
+    func addClipboardItem(_ update: ClipboardUpdate) {
+        let trimmed = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Remove any existing entry with the same text (trimmed), then insert at top
+        clipboardHistory.removeAll {
+            $0.text.trimmingCharacters(in: .whitespacesAndNewlines) == trimmed
+        }
+        clipboardHistory.insert(ClipboardItem(from: update), at: 0)
+        if clipboardHistory.count > 30 { clipboardHistory = Array(clipboardHistory.prefix(30)) }
+        ClipboardStore.save(clipboardHistory)
+    }
+
+    func clearClipboardHistory() {
+        clipboardHistory.removeAll()
+        ClipboardStore.save(clipboardHistory)
+    }
+
+    func removeClipboardItem(id: UUID) {
+        clipboardHistory.removeAll { $0.id == id }
+        ClipboardStore.save(clipboardHistory)
+    }
+
+    func pasteClipboardItem(_ item: ClipboardItem) {
+        guard session.acceptsActions else { return }
+        client.send(.action(ActionRequest(kind: .insertText, target: item.text)))
+    }
+
+    // MARK: - Pins
+
+    private static let pinnedRecentsKey = "com.noso.nosodeck.pinnedRecents"
+    private static let pinnedClipboardKey = "com.noso.nosodeck.pinnedClipboard"
+
+    private(set) var pinnedRecents: [String] = UserDefaults.standard.stringArray(forKey: pinnedRecentsKey) ?? []
+    private(set) var pinnedClipboard: Set<UUID> = {
+        let strings = UserDefaults.standard.stringArray(forKey: pinnedClipboardKey) ?? []
+        return Set(strings.compactMap { UUID(uuidString: $0) })
+    }()
+
+    func togglePinRecent(_ bundleID: String) {
+        if pinnedRecents.contains(bundleID) {
+            pinnedRecents.removeAll { $0 == bundleID }
+        } else {
+            pinnedRecents.append(bundleID)
+        }
+        UserDefaults.standard.set(pinnedRecents, forKey: Self.pinnedRecentsKey)
+    }
+
+    func isRecentPinned(_ bundleID: String) -> Bool {
+        pinnedRecents.contains(bundleID)
+    }
+
+    func togglePinClipboard(_ id: UUID) {
+        if pinnedClipboard.contains(id) {
+            pinnedClipboard.remove(id)
+        } else {
+            pinnedClipboard.insert(id)
+        }
+        UserDefaults.standard.set(pinnedClipboard.map(\.uuidString), forKey: Self.pinnedClipboardKey)
+    }
+
+    func isClipboardPinned(_ id: UUID) -> Bool {
+        pinnedClipboard.contains(id)
     }
 
     // MARK: - Folders
@@ -756,6 +831,10 @@ final class AppModel {
 
         client.onBrowserTabs = { [weak self] tabs in
             self?.browserTabs = tabs
+        }
+
+        client.onClipboardUpdate = { [weak self] update in
+            self?.addClipboardItem(update)
         }
 
         client.onActionResult = { [weak self] result in
